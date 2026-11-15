@@ -43,9 +43,9 @@ export default function CampusScene({ paused }: { paused: boolean }) {
       camera={{ fov: 45, near: 0.5, far: 9000, position: [0, 60, 60] }}
       gl={{ antialias: high, powerPreference: 'default' }}
       style={{ touchAction: 'none' }}
-      onCreated={({ gl }) => {
-        // Development only: check draw calls in the console with __gl.info.render
-        if (import.meta.env.DEV) (window as unknown as { __gl: unknown }).__gl = gl;
+      onCreated={({ gl, camera }) => {
+        // Development only: check draw calls with __gl.info.render, and the camera with __cam.
+        if (import.meta.env.DEV) Object.assign(window as object, { __gl: gl, __cam: camera });
       }}
     >
       <color attach="background" args={[look.sky]} />

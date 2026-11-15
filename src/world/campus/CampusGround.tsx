@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { CELL, cellRect, isRoad, mapBounds, roadCells, sections } from '../../content/campusMap';
+import { PLOTS } from '../../content/places';
 
 const groundMaterial = new THREE.MeshLambertMaterial({ vertexColors: true });
 
@@ -46,6 +47,17 @@ function buildGround(): THREE.BufferGeometry {
   for (const s of sections) {
     const tint = new THREE.Color('#E3D6B4').lerp(new THREE.Color(s.color), 0.12);
     flat(s.rect.x0, s.rect.z0, s.rect.x1, s.rect.z1, 0.03, `#${tint.getHexString()}`);
+  }
+
+  // Plots of empty land for sale (a later feature): a pale pad with a gold border.
+  for (const plot of PLOTS) {
+    const r = plot.rect;
+    const b = 1.2;
+    flat(r.x0 + 2, r.z0 + 2, r.x1 - 2, r.z1 - 2, 0.05, '#C9D98A');
+    flat(r.x0 + 2, r.z0 + 2, r.x1 - 2, r.z0 + 2 + b, 0.07, '#E2B33C');
+    flat(r.x0 + 2, r.z1 - 2 - b, r.x1 - 2, r.z1 - 2, 0.07, '#E2B33C');
+    flat(r.x0 + 2, r.z0 + 2, r.x0 + 2 + b, r.z1 - 2, 0.07, '#E2B33C');
+    flat(r.x1 - 2 - b, r.z0 + 2, r.x1 - 2, r.z1 - 2, 0.07, '#E2B33C');
   }
 
   // Roads, one planner square at a time.

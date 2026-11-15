@@ -6,7 +6,7 @@ import { useMemo, useRef } from 'react';
 import type * as THREE from 'three';
 import { cameraState } from '../shared';
 import { buildingById, sections } from '../../content/campusMap';
-import { PLACES } from '../../content/places';
+import { PLACES, PLOTS } from '../../content/places';
 import { placeHasSomethingNow } from '../../game/interactions';
 import { useGameStore } from '../../store/gameStore';
 import { Label } from '../Label';
@@ -28,6 +28,9 @@ export function CampusLabels() {
         <Label key={s.id} text={s.name} position={[(s.rect.x0 + s.rect.x1) / 2, 14, s.rect.z0 + 6]} size={1.25} />
       ))}
       <group ref={names}>
+        {PLOTS.map((p) => (
+          <Label key={p.id} text="Plot for sale" position={[(p.rect.x0 + p.rect.x1) / 2, 4, (p.rect.z0 + p.rect.z1) / 2]} size={0.8} />
+        ))}
       {labelled.map((p) => {
         const b = buildingById.get(p.buildingId)!;
         const x = (b.plot.x0 + b.plot.x1) / 2;

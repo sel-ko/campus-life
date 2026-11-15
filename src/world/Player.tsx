@@ -13,7 +13,7 @@ import { findPath, isBlocked, nearestDoor, campusBounds } from './campus/navigat
 import { Character } from './characters/Character';
 import type { CharacterLook } from './characters/look';
 import { joystick } from './input';
-import { playerWorld } from './shared';
+import { cameraState, playerWorld } from './shared';
 
 const WALK_SPEED = 8; // metres per second at full joystick
 const MIN_TRAVEL_SPEED = 14; // metres per second after tapping a place
@@ -82,8 +82,13 @@ export function Player({ look }: { look: CharacterLook }) {
       store.cancelWalk();
       route.current = null;
       const speed = WALK_SPEED * Math.min(stick, 1) * dt;
-      const dx = (joystick.x / stick) * speed;
-      const dz = (joystick.y / stick) * speed;
+      // Relative to the screen: "up" on the stick is away from the camera, however the view is turned.
+      const jx = (joystick.x / stick) * speed;
+      const jz = (joystick.y / stick) * speed;
+      const cy = Math.cos(cameraState.yaw);
+      const sy = Math.sin(cameraState.yaw);
+      const dx = jx * cy + jz * sy;
+      const dz = -jx * sy + jz * cy;
       const b = campusBounds();
       const nx = THREE.MathUtils.clamp(p.x + dx, b.minX, b.maxX);
       const nz = THREE.MathUtils.clamp(p.z + dz, b.minZ, b.maxZ);

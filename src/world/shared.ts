@@ -9,5 +9,6 @@ export const gesture = { moved: false, active: false };
 /** Where the player character is, so the camera can follow it. */
 export const playerWorld = { pos: new THREE.Vector3(), moving: false };
 
-/** How far the camera is from the ground, so labels can grow when zoomed out. */
-export const cameraState = { dist: 40 };
+/** How far the camera is from the ground (labels) and which way it faces
+ *  (yaw, radians), so the joystick moves the player relative to the screen. */
+export const cameraState = { dist: 40, yaw: 0 };

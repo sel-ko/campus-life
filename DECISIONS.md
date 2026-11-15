@@ -434,3 +434,15 @@ the code mentioned.
      project, fees due, exam week). Count-based ones tick off as soon as they
      are met; "save money", "stay calm" and "stay fed" are judged at the end
      of the week. Each one done takes 5 off stress.
+108. **Turning the view:** two fingers twisting turns the camera round the
+     campus (yaw); two fingers sliding up or down tilts it (22° to 88°);
+     pinching still zooms. With a mouse: right-drag or Shift-drag turns and
+     tilts. The brief's "rotation along all axes" is read as turn and tilt:
+     rolling the horizon sideways was left out because it makes the map hard
+     to read. Pressing Me or Map straightens the view. The joystick follows
+     the screen ("up" is always away from the camera).
+109. **The character keeps facing** the way it last walked when it stops
+     (it used to swing back to face the camera).
+110. **Plots for sale:** 14 empty 2×2 squares beside roads outside the four
+     sections are highlighted with a gold border and a "Plot for sale" label
+     (`PLOTS` in `src/content/places.ts`). Buying them is a later feature.
