@@ -8,14 +8,20 @@ the code mentioned.
 
 1. **School details are placeholders.** The brief only had the full name filled
    in. `src/content/university.ts` has placeholder names, departments, slang and
-   colours, each marked `TODO`. The short name is set to "Uni" until confirmed.
+   colours, each marked `TODO`. The short name is confirmed.
+1a. **Three sites.** The real campus is three separate places: PS (Permanent
+   Site: arts, business, ICT, law), TS (Temporary Site: sciences) and Crown
+   Estate (where everyone lives). The map shows them as three clusters joined
+   by roads, not to real scale. Every building and department belongs to a
+   site. For now any lecture building works for any student.
 2. **Allowance on day 1 comes on top of the starting money.** Broke starts with
    ₦5,000 and the day 1 allowance of ₦3,000 lands at once, so the first screen
    shows ₦8,000. Day 8 pays again at the start of the morning.
-3. **Either hostel works for hostel actions.** Any building of type `hostel`
-   offers Sleep, Nap, Cook noodles and Sell snacks.
-4. **Bus park and gate have no actions yet.** They are always dimmed. They are
-   there for vendor stalls and billboards in Phase 5.
+3. **Either student estate works for hostel actions.** Any building of type
+   `hostel` offers Sleep, Nap, Cook noodles and Sell snacks.
+4. **The gate has no actions yet.** It is always dimmed and is there for a
+   vendor stall and billboard in Phase 5. The keke park was dropped to stay at
+   10 places; it can replace the gate if that suits the school better.
 5. **Collapse is checked whenever energy changes**: after an action, after an
    event choice, and at the end of the day. The lost slot can be the next
    morning. Energy stays at 0 after a collapse, so the player must eat or
