@@ -154,3 +154,50 @@ the code mentioned.
     map is one of the costliest things on a cheap phone.
 47. **Market and Ranks apps** only appear when Supabase is set up, like the
     leaderboard before.
+
+## Controls restyle (second reference)
+
+48. **Top row:** clock pill (slot shown as a clock time: Morning 8:00 AM,
+    Afternoon 1:00 PM, Evening 6:00 PM, Night 10:00 PM; tap for Calendar), a
+    chevron that drops down the four stats and the day, and money with a "+"
+    (both open Wallet, which lists ways to earn).
+49. **Bottom row:** avatar (energy ring), a nav pill with Home (walk back to
+    your estate), Me and Map, and a mini-phone button with the unread badge.
+50. **Joystick:** hidden in the close-up view until a finger touches and
+    drags on the map; it appears under the finger and goes on release. A short
+    tap still taps buildings. A second finger (pinch) cancels it.
+51. **Phone home** is lock-screen style: clock, date, next-step card with a Go
+    button (walks to a place that helps), search over apps and places, four
+    main apps; swipe for all apps.
+
+## Real campus map, phase 1 (layout and debug view)
+
+52. **The map data is never hand-edited**, except `GAP_SHRINK`, set to 0.35 as
+    asked. Fixes go in `src/content/campus-overrides.ts` (empty for now).
+53. **Scene coordinates** put the estate centre at 0, 0. `WORLD_SCALE` is
+    60 / 561 ≈ 0.107 scene units per metre: PS's buildings span 561 m, so PS is
+    60 units wide. A test checks it stays between 55 and 65.
+54. **Zone shrinking** moves every PS or TS item by the same amount (the zone's
+    offset from the estate times GAP_SHRINK − 1), so shapes and sizes inside a
+    zone never change. Open-ground polygons and the track have no zone in the
+    data, so each goes with the nearest zone centre.
+55. **Link roads:** the end nearer PS or TS moves fully with that zone, the
+    estate end stays, and points in between move in proportion to distance
+    along the road, so the road stays joined at both ends.
+56. **Outline cleaning:** points closer than 0.5 m are merged; points less
+    than 0.75 m off the line through their neighbours (and spikes) are removed;
+    winding is made positive in x/z; anything left with fewer than 3 points,
+    under 4 m², or crossing itself becomes its bounding rectangle. With the
+    current data no building needed the rectangle fallback.
+57. **GAP_SHRINK 0.35 makes zones overlap:** 30 buildings (for example
+    `ps-C2` lands on `estate-H12`). The estate is about 1.6 × 1.8 km, so PS and
+    TS cannot come that close. **0.6 is the smallest value with no overlap.**
+    The debug map outlines overlapping buildings in red and offers 0.35, 0.6
+    and 1.
+58. **The debug map is a 2D top-down drawing** (true orthographic, north up,
+    east right, to scale), not a 3D camera, so ids stay crisp at any zoom. It
+    can become a 3D top-down camera once buildings are extruded.
+59. **Scale warning for phase 2:** at 0.107 units per metre a one-storey
+    block is about 0.34 units tall, while a character is about 3 units tall
+    (28 m at this scale). Characters will need shrinking or heights
+    exaggerating; to be decided in phase 2.
