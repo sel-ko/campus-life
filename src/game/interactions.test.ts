@@ -1,0 +1,155 @@
+import { describe, expect, it } from 'vitest';
+import { PLACES, getPlace, mainBuka, mainLibrary, medicalCentre, officePlace } from '../content/places';
+import { getInteractions, getMenu, getOccupants, getQueueLength, performInteraction, travel, travelOptions, type Interaction } from './interactions';
+import { getFee } from './money';
+import { at, signAll, testGame } from './testkit';
+import type { GameState, PlaceType } from './types';
+
+const TARGETS = ['seat', 'lecturer', 'desk', 'counter', 'bed', 'locker', 'shelf', 'bench', 'stove', 'board', 'door', 'person'];
+
+function check(list: Interaction[]): void {
+  for (const i of list) {
+    expect(TARGETS).toContain(i.target.type);
+    expect(i.label.length).toBeGreaterThan(3);
+    if (!i.available) expect(i.reason, i.id).toBeTruthy();
+  }
+}
+
+function lectureNow(): { d: GameState; placeId: string; code: string } {
+  const d = structuredClone(testGame());
+  d.academics.registered = true;
+  const c = d.academics.courses.find((x) => x.kind === 'lecture' && x.meetings.some((m) => m.status === 'scheduled'))!;
+  const m = c.meetings.find((x) => x.status === 'scheduled')!;
+  at(d, m.day, m.slot);
+  return { d, placeId: m.placeId, code: c.code };
+}
+
+describe('the interaction API, by place type', () => {
+  it('lecture_hall: attend the lecture on the timetable, with the lecturer present', () => {
+    const { d, placeId, code } = lectureNow();
+    const list = getInteractions(d, placeId);
+    check(list);
+    expect(list.find((i) => i.id === `attend:${code}`)?.available).toBe(true);
+    const occ = getOccupants(d, placeId);
+    expect(occ.some((o) => o.spot.type === 'lecturer')).toBe(true);
+    const after = performInteraction(d, placeId, `attend:${code}`);
+    expect(after.clock.slot).not.toBe(d.clock.slot);
+    expect(after.academics.courses.find((c) => c.code === code)!.meetings.some((m) => m.attended)).toBe(true);
+    // The original state is never changed.
+    expect(d.academics.courses.find((c) => c.code === code)!.meetings.some((m) => m.attended)).toBe(false);
+  });
+
+  it('admin_office: clearance desks, with a queue and an officer', () => {
+    const d = at(structuredClone(testGame()), 3, 0);
+    const place = officePlace('registry', 'nas');
+    const list = getInteractions(d, place.id);
+    check(list);
+    expect(list.map((i) => i.id)).toContain('office:registry');
+    expect(getQueueLength(d, place.id)).toBeGreaterThanOrEqual(0);
+    expect(getOccupants(d, place.id).some((o) => o.role === 'officer')).toBe(true);
+  });
+
+  it('restaurant: a menu of Nigerian dishes and the always-open plate washing', () => {
+    const d = structuredClone(testGame());
+    const buka = mainBuka();
+    const menu = getMenu(d, buka.id);
+    expect(menu.length).toBeGreaterThanOrEqual(10);
+    expect(menu.map((m) => m.name).join(' ')).toMatch(/Jollof/);
+    const list = getInteractions(d, buka.id);
+    check(list);
+    expect(list.find((i) => i.id === 'wash_plates')?.available).toBe(true);
+    d.needs.hunger = 80;
+    const after = performInteraction(d, buka.id, 'eat:jollof');
+    expect(after.needs.hunger).toBeLessThan(80);
+    expect(after.clock).toEqual(d.clock);
+  });
+
+  it('hostel_room: bed, locker, stove and desk in your own room only', () => {
+    const d = structuredClone(testGame());
+    d.inventory.noodles = 2;
+    const list = getInteractions(d, d.room.placeId);
+    check(list);
+    for (const id of ['nap', 'errands', 'food:noodles', 'hustle:snacks']) expect(list.map((i) => i.id)).toContain(id);
+    const other = PLACES.find((p) => p.type === 'hostel_room' && p.id !== d.room.placeId)!;
+    expect(getInteractions(d, other.id).map((i) => i.id)).not.toContain('nap');
+  });
+
+  it('lab: practicals on the timetable', () => {
+    for (let seed = 1; seed < 20; seed++) {
+      const d = structuredClone(testGame({ seed }));
+      const c = d.academics.courses.find((x) => x.kind === 'practical' && x.meetings.some((m) => m.status === 'scheduled'));
+      if (!c) continue;
+      const m = c.meetings.find((x) => x.status === 'scheduled')!;
+      at(d, m.day, m.slot);
+      expect(getPlace(m.placeId)?.type).toBe('lab');
+      const list = getInteractions(d, m.placeId);
+      check(list);
+      expect(list.map((i) => i.id)).toContain(`attend:${c.code}`);
+      return;
+    }
+    throw new Error('no practical found');
+  });
+
+  it('library: reading on shelves, assignments, registration', () => {
+    const d = at(structuredClone(testGame()), 4, 1);
+    d.inventory.passport = 1;
+    const lib = mainLibrary();
+    const list = getInteractions(d, lib.id);
+    check(list);
+    expect(list.filter((i) => i.kind === 'read').length).toBe(d.academics.courses.length);
+    expect(list.find((i) => i.id === 'library_register')?.available).toBe(true);
+    const after = performInteraction(d, lib.id, 'library_register');
+    expect(after.clearance.library).toBe(true);
+  });
+
+  it('clinic: see the doctor, and the Medical Centre clearance desk', () => {
+    const d = at(structuredClone(testGame()), 3, 0);
+    d.ill = true;
+    d.needs.health = 30;
+    const mc = medicalCentre();
+    const list = getInteractions(d, mc.id);
+    check(list);
+    expect(list.find((i) => i.id === 'treat')?.available).toBe(true);
+    expect(list.map((i) => i.id)).toContain('office:medical');
+    const after = performInteraction(d, mc.id, 'treat');
+    expect(after.needs.health).toBeGreaterThan(30);
+  });
+
+  it('every enterable place answers, and "wait" is always possible', () => {
+    const d = structuredClone(testGame());
+    const types = new Set<PlaceType>();
+    for (const p of PLACES.filter((x) => x.enterable)) {
+      const list = getInteractions(d, p.id);
+      check(list);
+      expect(list.find((i) => i.kind === 'wait')?.available).toBe(true);
+      types.add(p.type);
+    }
+    for (const t of ['lecture_hall', 'admin_office', 'restaurant', 'hostel_room', 'lab', 'library', 'clinic'] as const) expect(types.has(t)).toBe(true);
+  });
+
+  it('refuses an unavailable interaction without changing anything', () => {
+    const d = structuredClone(testGame());
+    const after = performInteraction(d, d.room.placeId, 'sleep'); // morning: not allowed
+    expect(after).toEqual(d);
+  });
+});
+
+describe('travel', () => {
+  it('is free inside a section and costs a fare or a slot across sections', () => {
+    const d = structuredClone(testGame());
+    signAll(d);
+    getFee(d, 'acceptance')!.paid = true;
+    const same = PLACES.find((p) => p.sectionId === d.location.sectionId && p.id !== d.location.placeId)!;
+    expect(travelOptions(d, same.id)).toHaveLength(1);
+    const far = PLACES.find((p) => p.sectionId !== d.location.sectionId && p.type === 'library')!;
+    const modes = travelOptions(d, far.id).map((o) => o.mode);
+    expect(modes).toEqual(['keke', 'cab', 'walk']);
+    const byKeke = travel(d, far.id, 'keke');
+    expect(byKeke.money).toBeLessThan(d.money);
+    expect(byKeke.clock).toEqual(d.clock);
+    expect(byKeke.location.placeId).toBe(far.id);
+    const onFoot = travel(d, far.id, 'walk');
+    expect(onFoot.money).toBe(d.money);
+    expect(onFoot.clock.slot).toBe(d.clock.slot + 1);
+  });
+});
