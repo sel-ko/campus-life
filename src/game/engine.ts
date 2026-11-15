@@ -2,6 +2,7 @@
 // domain modules (money, academics, needs, hostel, people, chat, events,
 // goals) in a fixed order. Internal functions change a draft (see draft.ts);
 // the exported pure versions copy the state first.
+import { buildSemester, closeSlot, endOfSession, moveGstBatches, semesterResults } from './academics';
 import { ALLOWANCE_DAYS } from './config';
 import { log, produce } from './draft';
 import { addLateFeeIfDue, allowanceDay, landLateAllowance, sendFeeMoney, sessionFees, weeklyData } from './money';
@@ -34,6 +35,7 @@ export function beginSemester(d: GameState, _r: Rng): void {
   d.academics.lateRegistration = false;
   d.finance.fees = d.finance.fees.filter((f) => f.id !== 'late_reg');
   sendFeeMoney(d);
+  buildSemester(d, _r);
 }
 
 /** Start of a day (in the morning). */
@@ -44,15 +46,20 @@ export function beginDay(d: GameState, r: Rng): void {
     weeklyData(d);
   }
   addLateFeeIfDue(d);
+  moveGstBatches(d, r);
 }
 
 export function endDay(_d: GameState, _r: Rng): void {}
 
-export function endSemester(_d: GameState, _r: Rng): void {}
+export function endSemester(d: GameState, r: Rng): void {
+  semesterResults(d, r);
+  if (d.clock.semester === 2) endOfSession(d);
+}
 
 /** Moves time on by one slot, running end-of-day and end-of-semester rules. */
 export function passSlot(d: GameState, r: Rng): void {
   if (d.phase !== 'playing') return;
+  closeSlot(d);
   const before = d.clock;
   const step = stepClock(before);
   if (step.newDay) endDay(d, r);

@@ -302,3 +302,37 @@ the code mentioned.
 84. **Before allocation** freshers sleep on a transit bunk in Freshers' Hall
     (worse sleep). Allocation picks a hall in Campus Hostel and three
     roommates.
+85. **Timetable:** courses of 3 or more units meet twice a week, smaller
+    ones and practicals once; industrial training every weekday morning,
+    postings three times a week, chambers three afternoons, moot court one
+    evening. Lectures run from day 1 (day 3 for new freshers) to day 11.
+    Each meeting can be cancelled (6%, much more with an "absentee"
+    lecturer), moved to another hall (6%) or fixed for a weekend (3%).
+86. **General courses** alternate between the two big halls (Main Auditorium
+    on 2nd Campus, 1000-Seater Hall on First Campus) by the last digit of
+    the code. Arriving that slot from somewhere else, or 35% bad luck, means
+    no seat: you stand outside and learn half. A course rep who likes you
+    (30+) keeps you a seat.
+87. **Marks:** test 15 (written at one lecture in week two; missing it scores
+    0), assignment 10 (due day 10), attendance 5; exam 70. EPS 312's
+    assignment marks come from hustle profit this semester (₦10,000 for full
+    marks). GST 121's assignment needs a library card. Industrial training
+    and chambers are marked on attendance and the supervisor's goodwill;
+    postings on attendance (30) and an end-of-posting exam (70); the project
+    on approved chapters (30) and the defence (70).
+88. **How well you write a paper** depends on knowledge (0-100) plus a little
+    luck, minus tiredness, very high stress and illness. Lecturers have a
+    temperament: strict (learn more, mark harder), gentle (mark kinder),
+    handout (always sells one; refusing costs goodwill), absentee (cancels a
+    lot), jovial (less stress).
+89. **Every attempt counts** in the CGPA (a failed course and its retake are
+    both on the transcript). An F becomes a carryover in the same semester
+    next session. Failing 24 or more units of the session's own courses
+    means repeating the year. CGPA below 1.00 for two semesters in a row is
+    probation; a third is withdrawal (the game offers a restart).
+90. **Final year:** if carryovers remain (or the project failed) the player
+    spills over into an extra session taking only those courses. Graduation
+    needs no carryovers, a passed project and no open result problem.
+91. **Result problems:** each graded course has a 4% chance of a missing
+    script (shows 0, fixed at the Registry) or a wrong grade (12 marks low,
+    fixed at the College Office). Each visit has a 50% chance to fix it.
