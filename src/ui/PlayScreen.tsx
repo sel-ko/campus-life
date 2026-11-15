@@ -1,5 +1,6 @@
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
+import { EventCard } from './EventCard';
 import { Hud } from './Hud';
 import { LocationList } from './LocationList';
 import { LocationSheet } from './LocationSheet';
@@ -24,6 +25,7 @@ export function PlayScreen({ game }: { game: GameState }) {
         </button>
       </main>
       <LocationSheet game={game} />
+      <EventCard game={game} />
     </div>
   );
 }
