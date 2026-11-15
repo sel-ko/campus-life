@@ -3,6 +3,7 @@ import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { ErrorBoundary } from './ErrorBoundary';
 import { EventCard } from './EventCard';
+import { FloatingJoystick, useJoystickHandlers } from './Joystick';
 import { LocationList } from './LocationList';
 import { LocationSheet } from './LocationSheet';
 import { MapChrome } from './MapChrome';
@@ -35,9 +36,13 @@ export function PlayScreen({ game }: { game: GameState }) {
   const travelTo = useGameStore((s) => s.travelTo);
   const tapLocation = useGameStore((s) => s.tapLocation);
   const closePhone = useGameStore((s) => s.closePhone);
+  const cameraMode = useGameStore((s) => s.cameraMode);
 
   // Drawing stops while the tab is hidden or anything covers the map.
   const paused = !visible || sheetOpen || phoneOpen || profileOpen || game.pendingEventId !== null;
+
+  // In the close-up view, touching and dragging the map brings up the joystick.
+  const joystickHandlers = useJoystickHandlers(showMap && cameraMode === 'follow' && !paused);
 
   // From the phone's Places app: walk there on the map, or open it directly.
   function pickPlace(id: string) {
@@ -45,6 +50,7 @@ export function PlayScreen({ game }: { game: GameState }) {
       closePhone();
       travelTo(id);
     } else {
+      closePhone();
       tapLocation(id);
     }
   }
@@ -52,7 +58,7 @@ export function PlayScreen({ game }: { game: GameState }) {
   return (
     <div className="fixed inset-0 overflow-hidden bg-night">
       {showMap ? (
-        <div className="absolute inset-0">
+        <div className="absolute inset-0" {...joystickHandlers}>
           <ErrorBoundary fallback={null} onError={() => setMapFailed(true)}>
             <Suspense fallback={<MapLoading />}>
               <CampusScene paused={paused} />
@@ -68,6 +74,7 @@ export function PlayScreen({ game }: { game: GameState }) {
       )}
 
       <MapChrome game={game} showMap={showMap} />
+      <FloatingJoystick />
 
       <LocationSheet game={game} />
       <EventCard game={game} />
