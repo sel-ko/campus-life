@@ -16,13 +16,14 @@ import {
 } from './academics';
 import { getFee } from './money';
 import { Rng } from './rng';
-import { at, testGame } from './testkit';
+import { at, testGame, veteranGame } from './testkit';
 import type { CourseState, GameState } from './types';
 
 function registeredGame(programmeId = 'computer_science'): GameState {
-  const d = structuredClone(testGame({ programmeId }));
+  const d = veteranGame({ programmeId });
   d.academics.registered = true;
   getFee(d, 'school1')!.paid = true;
+  d.flags.formDoneDay = 1; // clearance done: attendance counts from day 1
   return d;
 }
 
@@ -31,10 +32,10 @@ function course(d: GameState, kind = 'lecture'): CourseState {
 }
 
 describe('the timetable', () => {
-  it('starts lectures on day 3 for new freshers and keeps exams in the last days', () => {
+  it('starts lectures in week two for new freshers and keeps exams in the last days', () => {
     const d = testGame();
     for (const c of d.academics.courses) {
-      for (const m of c.meetings) expect(m.day).toBeGreaterThanOrEqual(3);
+      for (const m of c.meetings) expect(m.day).toBeGreaterThanOrEqual(8);
       expect(c.exam.day).toBeGreaterThanOrEqual(11);
     }
     const examSlots = d.academics.courses.map((c) => `${c.exam.day}:${c.exam.slot}`);
@@ -44,7 +45,7 @@ describe('the timetable', () => {
   it('meets on weekdays except for lectures fixed for a weekend', () => {
     let weekend = 0;
     for (let seed = 1; seed <= 30; seed++) {
-      for (const c of testGame({ seed }).academics.courses) {
+      for (const c of veteranGame({ seed }).academics.courses) {
         for (const m of c.meetings) {
           if ([6, 7, 13, 14].includes(m.day)) {
             weekend++;
@@ -60,13 +61,22 @@ describe('the timetable', () => {
     const d = testGame();
     const gst = d.academics.courses.filter((c) => c.kind === 'gst');
     expect(gst.map((c) => c.code)).toEqual(['GST 111', 'GST 112', 'GST 113']);
-    for (const c of d.academics.courses.filter((x) => x.kind === 'lecture')) {
+    for (const c of veteranGame().academics.courses.filter((x) => x.kind === 'lecture')) {
       if (c.meetings.some((m) => m.status === 'scheduled')) expect(c.meetings.filter((m) => m.test)).toHaveLength(1);
     }
   });
 });
 
 describe('attendance and the 75% rule', () => {
+  it("does not count a new fresher's missed lectures before the clearance form is done", () => {
+    const d = structuredClone(testGame());
+    const c = d.academics.courses.find((x) => x.meetings.length >= 2)!;
+    expect(barred(d, c)).toBe(false);
+    d.flags.formDoneDay = 1;
+    c.meetings.push({ ...c.meetings[0]!, day: 9 }, { ...c.meetings[0]!, day: 10 });
+    expect(barred(d, c)).toBe(true);
+  });
+
   it('counts attended over held and bars below 75%', () => {
     const d = registeredGame();
     const c = course(d);
@@ -167,7 +177,7 @@ describe('carryovers, repeating and probation', () => {
     semesterResults(d, new Rng(5)); // nothing written: everything fails
     expect(d.academics.carryovers.length).toBeGreaterThan(0);
     expect(d.academics.carryovers.every((c) => c.semester === 1)).toBe(true);
-    expect(d.academics.lowCgpaRun).toBe(1);
+    expect(d.academics.lowCgpaRun).toBe(0); // the first semester does not count towards probation
   });
 
   it('repeats the year after failing too many units, and progresses otherwise', () => {
@@ -178,7 +188,7 @@ describe('carryovers, repeating and probation', () => {
     semesterResults(d, new Rng(6));
     endOfSession(d);
     expect(d.academics.repeating).toBe(true);
-    expect(d.academics.level).toBe(1);
+    expect(d.academics.level).toBe(2);
 
     const ok = registeredGame();
     for (const c of ok.academics.courses) {
@@ -190,7 +200,19 @@ describe('carryovers, repeating and probation', () => {
     semesterResults(ok, new Rng(5));
     ok.clock.semester = 2;
     endOfSession(ok);
-    expect(ok.academics.level).toBe(2);
+    expect(ok.academics.level).toBe(3);
+  });
+
+  it('repeats the year when nothing was registered all session', () => {
+    const d = registeredGame();
+    d.academics.registered = false;
+    semesterResults(d, new Rng(1));
+    expect(d.academics.transcript).toHaveLength(0);
+    expect(d.academics.carryovers.length).toBeGreaterThan(0);
+    d.clock.semester = 2;
+    endOfSession(d);
+    expect(d.academics.repeating).toBe(true);
+    expect(d.academics.level).toBe(2);
   });
 
   it('puts the player on probation, then withdraws them', () => {
@@ -199,6 +221,7 @@ describe('carryovers, repeating and probation', () => {
       d.academics.courses = structuredClone(registeredGame().academics.courses);
       semesterResults(d, new Rng(5));
     };
+    fail(); // first semester: grace
     fail();
     fail();
     expect(d.academics.probation).toBe(true);

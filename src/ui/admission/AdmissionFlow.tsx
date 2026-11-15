@@ -6,7 +6,7 @@ import { COLLEGES, PROGRAMMES, getCollege, getProgramme } from '../../content/co
 import { sectionName } from '../../content/places';
 import { university } from '../../content/university';
 import { admissionLetter, decideAdmission, drawTest, matricNumber, scoreTest } from '../../game/admission';
-import { BACKGROUNDS, FEES } from '../../game/config';
+import { BACKGROUNDS, FEES, FRESHER_LECTURES_START } from '../../game/config';
 import { naira } from '../../game/format';
 import type { AmbitionId, BackgroundId } from '../../game/types';
 import { onlineConfigured } from '../../online/supabase';
@@ -246,7 +246,7 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
           </p>
           <p className="mt-2 text-sm leading-relaxed">
             The programme runs for {letter.years} years. Pay your acceptance fee on the portal and complete clearance at the eight listed offices.
-            Lectures begin on day {3} regardless.
+            Week one is orientation; lectures begin on day {FRESHER_LECTURES_START} regardless.
           </p>
           <p className="mt-4 text-sm">Congratulations,</p>
           <p className="text-sm italic">The Registrar (fictional)</p>

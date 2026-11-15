@@ -102,7 +102,8 @@ export function visitOfficeMut(d: GameState, r: Rng, id: OfficeId): VisitOutcome
   // Luck, weighted by the slot, the day and how well you know the officer.
   const rel = officerRel(d, id);
   const queue = officeQueue(d, id);
-  const others = OFFICE_ORDER.filter((o) => o !== id && !c.signed[o] && !(OFFICES[o].needs ?? []).includes(id));
+  // "Get X's signature first" only names an office that could sign right now.
+  const others = OFFICE_ORDER.filter((o) => o !== id && !c.signed[o] && !(OFFICES[o].needs ?? []).includes(id) && !blockedBy(d, o));
   const outcome = r.weighted<VisitOutcome>([
     ['signed', W.signed + rel * W.relBonus + (d.clock.slot === 0 ? W.morningBonus : 0) - (queue > 8 ? W.longQueue : 0)],
     ['not_on_seat', W.notOnSeat + (d.clock.slot === 1 ? W.afternoonNotOnSeat : 0)],
@@ -147,6 +148,7 @@ function sign(d: GameState, id: OfficeId): VisitOutcome {
   d.week.signatures += 1;
   c.lastOutcome = `${officeName(id)} signed your form.`;
   log(d, `${officeName(id)} signed your clearance form! ${signedCount(d)} of 8.`);
+  if (clearanceFormDone(d)) d.flags.formDoneDay = d.clock.day;
   if (clearanceFormDone(d)) log(d, 'Clearance form complete! Now pay your fees, collect your hostel allocation and register at the library.');
   checkClearanceDone(d);
   return 'signed';

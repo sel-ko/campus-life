@@ -7,6 +7,8 @@ import { collegeVenues, gstHalls, medicalCentre, officePlace, placementFor } fro
 import type { CourseDef } from './contentTypes';
 import {
   ATTENDANCE_BAR,
+  FREE_ABSENCES,
+  PERF,
   CA,
   CLASS_OF_DEGREE,
   EPS_PROFIT_TARGET,
@@ -151,8 +153,9 @@ function weeklyPattern(defs: CourseDef[], r: Rng): Map<string, Array<{ wd: numbe
 function examSlots(): Array<{ day: number; slot: number }> {
   const out: Array<{ day: number; slot: number }> = [];
   for (const slot of [0, 1, 2]) for (const day of EXAM_DAYS) out.push({ day, slot });
-  out.push({ day: LAST_LECTURE_DAY, slot: 2 });
   for (const day of EXAM_DAYS) out.push({ day, slot: 3 });
+  // Overflow papers (heavy carryover loads) go on the last lecture day.
+  out.push({ day: LAST_LECTURE_DAY, slot: 2 }, { day: LAST_LECTURE_DAY, slot: 3 });
   return out.sort((a, b) => a.day - b.day || a.slot - b.slot);
 }
 
@@ -282,7 +285,12 @@ export function examsNow(d: GameState, placeId?: string): CourseState[] {
 /** Attendance so far: attended / held, counting meetings already past. */
 export function attendance(d: GameState, course: CourseState, wholeSemester = false): { attended: number; held: number; pct: number } {
   const now = d.clock.day * 4 + d.clock.slot;
-  const held = course.meetings.filter((m) => m.status === 'scheduled' && (wholeSemester || m.attended || m.day * 4 + m.slot < now));
+  // A new fresher's attendance only counts from the day their clearance form is complete.
+  const fresher = d.clock.year === 1 && d.clock.semester === 1 && d.academics.level === 1 && !d.academics.repeating;
+  const from = fresher ? (d.flags.formDoneDay ?? 99) : 0;
+  const held = course.meetings.filter(
+    (m) => m.status === 'scheduled' && (m.attended || (m.day >= from && (wholeSemester || m.day * 4 + m.slot < now))),
+  );
   const attended = held.filter((m) => m.attended).length;
   return { attended, held: held.length, pct: held.length ? attended / held.length : 1 };
 }
@@ -290,7 +298,8 @@ export function attendance(d: GameState, course: CourseState, wholeSemester = fa
 /** The 75% rule (unless the course rep or an office has covered for you). */
 export function barred(d: GameState, course: CourseState): boolean {
   if (course.covered || ['project', 'it', 'chambers'].includes(course.kind)) return false;
-  return attendance(d, course, true).pct < ATTENDANCE_BAR;
+  const a = attendance(d, course, true);
+  return a.pct < ATTENDANCE_BAR && a.held - a.attended > FREE_ABSENCES;
 }
 
 // ---------- doing things ----------
@@ -308,7 +317,7 @@ function learn(d: GameState, course: CourseState, amount: number): number {
 
 /** How well you perform on a paper, 0 to 1. */
 function performance(d: GameState, course: CourseState, r: Rng): number {
-  let p = 0.12 + 0.85 * (course.knowledge / 100) + r.noise(0.08);
+  let p = PERF.base + PERF.slope * (course.knowledge / 100) + r.noise(0.08);
   if (temperament(course.lecturerId) === 'gentle') p += 0.04;
   if (temperament(course.lecturerId) === 'strict') p -= 0.04;
   if (d.needs.energy < 20) p -= 0.08;
@@ -332,7 +341,10 @@ export function attendMut(d: GameState, r: Rng, code: string, outside = false): 
   m.outside = outside;
   d.stats.lecturesAttended += 1;
   d.week.attended += 1;
-  const base = course.kind === 'posting' || course.kind === 'it' || course.kind === 'chambers' ? KNOWLEDGE.posting : KNOWLEDGE.lecture;
+  // Every class of a course together covers the same ground, however often it meets.
+  const live = Math.max(2, course.meetings.filter((x) => x.status === 'scheduled').length);
+  const perClass = (KNOWLEDGE.lecture * 4) / live;
+  const base = course.kind === 'posting' || course.kind === 'it' || course.kind === 'chambers' ? KNOWLEDGE.posting : perClass;
   const manual = course.kind === 'practical' && !(d.inventory.manual ?? 0) ? 0.5 : 1;
   const gain = learn(d, course, base * (outside ? KNOWLEDGE.outsideFactor : 1) * manual);
   if (temperament(course.lecturerId) === 'jovial') d.needs.stress = clamp(d.needs.stress - 2);
@@ -565,11 +577,21 @@ function recomputeCgpas(d: GameState): void {
 /** End of semester: grade every course, update carryovers, probation and progression. */
 export function semesterResults(d: GameState, r: Rng): void {
   const a = d.academics;
+  // Not registered: the semester does not count. Its courses wait for next year.
+  if (!a.registered && a.courses.length) {
+    for (const c of a.courses) {
+      if (!a.carryovers.some((x) => x.code === c.code)) a.carryovers.push({ code: c.code, title: c.title, units: c.units, kind: c.kind, semester: d.clock.semester });
+    }
+    log(d, 'You were never registered this semester, so it does not count. Its courses move to next year, on top of the normal load.');
+    a.courses = [];
+    return;
+  }
   const courses: CourseResult[] = a.courses.map((c) => {
     const { ca, exam } = courseScore(d, c);
     const res = resultFor(clamp(ca + exam), c);
     res.ca = ca;
     res.exam = exam;
+    if (hasExam(c.kind)) res.examStatus = c.exam.status === 'pending' ? 'missed' : c.exam.status;
     return res;
   });
   // Now and then a script goes missing or a grade is entered wrongly.
@@ -606,6 +628,10 @@ export function semesterResults(d: GameState, r: Rng): void {
     log(d, `Results are out: GPA ${record.gpa.toFixed(2)}, CGPA ${record.cgpa.toFixed(2)}.`);
   }
 
+  // A failed project can be worked on and defended again.
+  const proj = courses.find((x) => x.title === 'Final Year Project');
+  if (proj && proj.grade === 'F' && a.project) a.project.defended = false;
+
   // Carryovers: an F is retaken in the same semester next year; a pass clears it.
   for (const res of courses) {
     a.carryovers = a.carryovers.filter((co) => co.code !== res.code);
@@ -617,7 +643,9 @@ export function semesterResults(d: GameState, r: Rng): void {
 
   // Probation: CGPA below 1.00 two semesters running; a third means withdrawal.
   const cgpa = currentCgpa(d);
-  if (courses.length) {
+  // A fresher's first semester (clearance chaos) does not count towards probation.
+  const firstSemester = a.transcript.length === 1;
+  if (courses.length && !firstSemester) {
     a.lowCgpaRun = cgpa < PROBATION_CGPA ? a.lowCgpaRun + 1 : 0;
     if (a.lowCgpaRun === 2) {
       a.probation = true;
@@ -658,6 +686,11 @@ export function endOfSession(d: GameState): void {
       if (proj) a.carryovers.push({ code: proj.code, title: proj.title, units: proj.units, kind: 'project', semester: 2 });
     }
     log(d, `Spill-over: you have ${a.carryovers.length} carryover course(s) left. One more session to clear them.`);
+  } else if (thisYear.length === 0) {
+    // Nothing registered all session: the year is repeated.
+    a.repeating = true;
+    a.carryovers = a.carryovers.filter((c) => !a.transcript.every((t) => t.courses.every((x) => x.code !== c.code)));
+    log(d, `You did not register for any semester this session, so you will repeat ${levelBefore}00 level.`);
   } else if (failed >= REPEAT_FAILED_UNITS) {
     a.repeating = true;
     a.carryovers = a.carryovers.filter((c) => !thisYear.some((t) => t.courses.some((x) => x.code === c.code && !x.carryover)));

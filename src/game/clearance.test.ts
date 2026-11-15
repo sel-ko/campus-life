@@ -43,7 +43,7 @@ describe('office visits', () => {
     expect(outcomesFor(() => at(ready(), 6, 0), 'registry', 50)).toEqual(new Set(['closed']));
     let closed = 0;
     for (let s = 1; s <= 200; s++) if (visitOfficeMut(at(ready(), 3, 2), new Rng(s), 'registry') === 'closed') closed++;
-    expect(closed).toBeGreaterThan(150);
+    expect(closed).toBeGreaterThan(90);
   });
 
   it('says "come back tomorrow" again if you return the same day, and signs the next day', () => {

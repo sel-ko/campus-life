@@ -43,7 +43,7 @@ export function sessionFees(programmeId: string, firstYear: boolean, campusWeekF
     dueDay,
   });
   const out: FeeState[] = [];
-  if (firstYear) out.push(fee('acceptance', FEES.acceptance[tier], 1, 2));
+  if (firstYear) out.push(fee('acceptance', FEES.acceptance[tier], 1, 5));
   const school = FEES.school[tier];
   out.push(fee('school1', school / 2, 1, FEE_DUE_DAY));
   out.push(fee('school2', school / 2, 2, FEE_DUE_DAY));

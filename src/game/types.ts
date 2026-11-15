@@ -164,6 +164,8 @@ export interface CourseResult {
   grade: Grade;
   points: number;
   carryover: boolean;
+  /** How the exam went: written, missed, barred, or not taken (no exam). */
+  examStatus?: 'written' | 'missed' | 'barred';
   /** A result problem waiting at an office; `trueScore` is restored when fixed. */
   issue?: 'missing_script' | 'wrong_grade';
   trueScore?: number;

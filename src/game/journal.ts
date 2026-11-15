@@ -95,6 +95,9 @@ const studyTasks: Producer = (d) => {
       out.push({ id: `bar:${c.code}`, text: `Attendance in ${c.code} is below 75%: attend every class or you will be barred`, urgent: true, group: 'study' });
     }
   }
+  if (a.courses.some((c) => c.kind === 'practical') && !(d.inventory.manual ?? 0)) {
+    out.push({ id: 'manual', text: 'Buy a practical manual (Business Centre or Stationery Kiosk): without it you only watch in practicals', placeId: 'business-9', group: 'study' });
+  }
   for (const issue of a.issues) {
     out.push({
       id: `issue:${issue.id}`,

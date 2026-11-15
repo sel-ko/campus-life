@@ -5,8 +5,8 @@ import { getAmbition } from '../content/ambitions';
 import { getCollege, getProgramme } from '../content/courses';
 import { getPerson, TRAIT_LABELS } from '../content/people';
 import { getPlace, placeName } from '../content/places';
-import { attendance, barred, classOfDegree, currentCgpa } from '../game/academics';
-import { BACKGROUNDS, SEMESTER_DAYS } from '../game/config';
+import { attendance, classOfDegree, currentCgpa } from '../game/academics';
+import { BACKGROUNDS, FREE_ABSENCES, SEMESTER_DAYS } from '../game/config';
 import { naira } from '../game/format';
 import { healthLabel } from '../game/needs';
 import { slotName } from '../game/time';
@@ -178,7 +178,7 @@ export function ProfileSheet({ game }: { game: GameState }) {
                   <p className="mt-1 text-xs text-muted">
                     Test {c.testScore ?? '–'}/15 · assignment {c.assignment ?? '–'}/10 · CA so far {ca}
                     {c.exam.status === 'pending' ? ` · exam day ${c.exam.day} ${slotName(c.exam.slot).toLowerCase()}` : ` · exam ${c.exam.status}`}
-                    {barred(game, c) && c.exam.status === 'pending' ? ' · ⚠ at risk of being barred' : ''}
+                    {att.pct < 0.75 && att.held - att.attended > FREE_ABSENCES && c.exam.status === 'pending' && !c.covered ? ' · ⚠ barred unless covered' : ''}
                     {c.handout.status === 'bought' ? ' · has handout' : ''}
                   </p>
                 </li>

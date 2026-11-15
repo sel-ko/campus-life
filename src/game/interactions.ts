@@ -537,19 +537,25 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
   }
 }
 
+/** Does one interaction on a draft (used by the public version and the simulator). Returns false if not allowed. */
+export function performMut(d: GameState, r: import('./rng').Rng, placeId: string, interactionId: string): boolean {
+  const place = getPlace(placeId);
+  const i = place && getInteractions(d, placeId).find((x) => x.id === interactionId);
+  if (!place || !i || !i.available || d.pendingEvent) return false;
+  d.location = { placeId, sectionId: place.sectionId };
+  doInteraction(d, r, i, place);
+  const slots = i.cost?.slots ?? 0;
+  if (slots > 0 && i.kind !== 'wait') maybeEventMut(d, r, place.type, placeId);
+  advance(d, r, slots);
+  checkClearanceDone(d);
+  checkObjectivesMut(d);
+  return true;
+}
+
 /** Does one interaction at a place. Returns the new state (unchanged if not allowed). */
 export function performInteraction(state: GameState, placeId: string, interactionId: string): GameState {
   return produce(state, (d, r) => {
-    const place = getPlace(placeId);
-    const i = place && getInteractions(d, placeId).find((x) => x.id === interactionId);
-    if (!place || !i || !i.available || d.pendingEvent) return;
-    d.location = { placeId, sectionId: place.sectionId };
-    doInteraction(d, r, i, place);
-    const slots = i.cost?.slots ?? 0;
-    if (slots > 0 && i.kind !== 'wait') maybeEventMut(d, r, place.type, placeId);
-    advance(d, r, slots);
-    checkClearanceDone(d);
-    checkObjectivesMut(d);
+    performMut(d, r, placeId, interactionId);
   });
 }
 
@@ -585,31 +591,37 @@ export function travelOptions(d: GameState, toPlaceId: string): TravelOption[] {
   ];
 }
 
+/** Moves the player on a draft. Returns false if that way is not possible. */
+export function travelMut(d: GameState, r: import('./rng').Rng, toPlaceId: string, mode: TravelMode): boolean {
+  const to = getPlace(toPlaceId);
+  if (!to || d.pendingEvent) return false;
+  const opt = travelOptions(d, toPlaceId).find((o) => o.mode === mode);
+  if (!opt || !opt.available) return false;
+  const across = to.sectionId !== d.location.sectionId;
+  d.location = { placeId: toPlaceId, sectionId: to.sectionId };
+  if (!across) return true;
+  if (mode === 'keke' || mode === 'cab') {
+    spend(d, opt.cost.money ?? 0);
+    if (mode === 'keke') d.stats.kekeRides += 1;
+    else d.stats.cabRides += 1;
+    d.flags.arrived = stamp(d.clock);
+    log(d, `${mode === 'keke' ? 'Keke' : 'Cab'} to ${to.name}: ${naira(opt.cost.money ?? 0)}.`);
+    maybeEventMut(d, r, 'busstop', toPlaceId);
+    return true;
+  }
+  d.stats.longWalks += 1;
+  d.needs.energy = clamp(d.needs.energy - 6);
+  log(d, `You trekked to ${to.name}. Long walk, free ride.`);
+  maybeEventMut(d, r, 'busstop', toPlaceId);
+  advance(d, r, 1);
+  d.flags.arrived = stamp(d.clock);
+  return true;
+}
+
 /** Moves the player to a place. Inside one section it is free; across sections it costs a fare or a slot. */
 export function travel(state: GameState, toPlaceId: string, mode: TravelMode): GameState {
   return produce(state, (d, r) => {
-    const to = getPlace(toPlaceId);
-    if (!to || d.pendingEvent) return;
-    const opt = travelOptions(d, toPlaceId).find((o) => o.mode === mode);
-    if (!opt || !opt.available) return;
-    const across = to.sectionId !== d.location.sectionId;
-    d.location = { placeId: toPlaceId, sectionId: to.sectionId };
-    if (!across) return;
-    if (mode === 'keke' || mode === 'cab') {
-      spend(d, opt.cost.money ?? 0);
-      if (mode === 'keke') d.stats.kekeRides += 1;
-      else d.stats.cabRides += 1;
-      d.flags.arrived = stamp(d.clock);
-      log(d, `${mode === 'keke' ? 'Keke' : 'Cab'} to ${to.name}: ${naira(opt.cost.money ?? 0)}.`);
-      maybeEventMut(d, r, 'busstop', toPlaceId);
-      return;
-    }
-    d.stats.longWalks += 1;
-    d.needs.energy = clamp(d.needs.energy - 6);
-    log(d, `You trekked to ${to.name}. Long walk, free ride.`);
-    maybeEventMut(d, r, 'busstop', toPlaceId);
-    advance(d, r, 1);
-    d.flags.arrived = stamp(d.clock);
+    travelMut(d, r, toPlaceId, mode);
   });
 }
 

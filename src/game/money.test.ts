@@ -99,8 +99,8 @@ describe('the portal', () => {
     for (const k of Object.keys(d.clearance.signed) as Array<keyof typeof d.clearance.signed>) d.clearance.signed[k] = true;
     expect(canRegister(d).ok).toBe(true);
     // Skip to the day after the fresher deadline.
-    passSlots(d, new Rng(9), 4 * 8);
-    expect(d.clock.day).toBe(9);
+    passSlots(d, new Rng(9), 4 * 10);
+    expect(d.clock.day).toBe(11);
     expect(getFee(d, 'late_reg')).toBeDefined();
     expect(canRegister(d).ok).toBe(false);
     getFee(d, 'late_reg')!.paid = true;

@@ -446,3 +446,34 @@ the code mentioned.
 110. **Plots for sale:** 14 empty 2×2 squares beside roads outside the four
      sections are highlighted with a gold border and a "Plot for sale" label
      (`PLOTS` in `src/content/places.ts`). Buying them is a later feature.
+
+## Balance pass (simulator)
+
+111. **Freshers' lectures start in week two** (day 8); week one is
+     orientation (an orientation session runs in the general-course halls on
+     days 1 to 5). The freshers' registration deadline is day 10. Without
+     this, clearance (usually 5 to 12 days) made most freshers fail the
+     whole first year.
+112. **A new fresher's attendance counts from the day their clearance form
+     is complete**, and **their first semester does not count towards
+     probation**.
+113. **An unregistered semester does not count**: its courses become
+     carryovers instead of a page of Fs.
+114. **One absence per course never bars you.** Courses meet only 2 to 4
+     times a semester, so a single missed class would otherwise mean
+     dropping below 75%.
+115. **Every class of a course together teaches the same total** (about 56
+     knowledge for perfect attendance), however often the course meets.
+116. **Semester load is capped at 26 units** including carryovers; extra
+     carryovers wait for a lighter semester. Up to 14 exam papers fit the
+     timetable (days 12 to 14 in four slots, plus two on day 11).
+117. **A failed final-year project reopens** for writing and defence.
+118. **No oversleeping on an exam or test morning** (you set three alarms).
+119. **The acceptance fee is due on day 5**, so paying on day one is not
+     already "near the deadline".
+120. Tuned numbers: office sign chance 70%, evening offices closed half the
+     time, lecture 14 / library 11 / room 8 knowledge, paper performance
+     0.25 + 0.8 × knowledge, oversleeping 8%, broke families send 85% of fees
+     and ₦7,000 allowance. The final table is in BALANCE.md.
+121. **"Random" in the simulator** plays one of the other three strategies
+     at random each slot (a bot pressing random buttons is not a strategy).

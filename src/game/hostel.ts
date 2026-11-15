@@ -71,7 +71,9 @@ export function dayOutagesMut(d: GameState, r: Rng): void {
 /** Morning: oversleeping, unless an early-rising roommate wakes you. */
 export function oversleepMut(d: GameState, r: Rng): void {
   if (d.flags.slept !== d.clock.dayCount - 1 || d.location.placeId !== d.room.placeId) return;
-  if (!r.chance(OVERSLEEP_CHANCE)) return;
+  // Nobody oversleeps on an exam or test morning: the alarm is set three times.
+  const bigMorning = d.academics.courses.some((c) => (c.exam.day === d.clock.day && c.exam.slot === 0) || c.meetings.some((m) => m.test && m.day === d.clock.day && m.slot === 0));
+  if (bigMorning || !r.chance(OVERSLEEP_CHANCE)) return;
   if (hasRoommateTrait(d, 'reader') || hasRoommateTrait(d, 'tidy')) {
     log(d, 'You almost overslept, but a roommate shook you awake at 6:30. Bless them.');
     return;

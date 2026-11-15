@@ -7,6 +7,8 @@ import type { CarryoverCourse, CourseKind } from './types';
 
 export const MIN_UNITS = 16;
 export const MAX_UNITS = 22;
+/** Most units in one semester including carryovers; extra carryovers wait for a lighter semester. */
+export const MAX_LOAD = 26;
 
 function fromTuple(t: CourseTuple): CourseDef {
   return { code: t[0], title: t[1], units: t[2], kind: t[3] ?? 'lecture', draft: true };
@@ -118,8 +120,14 @@ export function semesterLoad(
   const p = getProgramme(programmeId);
   const normal = onlyCarryovers ? [] : [...generalCourses(level, semester), ...programmeCourses(p, level, semester)];
   const codes = new Set(normal.map((c) => c.code));
+  let room = MAX_LOAD - totalUnits(normal);
   const extra = carryovers
     .filter((c) => c.semester === semester && !codes.has(c.code))
+    .filter((c) => {
+      if (c.units > room) return false;
+      room -= c.units;
+      return true;
+    })
     .map((c) => ({ code: c.code, title: c.title, units: c.units, kind: c.kind, draft: true }));
   return [...normal.map((c) => ({ ...c, carryover: false })), ...extra.map((c) => ({ ...c, carryover: true }))];
 }

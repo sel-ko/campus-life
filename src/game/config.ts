@@ -13,8 +13,8 @@ export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const EXAM_DAYS = [12, 13, 14];
 export const LAST_LECTURE_DAY = 11;
 /** Year one, first semester: clearance and orientation come first. */
-export const FRESHER_LECTURES_START = 3;
-export const ORIENTATION_DAYS = [1, 2];
+export const FRESHER_LECTURES_START = 8;
+export const ORIENTATION_DAYS = [1, 2, 3, 4, 5];
 /** Allowance lands on these semester days, in the morning. */
 export const ALLOWANCE_DAYS = [1, 8];
 
@@ -53,9 +53,9 @@ export const BACKGROUNDS: Record<BackgroundId, Background> = {
     label: 'Broke',
     blurb: 'Your people try, but you will need a hustle.',
     startMoney: 8000,
-    allowance: 6000,
+    allowance: 7000,
     lateChance: 0.35,
-    feeShare: 0.8,
+    feeShare: 0.85,
   },
   average: {
     id: 'average',
@@ -112,23 +112,23 @@ export const PORTAL = {
 };
 /** Registration closes on this day; a late fee is charged after it, until the late close. */
 export const REGISTRATION_DEADLINE = 5;
-export const FRESHER_REGISTRATION_DEADLINE = 8;
+export const FRESHER_REGISTRATION_DEADLINE = 10;
 export const LATE_REGISTRATION_CLOSE = 11;
 
 // ---------- clearance ----------
 export const CLEARANCE_WEIGHTS = {
-  signed: 0.5,
-  notOnSeat: 0.15,
-  comeBackTomorrow: 0.12,
-  needOther: 0.07,
-  missingDoc: 0.06,
-  closed: 0.04,
+  signed: 0.7,
+  notOnSeat: 0.12,
+  comeBackTomorrow: 0.1,
+  needOther: 0.05,
+  missingDoc: 0.05,
+  closed: 0.03,
   /** Added to "signed" per point of relationship with the officer, and in the morning. */
   relBonus: 0.004,
   morningBonus: 0.08,
   afternoonNotOnSeat: 0.08,
   fridayTomorrow: 0.08,
-  eveningClosed: 0.85,
+  eveningClosed: 0.5,
   longQueue: 0.1,
 };
 export const MEDICAL_TEST_FEE = 3000;
@@ -136,10 +136,10 @@ export const MEDICAL_TEST_FEE = 3000;
 // ---------- academics ----------
 export const START_KNOWLEDGE = 5;
 export const KNOWLEDGE = {
-  lecture: 12,
+  lecture: 14,
   outsideFactor: 0.5,
-  readLibrary: 9,
-  readRoom: 6,
+  readLibrary: 11,
+  readRoom: 8,
   readDark: 3,
   handout: 12,
   notes: 8,
@@ -150,6 +150,10 @@ export const KNOWLEDGE = {
 export const CA = { test: 15, assignment: 10, attendance: 5 };
 export const EXAM_MAX = 70;
 export const ATTENDANCE_BAR = 0.75;
+/** Absences per course that never bar you (courses meet only 2 to 4 times). */
+export const FREE_ABSENCES = 1;
+/** Paper performance = PERF.base + PERF.slope × knowledge/100, plus luck. */
+export const PERF = { base: 0.25, slope: 0.8 };
 export const GRADE_BANDS: Array<{ min: number; grade: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'; points: number }> = [
   { min: 70, grade: 'A', points: 5 },
   { min: 60, grade: 'B', points: 4 },
@@ -180,7 +184,7 @@ export const PROJECT = { draftPerSession: 35, chapters: 5 };
 // ---------- hostel ----------
 export const OUTAGES = { light: 0.25, water: 0.2 };
 export const THEFT = { chance: 0.18, padlockFactor: 0.2, cashMin: 300, cashMax: 1500 };
-export const OVERSLEEP_CHANCE = 0.12;
+export const OVERSLEEP_CHANCE = 0.08;
 export const KEEP_ROOMMATE_CHANCE = 0.3;
 export const PADLOCK_PRICE = 1500;
 
