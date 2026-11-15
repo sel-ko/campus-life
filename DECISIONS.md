@@ -201,3 +201,68 @@ the code mentioned.
     block is about 0.34 units tall, while a character is about 3 units tall
     (28 m at this scale). Characters will need shrinking or heights
     exaggerating; to be decided in phase 2.
+
+## Real campus map, phases 2 to 4 (3D buildings from the plan)
+
+60. **The 3D campus is built from the map data**; the placeholder campus is
+    gone. Every building is its real outline extruded to its height, at its
+    real position inside its section.
+61. **1 scene unit = 1 metre** (`WORLD_SCALE = 1`), not "PS 60 units wide".
+    At 60 units a character would stand as tall as a 9-storey block; at real
+    scale a character is about one storey tall. Long trips are made quick
+    instead: tap-to-walk follows the roads and never takes more than about
+    6 seconds; the joystick walks at 8 m/s.
+62. **Sections are pulled in per section, not by one shared factor.**
+    GAP_SHRINK (0.35) is the target, but each section only comes as close as
+    it can while staying 20 m clear of the estate's buildings (real outlines,
+    not boxes). Result: PS at 0.59, TS at 0.47 of their real distance. A
+    single shared value needed 0.6 for both.
+63. **Rectangular buildings are 3 storeys** (four corners within 15° of
+    square). Otherwise floors come from the data with minimums by kind (class,
+    lab, admin 2; hospital, library 3; hostels 2 or 3 and specials 1 or 2 by a
+    hash of the id). 3.2 m per storey. Overrides win.
+64. **Big irregular hostel outlines are compounds.** 20 estate "hostels" are
+    outlines of 3,000 to 15,000 m², which are clearly several houses traced as
+    one shape. They are drawn as a paved yard and a low wall on the real
+    outline, with separate 2 to 3 storey blocks packed inside (kept clear of
+    roads that cross them). Only the blocks are solid.
+65. **Doors** go on the wall facing the nearest road, with the standing spot
+    3 m outside. A deep notch falls back to the next-nearest wall.
+66. **Drawing:** per section, all walls are one mesh (window rows from a
+    128 px canvas texture, glowing at night) and roofs, plinths, parapets,
+    doors, signs and bus stops are a second mesh. Taps find the building from
+    the triangle hit, so there are no extra hit boxes. Closed places are
+    dimmed by recolouring their part of the mesh once per slot.
+67. **Roads** are flat ribbons with round joins, one mesh for all. Traced
+    roads are tarmac with a kerb; 'inferred' are narrower; 'unknown' are dirt.
+    The camera's near and far planes follow its zoom so roads never flicker.
+68. **Which buildings are playable:** class blocks offer lectures and
+    fellowship/club meetings; labs offer lectures; the library is the library;
+    admin and hospital say "Nothing to do here right now"; Access Bank points
+    to the Wallet; the named specials (church, mosque, hotel, morgue, animal
+    house, utilities, TS hostel) are labelled with nothing to do yet. Units,
+    "other" buildings and hostels are scenery unless assigned below.
+69. **Three playable hostels (placeholders):** the three largest real hostel
+    blocks in the estate (not compounds), named Crown Estate Hostel A, B and C,
+    until `playable` is set in campus-overrides.ts.
+70. **Places the old game had without a building in the data** (please
+    correct in campus-overrides.ts):
+    - Buka: the unidentified estate "other" building nearest the Supermall
+      junction.
+    - Business centre: the small PS "unit" nearest the PS bus stop.
+    - Sports field: the PS running track (tap the track).
+    - Main gate: the "Main entrance" marker, drawn as a gate over the road.
+    - Crown Estate bus stop: the Supermall junction marker.
+71. **Walking:** the road network is the road points every 12 m, joined
+    where road ends come within 10 m (plus half widths) of another road and
+    where roads cross; any stranded piece is joined to the main network at its
+    closest point. Routes use A*. A test checks every place is reachable.
+72. **Camera:** steeper (60°) and further out in close-up. The Map view fits
+    the player's section; pinching out reaches the whole campus. Panning stays
+    within the section (40 m margin) unless zoomed right out.
+73. **Buildings no longer hide the player:** a flat silhouette of the
+    player shows through anything in front of them.
+74. **Old saves** that pointed at the placeholder hostels are moved to the
+    first real hostel (save version 4).
+75. **Not done yet (next):** bus-stop "Travel to" sheet with a fade, the
+    minimap, hiding distant sections, and a per-section performance report.

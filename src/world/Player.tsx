@@ -1,6 +1,6 @@
 // The player on the map. Two ways to move:
-// - tap a building: walk there in a straight line with a little hop, then the
-//   store opens that building's sheet;
+// - tap a place: walk there along the roads (shortest route), with a little
+//   hop, then the store opens that place's sheet;
 // - the joystick (close-up view): walk freely, blocked by building walls.
 // Standing near a door tells the store, so the UI can offer "Enter".
 import { useFrame } from '@react-three/fiber';
@@ -8,35 +8,56 @@ import { useRef } from 'react';
 import * as THREE from 'three';
 import { getLocation, university } from '../content/university';
 import { useGameStore } from '../store/gameStore';
+import type { Pt } from './campusLayout';
+import { findPath, isBlocked, nearestDoor, campusBounds } from './campus/navigation';
 import { Character } from './characters/Character';
 import type { CharacterLook } from './characters/look';
 import { joystick } from './input';
-import { campusBounds, doorPoint, isBlocked, nearestDoor } from './layout';
 import { playerWorld } from './shared';
 
-const TRAVEL_SPEED = 11; // metres per second, after tapping a building
-const WALK_SPEED = 7; // metres per second at full joystick
-const HOP = 0.35;
-const DOOR_RANGE = 2.6; // how close to a door counts as "at" it
-const SCALE = 0.95;
+const WALK_SPEED = 8; // metres per second at full joystick
+const MIN_TRAVEL_SPEED = 14; // metres per second after tapping a place
+const MAX_TRAVEL_SECONDS = 6; // long trips speed up so none takes longer than this
+const HOP = 0.3;
+const DOOR_RANGE = 5;
+const SCALE = 0.7; // a character is about one storey tall
+
+/**
+ * A see-through silhouette of the player, so buildings between the camera
+ * and the player never hide them. It draws after the buildings but before the
+ * player (render order 1, then 2) and only where something is in front
+ * (GreaterDepth), so it never covers the player's own visible parts.
+ */
+const silhouetteMaterial = new THREE.MeshBasicMaterial({ color: '#FFE7A3', depthWrite: false, depthFunc: THREE.GreaterDepth });
 
 export const blobGeometry = new THREE.CircleGeometry(0.9, 20).rotateX(-Math.PI / 2);
 export const blobMaterial = new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.22, depthWrite: false });
 
 /** Soft dark circle under a character, instead of a real-time shadow. */
 export function Blob({ scale = 1 }: { scale?: number }) {
-  return <mesh geometry={blobGeometry} material={blobMaterial} position={[0, 0.2, 0]} scale={scale} />;
+  return <mesh geometry={blobGeometry} material={blobMaterial} position={[0, 0.15, 0]} scale={scale} />;
 }
 
 function startPoint(): THREE.Vector3 {
   const { playerLocationId, game } = useGameStore.getState();
-  const id = playerLocationId ?? game?.player.homeId ?? university.locations[0]?.id;
-  const loc = id ? getLocation(id) : undefined;
-  const [x, z] = loc ? doorPoint(loc) : [0, 0];
+  const loc =
+    (playerLocationId ? getLocation(playerLocationId) : undefined) ??
+    (game ? getLocation(game.player.homeId) : undefined) ??
+    university.locations.find((l) => l.type === 'hostel');
+  const [x, z] = loc ? loc.position : [0, 0];
   return new THREE.Vector3(x, 0, z);
 }
 
-/** The player's character. */
+function pathLength(from: Pt, path: Pt[]): number {
+  let len = 0;
+  let prev = from;
+  for (const p of path) {
+    len += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
+    prev = p;
+  }
+  return len;
+}
+
 export function Player({ look }: { look: CharacterLook }) {
   const group = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
@@ -47,6 +68,8 @@ export function Player({ look }: { look: CharacterLook }) {
   }
   const travelled = useRef(0);
   const walking = useRef(false);
+  // The route being walked after a tap.
+  const route = useRef<{ target: string; points: Pt[]; speed: number } | null>(null);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
@@ -60,52 +83,70 @@ export function Player({ look }: { look: CharacterLook }) {
     if (joystick.active && stick > 0.12 && store.cameraMode === 'follow' && !store.selectedLocationId) {
       // ---- free walking with the joystick ----
       store.cancelTravel();
+      route.current = null;
       const speed = WALK_SPEED * Math.min(stick, 1) * dt;
       const dx = (joystick.x / stick) * speed;
       const dz = (joystick.y / stick) * speed;
       const b = campusBounds();
-      const blockedNow = isBlocked(p.x, p.z);
+      const nx = THREE.MathUtils.clamp(p.x + dx, b.minX, b.maxX);
+      const nz = THREE.MathUtils.clamp(p.z + dz, b.minZ, b.maxZ);
       // Try the full step, then slide along walls one axis at a time.
       // (If somehow already inside a wall, let the player walk out.)
-      const nx = THREE.MathUtils.clamp(p.x + dx, b.minX - 6, b.maxX + 6);
-      const nz = THREE.MathUtils.clamp(p.z + dz, b.minZ - 6, b.maxZ + 6);
-      if (blockedNow || !isBlocked(nx, nz)) p.set(nx, 0, nz);
+      if (isBlocked(p.x, p.z) || !isBlocked(nx, nz)) p.set(nx, 0, nz);
       else if (!isBlocked(nx, p.z)) p.x = nx;
       else if (!isBlocked(p.x, nz)) p.z = nz;
       g.rotation.y = Math.atan2(dx, dz);
       travelled.current += speed;
       moving = true;
-    } else {
-      // ---- walking to a tapped building ----
-      const target = store.travelTargetId ? getLocation(store.travelTargetId) : undefined;
-      if (target) {
-        const [tx, tz] = doorPoint(target);
-        const dx = tx - p.x;
-        const dz = tz - p.z;
-        const dist = Math.hypot(dx, dz);
-        const step = TRAVEL_SPEED * dt;
-        if (dist <= step) {
-          p.set(tx, 0, tz);
+    } else if (store.travelTargetId) {
+      // ---- walking to a tapped place along the roads ----
+      const target = getLocation(store.travelTargetId);
+      if (!target) {
+        store.cancelTravel();
+      } else {
+        if (!route.current || route.current.target !== target.id) {
+          const points = findPath([p.x, p.z], target.position);
+          const len = pathLength([p.x, p.z], points);
+          route.current = { target: target.id, points, speed: Math.max(MIN_TRAVEL_SPEED, len / MAX_TRAVEL_SECONDS) };
+        }
+        const r = route.current;
+        let step = r.speed * dt;
+        while (step > 0 && r.points.length) {
+          const [tx, tz] = r.points[0]!;
+          const dx = tx - p.x;
+          const dz = tz - p.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist <= step) {
+            p.set(tx, 0, tz);
+            step -= dist;
+            r.points.shift();
+          } else {
+            p.x += (dx / dist) * step;
+            p.z += (dz / dist) * step;
+            g.rotation.y = Math.atan2(dx, dz);
+            travelled.current += step;
+            step = 0;
+          }
+        }
+        if (r.points.length === 0) {
+          route.current = null;
           travelled.current = 0;
           store.arrive();
         } else {
-          p.x += (dx / dist) * step;
-          p.z += (dz / dist) * step;
-          travelled.current += step;
-          g.rotation.y = Math.atan2(dx, dz);
           moving = true;
         }
-      } else {
-        // Standing still: turn to face the camera.
-        g.rotation.y += (0 - g.rotation.y) * Math.min(1, dt * 6);
       }
+    } else {
+      route.current = null;
+      // Standing still: turn to face the camera.
+      g.rotation.y += (0 - g.rotation.y) * Math.min(1, dt * 6);
     }
 
     body.current.position.y = moving ? Math.abs(Math.sin(travelled.current * 1.6)) * HOP : 0;
     walking.current = moving;
     playerWorld.moving = moving;
 
-    // Which door is the player at? Leaving a building clears "at".
+    // Which door is the player at? Walking away from a building clears "at".
     const near = nearestDoor(p.x, p.z, DOOR_RANGE);
     store.setNearby(near);
     if (!near && moving) store.leaveLocation();
@@ -116,9 +157,10 @@ export function Player({ look }: { look: CharacterLook }) {
 
   return (
     <group ref={group}>
-      <Blob scale={1.1} />
+      <Blob scale={0.9} />
       <group ref={body} scale={SCALE}>
-        <Character look={look} walking={walking} />
+        <Character look={look} walking={walking} material={silhouetteMaterial} renderOrder={1} />
+        <Character look={look} walking={walking} renderOrder={2} />
       </group>
     </group>
   );

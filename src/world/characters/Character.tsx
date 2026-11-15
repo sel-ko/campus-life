@@ -7,11 +7,11 @@ import { vertexColourMaterials } from '../three-utils';
 import { HIP, SHOULDER, characterModel, type LimbGeometry } from './buildCharacter';
 import type { CharacterLook } from './look';
 
-function Limb({ geo }: { geo: LimbGeometry }) {
+function Limb({ geo, material, renderOrder = 0 }: { geo: LimbGeometry; material?: THREE.Material; renderOrder?: number }) {
   return (
     <>
-      {geo.smooth && <mesh geometry={geo.smooth} material={vertexColourMaterials.smooth} />}
-      {geo.flat && <mesh geometry={geo.flat} material={vertexColourMaterials.flat} />}
+      {geo.smooth && <mesh geometry={geo.smooth} material={material ?? vertexColourMaterials.smooth} renderOrder={renderOrder} />}
+      {geo.flat && <mesh geometry={geo.flat} material={material ?? vertexColourMaterials.flat} renderOrder={renderOrder} />}
     </>
   );
 }
@@ -22,9 +22,13 @@ export interface CharacterProps {
   walking?: { current: boolean };
   /** Offsets the animation so a crowd does not bob in step. */
   phase?: number;
+  /** Draw every part with this material instead (used for the see-through silhouette). */
+  material?: THREE.Material;
+  /** Draw order; the player uses this so its silhouette draws first. */
+  renderOrder?: number;
 }
 
-export function Character({ look, walking, phase = 0 }: CharacterProps) {
+export function Character({ look, walking, phase = 0, material, renderOrder = 0 }: CharacterProps) {
   const model = useMemo(() => characterModel(look), [look]);
   const body = useRef<THREE.Group>(null);
   const legL = useRef<THREE.Group>(null);
@@ -51,21 +55,21 @@ export function Character({ look, walking, phase = 0 }: CharacterProps) {
 
   return (
     <group ref={body}>
-      <Limb geo={model.body} />
+      <Limb geo={model.body} material={material} renderOrder={renderOrder} />
       <group ref={legL} position={[-HIP[0], HIP[1], 0]}>
-        <Limb geo={model.legs[0]} />
+        <Limb geo={model.legs[0]} material={material} renderOrder={renderOrder} />
       </group>
       <group ref={legR} position={[HIP[0], HIP[1], 0]}>
-        <Limb geo={model.legs[1]} />
+        <Limb geo={model.legs[1]} material={material} renderOrder={renderOrder} />
       </group>
       <group ref={armL} position={[-SHOULDER[0], SHOULDER[1], 0]}>
         <group rotation={[0, 0, -model.armTilt[0]]}>
-          <Limb geo={model.arms[0]} />
+          <Limb geo={model.arms[0]} material={material} renderOrder={renderOrder} />
         </group>
       </group>
       <group ref={armR} position={[SHOULDER[0], SHOULDER[1], 0]}>
         <group rotation={[0, 0, model.armTilt[1]]}>
-          <Limb geo={model.arms[1]} />
+          <Limb geo={model.arms[1]} material={material} renderOrder={renderOrder} />
         </group>
       </group>
     </group>

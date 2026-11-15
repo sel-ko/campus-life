@@ -3,27 +3,20 @@
 //
 // TODO: every value marked "TODO" is a placeholder. Replace it with the names
 // students really use.
-import type { LocationType } from '../game/types';
+import { campus, campusPlaces, type CampusPlace } from './campusPlaces';
 
 export interface CampusSite {
   id: string;
   name: string;
   /** What students call it. */
   shortName: string;
-  /** The open hub of this site on the map. Roads meet here, so keep it clear
-   *  of buildings. */
+  /** Middle of the section on the map. */
   centre: [x: number, z: number];
 }
 
-export interface CampusLocation {
-  id: string;
-  name: string;
-  type: LocationType;
-  siteId: string;
-  /** Map position in metres: x runs west (-) to east (+), z runs north (-) to
-   *  south (+). The campus is roughly 60 x 60, centred on 0,0. */
-  position: [x: number, z: number];
-}
+/** A place the player can go: a real building from the map, or a spot such as
+ *  the gate or the sports field. See campusPlaces.ts. */
+export type CampusLocation = CampusPlace;
 
 export interface Department {
   id: string;
@@ -60,31 +53,15 @@ export const university: UniversityContent = {
     accent: '#F5B83D', // TODO: real school colour
   },
 
-  // The real campus is three separate sites. On the game map they are three
-  // clusters joined by roads: Crown Estate to the west, PS to the north-east,
-  // TS to the south-east.
+  // The real campus is three separate sections, built from the map data in
+  // campus-data.ts. Places come from campusPlaces.ts.
   sites: [
-    { id: 'ps', name: 'Permanent Site', shortName: 'PS', centre: [12, -14] },
-    { id: 'ts', name: 'Temporary Site', shortName: 'TS', centre: [12, 14] },
-    { id: 'crown', name: 'Crown Estate', shortName: 'Crown Estate', centre: [-16, 0] },
+    { id: 'ps', name: 'Permanent Site', shortName: 'PS', centre: campus.zoneCentres.ps },
+    { id: 'ts', name: 'Temporary Site', shortName: 'TS', centre: campus.zoneCentres.ts },
+    { id: 'estate', name: 'Crown Estate', shortName: 'Crown Estate', centre: campus.zoneCentres.estate },
   ],
 
-  // TODO: real building names, and which site the library, field and gate are at.
-  locations: [
-    // Permanent Site: arts, business, ICT and law
-    { id: 'ps-lt', name: 'PS Lecture Theatre', type: 'lecture', siteId: 'ps', position: [4, -22] }, // TODO
-    { id: 'library', name: 'Library', type: 'library', siteId: 'ps', position: [20, -22] }, // TODO
-    { id: 'business', name: 'Business Centre', type: 'business', siteId: 'ps', position: [20, -8] }, // TODO
-    // Temporary Site: sciences
-    { id: 'ts-lt', name: 'TS Lecture Hall', type: 'lecture', siteId: 'ts', position: [4, 20] }, // TODO
-    { id: 'faculty', name: 'Faculty Block', type: 'faculty', siteId: 'ts', position: [20, 22] }, // TODO
-    { id: 'field', name: 'Sports Field', type: 'field', siteId: 'ts', position: [24, 6] }, // TODO
-    // Crown Estate: where everybody lives
-    { id: 'male-estate', name: 'Male Students Estate', type: 'hostel', siteId: 'crown', position: [-26, -8] }, // TODO
-    { id: 'female-estate', name: 'Female Students Estate', type: 'hostel', siteId: 'crown', position: [-26, 8] }, // TODO
-    { id: 'buka', name: 'Estate Buka', type: 'cafeteria', siteId: 'crown', position: [-14, -10] }, // TODO
-    { id: 'gate', name: 'Main Gate', type: 'gate', siteId: 'crown', position: [-14, 24] }, // TODO
-  ],
+  locations: campusPlaces,
 
   // TODO: real departments. PS holds arts, business, ICT and law;
   // TS holds the sciences.

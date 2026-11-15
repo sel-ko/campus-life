@@ -1,5 +1,5 @@
 import { university } from '../content/university';
-import { hasAvailableAction } from '../game/engine';
+import { placeIsOpen } from '../content/placeHelpers';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 
@@ -20,7 +20,7 @@ export function LocationList({ game, onPick }: { game: GameState; onPick?: (loca
             {university.locations
               .filter((loc) => loc.siteId === site.id)
               .map((loc) => {
-                const open = hasAvailableAction(game, loc.type);
+                const open = placeIsOpen(game, loc);
                 return (
                   <li key={loc.id}>
                     <button

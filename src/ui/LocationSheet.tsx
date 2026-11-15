@@ -1,5 +1,6 @@
 import { getLocation } from '../content/university';
-import { actionsAt, canDoAction } from '../game/engine';
+import { placeActions } from '../content/placeHelpers';
+import { canDoAction } from '../game/engine';
 import { describeEffects } from '../game/format';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
@@ -14,7 +15,7 @@ export function LocationSheet({ game }: { game: GameState }) {
   const location = selectedId ? getLocation(selectedId) : undefined;
   if (!location) return null;
 
-  const actions = actionsAt(location.type);
+  const actions = placeActions(location);
 
   return (
     <div className="fixed inset-0 z-20 flex flex-col justify-end bg-black/50" onClick={closeSheet}>
@@ -31,7 +32,7 @@ export function LocationSheet({ game }: { game: GameState }) {
           </button>
         </div>
 
-        {actions.length === 0 && <p className="text-muted">Nothing to do here yet.</p>}
+        {actions.length === 0 && <p className="text-muted">{location.note ?? 'Nothing to do here right now.'}</p>}
 
         <ul className="flex flex-col gap-2">
           {actions.map((a) => {

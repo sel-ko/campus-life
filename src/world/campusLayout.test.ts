@@ -4,9 +4,13 @@ import {
   WORLD_SCALE,
   buildCampusLayout,
   cleanFootprint,
+  floorsFor,
+  isRectangular,
+  pointInPolygon,
   selfIntersects,
   shrinkLinkRoad,
   shrinkPoint,
+  zoneOverlaps,
   zoneShift,
   type Pt,
 } from './campusLayout';
@@ -30,7 +34,7 @@ describe('GAP_SHRINK', () => {
   });
 
   it('of 0.35 pulls the ps and ts centres to 35% of their distance from the estate', () => {
-    const layout = buildCampusLayout({ gapShrink: 0.35 });
+    const layout = buildCampusLayout({ gapShrink: 0.35, clearance: 0 });
     for (const z of ['ps', 'ts'] as const) {
       const c = data.zoneCentres[z];
       const expected: Pt = [(c[0] - E[0]) * 0.35 * WORLD_SCALE, (c[1] - E[1]) * 0.35 * WORLD_SCALE];
@@ -39,7 +43,7 @@ describe('GAP_SHRINK', () => {
   });
 
   it('leaves the estate alone', () => {
-    const a = buildCampusLayout({ gapShrink: 0.35 });
+    const a = buildCampusLayout({ gapShrink: 0.35, clearance: 0 });
     const b = buildCampusLayout({ gapShrink: 1 });
     close(a.zoneCentres.estate, [0, 0]);
     for (const building of a.buildings.filter((x) => x.zone === 'estate')) {
@@ -75,12 +79,53 @@ describe('GAP_SHRINK', () => {
 });
 
 describe('WORLD_SCALE', () => {
-  it('makes the PS section about 60 scene units wide', () => {
+  it('is one scene unit per metre, so PS is its real 561 m wide', () => {
+    expect(WORLD_SCALE).toBe(1);
     const layout = buildCampusLayout({ gapShrink: 1 });
     const xs = layout.buildings.filter((b) => b.zone === 'ps').flatMap((b) => b.footprint.map((p) => p[0]));
     const width = Math.max(...xs) - Math.min(...xs);
-    expect(width).toBeGreaterThan(55);
-    expect(width).toBeLessThan(65);
+    expect(width).toBeGreaterThan(550);
+    expect(width).toBeLessThan(570);
+  });
+});
+
+describe('zone clearance', () => {
+  it('pulls zones in as far as it can without any buildings overlapping', () => {
+    const layout = buildCampusLayout({ gapShrink: 0.35 });
+    expect(zoneOverlaps(layout)).toEqual([]);
+    // Closer than the 0.6 a single shared value needed.
+    expect(layout.zoneGap.ps).toBeLessThan(0.6);
+    expect(layout.zoneGap.ts).toBeLessThan(0.6);
+    expect(layout.zoneGap.estate).toBe(1);
+  });
+
+  it('never pushes a zone further than GAP_SHRINK asks', () => {
+    const layout = buildCampusLayout({ gapShrink: 0.9 });
+    expect(layout.zoneGap.ps).toBe(0.9);
+    expect(layout.zoneGap.ts).toBe(0.9);
+  });
+});
+
+describe('heights and doors', () => {
+  it('makes rectangular buildings 3 storeys', () => {
+    const square: Pt[] = [
+      [0, 0],
+      [30, 0],
+      [30, 20],
+      [0, 20],
+    ];
+    expect(isRectangular(square)).toBe(true);
+    expect(isRectangular([[0, 0], [30, 0], [20, 20], [0, 20]])).toBe(false);
+    expect(floorsFor({ id: 'x', kind: 'class', floors: 1 }, true)).toBe(3);
+    expect(floorsFor({ id: 'x', kind: 'class', floors: 1 }, false)).toBe(2);
+    expect(floorsFor({ id: 'x', kind: 'library', floors: 1 }, false)).toBe(3);
+    expect(floorsFor({ id: 'x', kind: 'busstop', floors: 1 }, true)).toBe(0);
+  });
+
+  it('puts every door outside its building', () => {
+    for (const b of buildCampusLayout().buildings) {
+      expect(pointInPolygon(b.door, b.footprint), b.id).toBe(false);
+    }
   });
 });
 

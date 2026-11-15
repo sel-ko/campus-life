@@ -5,15 +5,16 @@ import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Character } from './characters/Character';
 import { randomLook, type CharacterLook } from './characters/look';
-import { walkGraph } from './layout';
+import { roadGraph } from './campus/navigation';
+import { playerWorld } from './shared';
 import { Blob } from './Player';
 import { seededRandom } from './three-utils';
 
-const SPEED = 2.4;
-const SCALE = 0.85;
+const SPEED = 2.6;
+const SCALE = 0.65;
 
 function Npc({ look, phase, startNode, seed }: { look: CharacterLook; phase: number; startNode: number; seed: number }) {
-  const graph = useMemo(walkGraph, []);
+  const graph = roadGraph;
   const group = useRef<THREE.Group>(null);
   const walking = useRef(false);
   const rand = useMemo(() => seededRandom(seed), [seed]);
@@ -58,7 +59,7 @@ function Npc({ look, phase, startNode, seed }: { look: CharacterLook; phase: num
 
   return (
     <group ref={group}>
-      <Blob scale={0.9} />
+      <Blob scale={0.75} />
       <group scale={SCALE}>
         <Character look={look} walking={walking} phase={phase} />
       </group>
@@ -69,11 +70,16 @@ function Npc({ look, phase, startNode, seed }: { look: CharacterLook; phase: num
 export function Npcs({ count }: { count: number }) {
   const people = useMemo(() => {
     const rand = seededRandom(42);
-    const nodes = walkGraph().length;
+    // Start them on roads near the player, so they are seen.
+    const near = roadGraph
+      .map((n, i) => ({ i, d: Math.hypot(n.at[0] - playerWorld.pos.x, n.at[1] - playerWorld.pos.z) }))
+      .filter((n) => n.d < 160)
+      .map((n) => n.i);
+    const pool = near.length ? near : roadGraph.map((_, i) => i);
     return Array.from({ length: count }, (_, i) => ({
       look: randomLook(rand),
       phase: i * 1.3,
-      startNode: Math.floor(rand() * nodes),
+      startNode: pool[Math.floor(rand() * pool.length)]!,
       seed: 100 + i,
     }));
   }, [count]);

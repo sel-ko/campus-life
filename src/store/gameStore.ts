@@ -3,6 +3,7 @@
 // screen state (open sheets, camera mode, phone) and the player's chat replies.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getLocation, university } from '../content/university';
 import { currentSlot, doAction, resolveEvent, startGame } from '../game/engine';
 import type { GameState, PlayerSetup, Slot } from '../game/types';
 
@@ -172,7 +173,7 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'campus-life-save',
-      version: 2,
+      version: 4,
       partialize: (state) => ({
         game: state.game,
         playerLocationId: state.playerLocationId,
@@ -180,8 +181,20 @@ export const useGameStore = create<GameStore>()(
         chatReplies: state.chatReplies,
         chatRead: state.chatRead,
       }),
-      // If the save format changes, start fresh rather than crash.
-      migrate: () => ({ game: null, playerLocationId: null, resultSubmitted: false, chatReplies: [], chatRead: 0 }),
+      // Versions 3 and 4 moved the game onto the real campus map: saves that point at
+      // the old placeholder hostels move to the first real one. Anything older
+      // than version 2 starts fresh rather than crash.
+      migrate: (persisted, version) => {
+        const fresh = { game: null, playerLocationId: null, resultSubmitted: false, chatReplies: [], chatRead: 0 };
+        if (version < 2 || !persisted || typeof persisted !== 'object') return fresh;
+        const s = persisted as { game: GameState | null; playerLocationId: string | null };
+        if (s.game && !getLocation(s.game.player.homeId)) {
+          const home = university.locations.find((l) => l.type === 'hostel');
+          if (home) s.game = { ...s.game, player: { ...s.game.player, homeId: home.id } };
+        }
+        if (s.playerLocationId && !getLocation(s.playerLocationId)) s.playerLocationId = s.game?.player.homeId ?? null;
+        return s as never;
+      },
     },
   ),
 );

@@ -6,16 +6,15 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '../store/gameStore';
-import { campusBounds } from './layout';
+import { campusBounds, zoneAt, zoneBounds } from './campus/navigation';
 import { cameraState, gesture, playerWorld } from './shared';
 
-const TILT = THREE.MathUtils.degToRad(52); // angle above the ground
-const FOLLOW = { start: 34, min: 16, max: 55 };
+const TILT = THREE.MathUtils.degToRad(60); // angle above the ground
+const FOLLOW = { start: 75, min: 25, max: 180 };
 const TAP_SLOP = 8; // pixels a finger can wobble and still count as a tap
 
-/** Distance at which the whole campus fits on this screen. */
-function fitDistance(cam: THREE.PerspectiveCamera, width: number, height: number): number {
-  const b = campusBounds();
+/** Distance at which an area (the player's section, or the whole campus) fits on screen. */
+function fitDistance(cam: THREE.PerspectiveCamera, width: number, height: number, b = zoneBounds(zoneAt(playerWorld.pos.x, playerWorld.pos.z))): number {
   const aspect = width / Math.max(height, 1);
   const t = Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
   const w = b.maxX - b.minX + 6;
@@ -30,13 +29,14 @@ export function CameraRig({ start }: { start: [number, number] }) {
   modeRef.current = mode;
 
   // Where the camera is now, and where each mode wants it.
-  const view = useRef({ x: start[0], z: start[1], dist: FOLLOW.start });
+  // Start over the player (the Player component has already placed itself).
+  const view = useRef({ x: playerWorld.pos.x || start[0], z: playerWorld.pos.z || start[1], dist: FOLLOW.start });
   const goal = useRef({ followDist: FOLLOW.start, overviewDist: 0, ox: 0, oz: 0 });
 
-  // Entering the map view: centre on the campus, zoomed right out.
+  // Entering the map view: centre on the player's section, zoomed out to fit it.
   useEffect(() => {
     if (mode !== 'overview') return;
-    const b = campusBounds();
+    const b = zoneBounds(zoneAt(playerWorld.pos.x, playerWorld.pos.z));
     goal.current.ox = (b.minX + b.maxX) / 2;
     goal.current.oz = (b.minZ + b.maxZ) / 2;
     goal.current.overviewDist = fitDistance(camera as THREE.PerspectiveCamera, size.width, size.height);
@@ -57,11 +57,12 @@ export function CameraRig({ start }: { start: [number, number] }) {
       const [a, b] = [...pointers.values()];
       return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
     };
-    const maxOverview = () => fitDistance(camera as THREE.PerspectiveCamera, el.clientWidth, el.clientHeight) * 1.1;
+    // Pinching out in the map view can go as far as the whole campus.
+    const maxOverview = () => fitDistance(camera as THREE.PerspectiveCamera, el.clientWidth, el.clientHeight, campusBounds()) * 1.05;
     const setDist = (d: number) => {
       const g = goal.current;
       if (modeRef.current === 'follow') g.followDist = THREE.MathUtils.clamp(d, FOLLOW.min, FOLLOW.max);
-      else g.overviewDist = THREE.MathUtils.clamp(d, 25, maxOverview());
+      else g.overviewDist = THREE.MathUtils.clamp(d, 40, maxOverview());
     };
     const currentGoalDist = () => (modeRef.current === 'follow' ? goal.current.followDist : goal.current.overviewDist);
 
@@ -124,7 +125,10 @@ export function CameraRig({ start }: { start: [number, number] }) {
     const dt = Math.min(rawDt, 0.05);
     const v = view.current;
     const g = goal.current;
-    const b = campusBounds();
+    // Panning stays within the player's section (with a small margin), unless
+    // zoomed out past it.
+    const zb = zoneBounds(zoneAt(playerWorld.pos.x, playerWorld.pos.z));
+    const b = g.overviewDist > fitDistance(camera as THREE.PerspectiveCamera, size.width, size.height) * 1.2 ? campusBounds() : zb;
     g.ox = THREE.MathUtils.clamp(g.ox, b.minX, b.maxX);
     g.oz = THREE.MathUtils.clamp(g.oz, b.minZ, b.maxZ);
 
@@ -141,6 +145,17 @@ export function CameraRig({ start }: { start: [number, number] }) {
     camera.position.set(v.x, v.dist * Math.sin(TILT), v.z + v.dist * Math.cos(TILT));
     camera.lookAt(v.x, 0, v.z);
     cameraState.dist = v.dist;
+
+    // Keep the depth range tight around what is on screen, so roads lying just
+    // above the grass do not flicker when zoomed far out.
+    const cam = camera as THREE.PerspectiveCamera;
+    const near = Math.max(0.5, v.dist * 0.04);
+    const far = v.dist * 6 + 400;
+    if (Math.abs(cam.near - near) > near * 0.15 || Math.abs(cam.far - far) > far * 0.15) {
+      cam.near = near;
+      cam.far = far;
+      cam.updateProjectionMatrix();
+    }
   });
 
   return null;
