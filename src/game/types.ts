@@ -256,6 +256,15 @@ export interface MoneyState {
   /** Total spent and earned, for summaries. */
   spent: number;
   earned: number;
+  /** What the portal said last time, for the phone screen. */
+  lastPortal: PortalResult | null;
+}
+
+export type PortalOutcome = 'ok' | 'down' | 'unrecorded' | 'refused';
+export interface PortalResult {
+  outcome: PortalOutcome;
+  text: string;
+  at: number;
 }
 
 export interface Loan {

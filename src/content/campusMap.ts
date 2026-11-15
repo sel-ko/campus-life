@@ -6,6 +6,7 @@
 // with x running east and z running south (north is up on the planner).
 import type { LocationType } from '../game/legacy/types';
 import raw from './campus-layout.json';
+import { BUILDING_ROLES, SECTION_NAMES } from './campus-overrides';
 
 export type Pt = [number, number];
 export interface Rect {
@@ -129,8 +130,8 @@ export interface MapSection {
 
 export const sections: MapSection[] = layout.sections.map((s) => ({
   id: s.id,
-  name: s.name,
-  short: s.short || s.name,
+  name: SECTION_NAMES[s.id]?.name ?? s.name,
+  short: SECTION_NAMES[s.id]?.short ?? (s.short || s.name),
   color: s.color,
   rect: cellRect(s.x, s.y, s.w, s.h),
 }));
@@ -325,11 +326,13 @@ export const buildings: MapBuilding[] = (() => {
   for (const n of tidy) totals.set(n, (totals.get(n) ?? 0) + 1);
   const seen = new Map<string, number>();
   return sorted.map((item, idx) => {
-    const kind = item.kind as PlannerKind;
+    const role = BUILDING_ROLES[item.id];
+    // campus-overrides.ts can draw a building as another kind (a classroom used as the Medical Centre).
+    const kind = (role?.look ?? item.kind) as PlannerKind;
     const base = tidy[idx]!;
     const n = (seen.get(base) ?? 0) + 1;
     seen.set(base, n);
-    const name = totals.get(base)! > 1 ? `${base} ${n}` : base;
+    const name = role?.name ?? (totals.get(base)! > 1 ? `${base} ${n}` : base);
     const seed = hash(item.id);
     const plot = cellRect(item.x, item.y, item.w, item.h);
     const floors = floorsFor(item, kind, seed);

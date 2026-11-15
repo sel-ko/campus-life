@@ -257,3 +257,25 @@ the code mentioned.
 74. **Entrance test:** 70 questions (general, science, maths, English,
     geography), 10 drawn per game. **Matric numbers** are fictional:
     `UNI/26/CSC/0421`.
+75. **Fees are scaled for play**, not real fee levels (per session):
+    acceptance ₦15,000 (₦20,000 competitive, year one only), school fees
+    ₦80,000 (₦110,000) in two halves, departmental dues ₦4,000 (₦6,000),
+    hostel ₦30,000. Each fee is due by day 11 of its semester.
+76. **Who pays the fees:** at the start of each semester the family sends the
+    money for the fees due that semester into the player's account (a broke
+    family sends 80%; the rest has to be hustled). The player must still pay
+    each fee on the portal, so the money can be misspent.
+77. **Portal:** each payment succeeds, fails because the portal is down (it
+    then stays down for the rest of that slot) or debits without recording
+    (12% and 6%; +25% and +5% within two days of the deadline). An unrecorded
+    debit blocks paying that fee again until a Bursary visit with the alert
+    confirms it (45% per visit, better with a good relationship).
+78. **Course registration** closes on day 5 (day 8 for new freshers). After
+    that a ₦5,000 late fee appears and registration stays open until day 11.
+    Unregistered courses cannot be examined.
+79. **Allowance** lands on days 1 and 8 of each semester; it can be 1 to 3
+    days late (35% broke, 20% average, 8% comfortable). Data costs ₦500 a
+    week, taken on the same days.
+80. **Campus-wide events:** the real ISO week ("2026-W46") is hashed with a
+    fixed seed to pick one of ten campus weeks (power rationing, fuel
+    scarcity, portal "upgrade"...). Everyone gets the same one that week.
