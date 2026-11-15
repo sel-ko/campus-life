@@ -110,3 +110,42 @@ export const AD_SPOTS: Partial<Record<CampusLocation['type'], { billboard: [numb
   cafeteria: { billboard: [6.2, -1.5], stall: [-5.4, 3.8] },
   gate: { billboard: [-8.2, -1.5], stall: [6.2, 3.6] },
 };
+
+// ---------- walking with the joystick ----------
+
+const PLAYER_RADIUS = 0.5;
+let blockCache: Array<[number, number, number, number]> | null = null;
+
+/** Every building's solid areas in world coordinates: [minX, minZ, maxX, maxZ]. */
+function worldBlocks(): Array<[number, number, number, number]> {
+  if (blockCache) return blockCache;
+  blockCache = university.locations.flatMap((loc) =>
+    modelFor(loc).blocks.map(([cx, cz, w, d]) => {
+      const x = loc.position[0] + cx;
+      const z = loc.position[1] + cz;
+      return [x - w / 2, z - d / 2, x + w / 2, z + d / 2] as [number, number, number, number];
+    }),
+  );
+  return blockCache;
+}
+
+/** True if a player standing at x, z would be inside a building. */
+export function isBlocked(x: number, z: number): boolean {
+  const r = PLAYER_RADIUS;
+  return worldBlocks().some(([x0, z0, x1, z1]) => x > x0 - r && x < x1 + r && z > z0 - r && z < z1 + r);
+}
+
+/** The building whose door is within `range` metres, nearest first. */
+export function nearestDoor(x: number, z: number, range: number): string | null {
+  let best: string | null = null;
+  let bestDist = range;
+  for (const loc of university.locations) {
+    const [dx, dz] = doorPoint(loc);
+    const d = Math.hypot(dx - x, dz - z);
+    if (d < bestDist) {
+      bestDist = d;
+      best = loc.id;
+    }
+  }
+  return best;
+}

@@ -28,6 +28,17 @@ Other commands:
 | `npm run preview` | Serves the built `dist/` folder, to test the real build. |
 | `node scripts/make-icons.mjs` | Redraws the app icons in `public/icons/`. |
 
+## Controls
+
+- **Me / Map** (bottom middle): close-up on your character with a joystick, or
+  the whole campus at once (drag to pan, pinch to zoom).
+- **Tap a building** to walk there; its actions open when you arrive. With the
+  joystick, walk up to a door and tap **Enter**.
+- **Your picture** (bottom left): stats, today's checklist, your details and
+  your look. The ring shows your energy.
+- **Phone** (bottom right): department group chat, calendar, wallet, updates,
+  places, market, leaderboard and settings (display quality, Start over).
+
 ## Set up the online features (optional)
 
 Without these the game is fully playable; the leaderboard, vendor stalls and

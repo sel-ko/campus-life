@@ -4,7 +4,16 @@ import { fetchLeaderboard, type LeaderboardRow } from '../online/supabase';
 
 type Tab = 'department' | 'school';
 
-export function LeaderboardScreen({ departmentId, onBack }: { departmentId?: string; onBack: () => void }) {
+export function LeaderboardScreen({
+  departmentId,
+  onBack,
+  embedded = false,
+}: {
+  departmentId?: string;
+  onBack?: () => void;
+  /** Inside the phone: no page title or Back button. */
+  embedded?: boolean;
+}) {
   const [tab, setTab] = useState<Tab>(departmentId ? 'department' : 'school');
   const [rows, setRows] = useState<LeaderboardRow[] | null | 'loading'>('loading');
 
@@ -20,13 +29,15 @@ export function LeaderboardScreen({ departmentId, onBack }: { departmentId?: str
   const deptName = departmentId ? (getDepartment(departmentId)?.name ?? departmentId) : '';
 
   return (
-    <main className="mx-auto flex min-h-full max-w-md flex-col gap-4 px-4 py-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold">Leaderboard</h1>
-        <button onClick={onBack} className="min-h-11 rounded-lg border border-line px-4 font-semibold">
-          Back
-        </button>
-      </div>
+    <main className={embedded ? 'flex flex-col gap-4' : 'mx-auto flex min-h-full max-w-md flex-col gap-4 px-4 py-6'}>
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-extrabold">Leaderboard</h1>
+          <button onClick={onBack} className="min-h-11 rounded-lg border border-line px-4 font-semibold">
+            Back
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2" role="tablist">
         {departmentId && (

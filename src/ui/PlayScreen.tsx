@@ -3,10 +3,11 @@ import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { ErrorBoundary } from './ErrorBoundary';
 import { EventCard } from './EventCard';
-import { Hud } from './Hud';
 import { LocationList } from './LocationList';
 import { LocationSheet } from './LocationSheet';
-import { RecentLog } from './RecentLog';
+import { MapChrome } from './MapChrome';
+import { Phone } from './phone/Phone';
+import { ProfileSheet } from './ProfileSheet';
 import { usePageVisible } from './usePageVisible';
 import { hasWebGL } from './webgl';
 
@@ -21,88 +22,57 @@ function MapLoading() {
   );
 }
 
+// Full-screen play: the 3D campus (or a plain list on phones without WebGL)
+// with floating glass controls on top. Everything else opens over it.
 export function PlayScreen({ game }: { game: GameState }) {
-  const reset = useGameStore((s) => s.reset);
-  const sheetOpen = useGameStore((s) => s.selectedLocationId !== null);
   const visible = usePageVisible();
-  const [view, setView] = useState<'map' | 'list'>(() => (hasWebGL() ? 'map' : 'list'));
+  const [mapFailed, setMapFailed] = useState(false);
+  const showMap = hasWebGL() && !mapFailed;
 
-  function quit() {
-    if (window.confirm('Start over? Your current semester will be lost.')) reset();
+  const sheetOpen = useGameStore((s) => s.selectedLocationId !== null);
+  const phoneOpen = useGameStore((s) => s.phoneApp !== null);
+  const profileOpen = useGameStore((s) => s.profileOpen);
+  const travelTo = useGameStore((s) => s.travelTo);
+  const tapLocation = useGameStore((s) => s.tapLocation);
+  const closePhone = useGameStore((s) => s.closePhone);
+
+  // Drawing stops while the tab is hidden or anything covers the map.
+  const paused = !visible || sheetOpen || phoneOpen || profileOpen || game.pendingEventId !== null;
+
+  // From the phone's Places app: walk there on the map, or open it directly.
+  function pickPlace(id: string) {
+    if (showMap) {
+      closePhone();
+      travelTo(id);
+    } else {
+      tapLocation(id);
+    }
   }
-
-  const overlays = (
-    <>
-      <LocationSheet game={game} />
-      <EventCard game={game} />
-    </>
-  );
-
-  if (view === 'list') {
-    return (
-      <div className="mx-auto flex min-h-full max-w-md flex-col">
-        <Hud game={game} />
-        <main className="flex flex-1 flex-col gap-5 px-4 py-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-muted">Where are you going? Dimmed places have nothing open now.</p>
-            {hasWebGL() && (
-              <button onClick={() => setView('map')} className="min-h-11 shrink-0 rounded-lg border border-line px-3 text-sm font-semibold">
-                Map
-              </button>
-            )}
-          </div>
-          <LocationList game={game} />
-          <RecentLog game={game} />
-          <button onClick={quit} className="mt-auto min-h-11 self-center px-4 text-sm text-muted underline">
-            Start over
-          </button>
-        </main>
-        {overlays}
-      </div>
-    );
-  }
-
-  // Map view: the 3D campus fills the screen; HUD and log float on top.
-  // Drawing stops while the tab is hidden or a sheet or event covers the map.
-  const paused = !visible || sheetOpen || game.pendingEventId !== null;
-  const lastLog = game.log[game.log.length - 1];
 
   return (
-    <div className="fixed inset-0 overflow-hidden">
-      <div className="absolute inset-0">
-        <ErrorBoundary fallback={null} onError={() => setView('list')}>
-          <Suspense fallback={<MapLoading />}>
-            <CampusScene paused={paused} />
-          </Suspense>
-        </ErrorBoundary>
-      </div>
-
-      <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto max-w-md">
-        <div className="pointer-events-auto">
-          <Hud game={game} />
+    <div className="fixed inset-0 overflow-hidden bg-night">
+      {showMap ? (
+        <div className="absolute inset-0">
+          <ErrorBoundary fallback={null} onError={() => setMapFailed(true)}>
+            <Suspense fallback={<MapLoading />}>
+              <CampusScene paused={paused} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
-      </div>
-
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto flex max-w-md flex-col gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {lastLog && (
-          <p className="rounded-lg bg-night/80 px-3 py-2 text-sm">
-            <span className="text-xs text-muted">
-              D{lastLog.day} {lastLog.slot}:
-            </span>{' '}
-            {lastLog.text}
-          </p>
-        )}
-        <div className="pointer-events-auto flex justify-between gap-2">
-          <button onClick={() => setView('list')} className="min-h-11 rounded-lg bg-night/85 px-4 text-sm font-semibold">
-            List of places
-          </button>
-          <button onClick={quit} className="min-h-11 rounded-lg bg-night/85 px-4 text-sm text-muted">
-            Start over
-          </button>
+      ) : (
+        <div className="absolute inset-0 overflow-y-auto px-4 pt-28 pb-32">
+          <div className="mx-auto max-w-md">
+            <LocationList game={game} />
+          </div>
         </div>
-      </div>
+      )}
 
-      {overlays}
+      <MapChrome game={game} showMap={showMap} />
+
+      <LocationSheet game={game} />
+      <EventCard game={game} />
+      <ProfileSheet game={game} />
+      <Phone game={game} onPickPlace={pickPlace} />
     </div>
   );
 }

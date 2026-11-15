@@ -23,6 +23,8 @@ export interface BuildingModel {
   door: [x: number, z: number];
   /** Rough half-size, used to keep trees away. */
   radius: number;
+  /** Solid areas the player cannot walk through: [centreX, centreZ, width, depth]. */
+  blocks: Array<[number, number, number, number]>;
 }
 
 interface Palette {
@@ -65,7 +67,7 @@ function lecture(c: Palette): BuildingModel {
   p.add(box(8.4, 0.3, 1.8), '#CFC8BA', 0, 0.15, 3.7);
   p.add(box(2, 2.6, 0.1), DOOR, 0, 1.3, 3.02);
   for (const x of [-4, -2.6, 2.6, 4]) p.add(box(0.9, 1.4, 0.08), WINDOW, x, 2.4, 3.02);
-  return { parts: p.merge(), labelY: 7.4, door: [0, 5], radius: 6 };
+  return { parts: p.merge(), labelY: 7.4, door: [0, 5], radius: 6, blocks: [[0, 0.2, 10.6, 7.2]] };
 }
 
 function library(c: Palette): BuildingModel {
@@ -78,7 +80,7 @@ function library(c: Palette): BuildingModel {
   p.add(box(4, 0.3, 1.4), '#CFC8BA', 0, 0.15, 4.1);
   // Book spines by the door.
   ['#C2462E', '#2F5D8A', '#E3B341'].forEach((col, i) => p.add(roundedBox(0.5, 1.6, 0.5, 0.06), col, 2.4 + i * 0.55, 0.8, 4));
-  return { parts: p.merge(), labelY: 9.2, door: [0, 5.5], radius: 5 };
+  return { parts: p.merge(), labelY: 9.2, door: [0, 5.5], radius: 5, blocks: [[0, 0, 7.8, 7.8]] };
 }
 
 function faculty(c: Palette): BuildingModel {
@@ -93,7 +95,7 @@ function faculty(c: Palette): BuildingModel {
   p.add(box(1.8, 2.4, 0.1), DOOR, -2.4, 1.2, 2.52);
   // Notice board by the door.
   p.add(box(1.4, 1, 0.1), '#7A5536', -0.6, 1.6, 2.6);
-  return { parts: p.merge(), labelY: 8.4, door: [-2.4, 4], radius: 6 };
+  return { parts: p.merge(), labelY: 8.4, door: [-2.4, 4], radius: 6, blocks: [[0, 0, 9.6, 5.6], [3.5, -4, 4.6, 4.6]] };
 }
 
 function cafeteria(c: Palette): BuildingModel {
@@ -115,7 +117,7 @@ function cafeteria(c: Palette): BuildingModel {
     p.add(cylinder(0.1, 0.1, 0.8, 6), '#6B4423', x, 0.5, 0.9);
     for (const dx of [-1, 1]) p.add(cylinder(0.25, 0.25, 0.5, 8), c.roof, x + dx, 0.45, 0.9);
   }
-  return { parts: p.merge(), labelY: 5.4, door: [0, 4], radius: 5 };
+  return { parts: p.merge(), labelY: 5.4, door: [0, 4], radius: 5, blocks: [[0, 0, 8.8, 5.8]] };
 }
 
 function hostel(c: Palette): BuildingModel {
@@ -136,7 +138,7 @@ function hostel(c: Palette): BuildingModel {
   p.add(box(1.6, 2.2, 0.1), DOOR, 0, 1.1, 2.52);
   // Clothes drying on the balcony line.
   ['#E8742A', '#F2C230', '#2E8B57', '#8E3B8A'].forEach((col, i) => p.add(box(0.6, 0.8, 0.05), col, -4 + i * 2.6, 4.2, 3.12));
-  return { parts: p.merge(), labelY: 10.6, door: [0, 4], radius: 7 };
+  return { parts: p.merge(), labelY: 10.6, door: [0, 4], radius: 7, blocks: [[0, 0, 12.6, 5.8]] };
 }
 
 function field(c: Palette): BuildingModel {
@@ -154,7 +156,7 @@ function field(c: Palette): BuildingModel {
     for (const z of [-1.4, 1.4]) p.add(cylinder(0.08, 0.08, 1.6, 6), WHITE, s * 7.6, 0.9, z);
     p.add(cylinder(0.08, 0.08, 2.9, 6), WHITE, s * 7.6, 1.7, 0, [Math.PI / 2, 0, 0]);
   }
-  return { parts: p.merge(), labelY: 3.2, door: [-6, 6], radius: 9 };
+  return { parts: p.merge(), labelY: 3.2, door: [-6, 6], radius: 9, blocks: [] };
 }
 
 function business(c: Palette): BuildingModel {
@@ -166,7 +168,7 @@ function business(c: Palette): BuildingModel {
   p.add(box(1.2, 0.8, 0.8), '#7A7F87', 1.2, 0.4, 2.8);
   p.add(roundedBox(0.7, 0.4, 0.6, 0.05), '#E8E8E8', 1.2, 1, 2.8);
   p.add(box(1, 0.06, 0.6), WHITE, 1.2, 1.25, 2.8);
-  return { parts: p.merge(), labelY: 5.6, door: [-1, 3.6], radius: 3 };
+  return { parts: p.merge(), labelY: 5.6, door: [-1, 3.6], radius: 3, blocks: [[0, 0, 4.4, 3.8], [1.2, 2.8, 1.4, 1]] };
 }
 
 function park(c: Palette): BuildingModel {
@@ -174,7 +176,7 @@ function park(c: Palette): BuildingModel {
   for (const [x, z] of [[-3, -2], [3, -2], [-3, 2], [3, 2]] as const) p.add(cylinder(0.15, 0.15, 3, 6), '#555', x, 1.5, z);
   p.add(roundedBox(7, 0.3, 5, 0.1), c.roof, 0, 3.1, 0);
   p.add(roundedBox(2.4, 1.2, 1.4, 0.2), c.wall, -1.5, 0.75, 0);
-  return { parts: p.merge(), labelY: 5, door: [0, 3.5], radius: 4 };
+  return { parts: p.merge(), labelY: 5, door: [0, 3.5], radius: 4, blocks: [[-1.5, 0, 2.6, 1.6]] };
 }
 
 function gate(c: Palette): BuildingModel {
@@ -191,7 +193,7 @@ function gate(c: Palette): BuildingModel {
   p.add(box(1, 0.8, 0.08), WINDOW, 7, 1.6, 0.02);
   // Barrier arm.
   p.add(box(7, 0.18, 0.18), '#D9482B', 0.2, 1.1, 0.8);
-  return { parts: p.merge(), labelY: 8, door: [0, 2.5], radius: 7 };
+  return { parts: p.merge(), labelY: 8, door: [0, 2.5], radius: 7, blocks: [[-4.5, 0, 1.6, 1.6], [4.5, 0, 1.6, 1.6], [7, -1, 2.4, 2.4]] };
 }
 
 const BUILDERS: Record<LocationType, (c: Palette) => BuildingModel> = {

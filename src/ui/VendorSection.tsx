@@ -17,7 +17,7 @@ function advertiseMessage(location: CampusLocation): string {
   return `Hello! I'd like to advertise my business at ${location.name} in ${GAME_NAME} (${university.shortName}). How much is a stall?`;
 }
 
-function VendorCard({ vendor, homeId }: { vendor: Vendor; homeId: string }) {
+export function VendorCard({ vendor, homeId }: { vendor: Vendor; homeId: string }) {
   useEffect(() => track('vendor_viewed', { vendor_id: vendor.id }), [vendor.id]);
   return (
     <li className="flex flex-col gap-2 rounded-xl border border-line bg-night p-3">

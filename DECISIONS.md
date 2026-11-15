@@ -122,3 +122,35 @@ the code mentioned.
     only registered in production builds.
 39. **The map code is prefetched** 1.5 seconds after the start screen appears,
     so the campus shows quickly after "Start the semester".
+
+## Layout update (glass controls, phone, joystick)
+
+40. **The layout idea comes from your reference screenshots; the look stays
+    Campus Life's own.** Same pattern (floating pills, a phone overlay, a
+    joystick), with our own colours, icons, app names and screens.
+41. **No more top bar or bottom strip.** The map fills the screen. Floating
+    pills show the time (tap: Calendar) and money (tap: Wallet). The avatar
+    (bottom left) has an energy ring and a red dot when energy or stress is
+    risky; tap it for the profile. "What just happened" shows as a short toast
+    and in full in the phone's Updates app.
+42. **Two camera modes.** "Me" follows the player with a joystick; "Map" fits
+    the whole campus on screen and allows drag and pinch. Tapping a building
+    walks there in either mode. Players start in "Me".
+43. **Joystick walking is blocked by buildings** (simple rectangles per
+    building, sliding along walls). Standing near a door shows "Enter
+    <place>". Walking away clears "you are at <place>".
+44. **The department group chat is simulated classmates, not real players.**
+    Messages are picked from draft templates to suit the day and time, the
+    same for the same player every time, and work offline. Replies are quick
+    chips and only cosmetic. A real chat between players would need moderation,
+    reporting and abuse handling, so it is left for a separate decision.
+45. **Where settings live.** Profile (tap the avatar): name, department,
+    estate, background, stats, today's checklist and changing your look.
+    Phone > Settings: display quality and Start over. The old "list of places"
+    button is now the phone's Places app (it walks you there on the map).
+46. **Display quality.** "Best looks" (default) uses glass blur, edge
+    smoothing, 1.5x resolution and 6 students. "Battery saver" uses plain dark
+    panels, no smoothing, 1x resolution and 3 students. Blur over a moving 3D
+    map is one of the costliest things on a cheap phone.
+47. **Market and Ranks apps** only appear when Supabase is set up, like the
+    leaderboard before.

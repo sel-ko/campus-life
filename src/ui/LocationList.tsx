@@ -3,10 +3,11 @@ import { hasAvailableAction } from '../game/engine';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 
-// A plain list of campus places, grouped by site. It stands in for the 3D map
-// until Phase 3, and stays as the fallback when a phone has no WebGL.
-export function LocationList({ game }: { game: GameState }) {
+// A plain list of campus places, grouped by site. Used by the phone's Places
+// app, and as the whole map when a phone has no WebGL.
+export function LocationList({ game, onPick }: { game: GameState; onPick?: (locationId: string) => void }) {
   const tapLocation = useGameStore((s) => s.tapLocation);
+  const pick = onPick ?? tapLocation;
 
   return (
     <div className="flex flex-col gap-4">
@@ -23,7 +24,7 @@ export function LocationList({ game }: { game: GameState }) {
                 return (
                   <li key={loc.id}>
                     <button
-                      onClick={() => tapLocation(loc.id)}
+                      onClick={() => pick(loc.id)}
                       className={`flex min-h-16 w-full items-center rounded-xl border border-line bg-panel px-3 py-2 text-left font-semibold ${
                         open ? '' : 'opacity-45'
                       }`}

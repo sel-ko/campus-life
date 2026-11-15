@@ -9,7 +9,6 @@ import { walkGraph } from './layout';
 import { Blob } from './Player';
 import { seededRandom } from './three-utils';
 
-const NPC_COUNT = 6;
 const SPEED = 2.4;
 const SCALE = 0.85;
 
@@ -67,17 +66,17 @@ function Npc({ look, phase, startNode, seed }: { look: CharacterLook; phase: num
   );
 }
 
-export function Npcs() {
+export function Npcs({ count }: { count: number }) {
   const people = useMemo(() => {
     const rand = seededRandom(42);
     const nodes = walkGraph().length;
-    return Array.from({ length: NPC_COUNT }, (_, i) => ({
+    return Array.from({ length: count }, (_, i) => ({
       look: randomLook(rand),
       phase: i * 1.3,
       startNode: Math.floor(rand() * nodes),
       seed: 100 + i,
     }));
-  }, []);
+  }, [count]);
   return (
     <group>
       {people.map((p, i) => (

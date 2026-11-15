@@ -1,47 +1,69 @@
-// Fixed angled camera. One finger drags to pan, two fingers pinch to zoom
-// (mouse: drag and wheel). No rotation. Follows the player while walking.
+// Fixed angled camera with two modes, no rotation:
+// - follow ("Me"): close on the player; pinch zooms a little; the joystick moves.
+// - overview ("Map"): fits the whole campus; drag pans, pinch zooms in.
+// Switching modes glides smoothly between them.
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useGameStore } from '../store/gameStore';
 import { campusBounds } from './layout';
-import { gesture, playerWorld } from './shared';
+import { cameraState, gesture, playerWorld } from './shared';
 
-const TILT = THREE.MathUtils.degToRad(50); // angle above the ground
-const MIN_DIST = 25;
-const MAX_DIST = 140;
-/** How many metres of campus fit across the screen at the start. */
-const START_SPAN = 36;
+const TILT = THREE.MathUtils.degToRad(52); // angle above the ground
+const FOLLOW = { start: 34, min: 16, max: 55 };
 const TAP_SLOP = 8; // pixels a finger can wobble and still count as a tap
 
-function startDistance(cam: THREE.PerspectiveCamera, size: { width: number; height: number }): number {
-  const aspect = size.width / Math.max(size.height, 1);
-  const halfFov = THREE.MathUtils.degToRad(cam.fov) / 2;
-  const span = Math.min(START_SPAN, START_SPAN * aspect * 2.2); // never zoom out too far on wide screens
-  return THREE.MathUtils.clamp(span / (2 * Math.tan(halfFov) * aspect), MIN_DIST, MAX_DIST);
+/** Distance at which the whole campus fits on this screen. */
+function fitDistance(cam: THREE.PerspectiveCamera, width: number, height: number): number {
+  const b = campusBounds();
+  const aspect = width / Math.max(height, 1);
+  const t = Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
+  const w = b.maxX - b.minX + 6;
+  const d = b.maxZ - b.minZ + 6;
+  return Math.max(w / (2 * t * aspect), (d * Math.sin(TILT)) / (2 * t));
 }
 
 export function CameraRig({ start }: { start: [number, number] }) {
   const { camera, gl, size } = useThree();
-  // Pick the starting distance so START_SPAN metres fit across the screen,
-  // whatever its shape (portrait phones need to be further out).
-  const view = useRef({ x: start[0], z: start[1], dist: startDistance(camera as THREE.PerspectiveCamera, size) });
+  const mode = useGameStore((s) => s.cameraMode);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+
+  // Where the camera is now, and where each mode wants it.
+  const view = useRef({ x: start[0], z: start[1], dist: FOLLOW.start });
+  const goal = useRef({ followDist: FOLLOW.start, overviewDist: 0, ox: 0, oz: 0 });
+
+  // Entering the map view: centre on the campus, zoomed right out.
+  useEffect(() => {
+    if (mode !== 'overview') return;
+    const b = campusBounds();
+    goal.current.ox = (b.minX + b.maxX) / 2;
+    goal.current.oz = (b.minZ + b.maxZ) / 2;
+    goal.current.overviewDist = fitDistance(camera as THREE.PerspectiveCamera, size.width, size.height);
+  }, [mode, camera, size.width, size.height]);
 
   useEffect(() => {
     const el = gl.domElement;
     const pointers = new Map<number, { x: number; y: number }>();
     let downAt = { x: 0, y: 0 };
     let pinchStart = 0;
-    let distStart = view.current.dist;
+    let distStart = 0;
 
     const worldPerPixel = () => {
       const cam = camera as THREE.PerspectiveCamera;
-      const visible = 2 * view.current.dist * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
-      return visible / el.clientHeight;
+      return (2 * view.current.dist * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2)) / el.clientHeight;
     };
     const pinchDistance = () => {
       const [a, b] = [...pointers.values()];
       return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
     };
+    const maxOverview = () => fitDistance(camera as THREE.PerspectiveCamera, el.clientWidth, el.clientHeight) * 1.1;
+    const setDist = (d: number) => {
+      const g = goal.current;
+      if (modeRef.current === 'follow') g.followDist = THREE.MathUtils.clamp(d, FOLLOW.min, FOLLOW.max);
+      else g.overviewDist = THREE.MathUtils.clamp(d, 25, maxOverview());
+    };
+    const currentGoalDist = () => (modeRef.current === 'follow' ? goal.current.followDist : goal.current.overviewDist);
 
     const onDown = (e: PointerEvent) => {
       if (pointers.size === 0) {
@@ -52,7 +74,7 @@ export function CameraRig({ start }: { start: [number, number] }) {
       gesture.active = true;
       if (pointers.size === 2) {
         pinchStart = pinchDistance();
-        distStart = view.current.dist;
+        distStart = currentGoalDist();
         gesture.moved = true;
       }
     };
@@ -63,12 +85,13 @@ export function CameraRig({ start }: { start: [number, number] }) {
       pointers.set(e.pointerId, now);
       if (pointers.size === 1) {
         if (Math.hypot(now.x - downAt.x, now.y - downAt.y) > TAP_SLOP) gesture.moved = true;
-        if (!gesture.moved) return;
+        // Only the map view pans; in close-up the joystick moves the player.
+        if (!gesture.moved || modeRef.current !== 'overview') return;
         const wpp = worldPerPixel();
-        view.current.x -= (now.x - prev.x) * wpp;
-        view.current.z -= ((now.y - prev.y) * wpp) / Math.sin(TILT);
+        goal.current.ox -= (now.x - prev.x) * wpp;
+        goal.current.oz -= ((now.y - prev.y) * wpp) / Math.sin(TILT);
       } else if (pointers.size === 2 && pinchStart > 0) {
-        view.current.dist = THREE.MathUtils.clamp((distStart * pinchStart) / Math.max(pinchDistance(), 1), MIN_DIST, MAX_DIST);
+        setDist((distStart * pinchStart) / Math.max(pinchDistance(), 1));
       }
     };
     const onUp = (e: PointerEvent) => {
@@ -78,7 +101,7 @@ export function CameraRig({ start }: { start: [number, number] }) {
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      view.current.dist = THREE.MathUtils.clamp(view.current.dist * (1 + e.deltaY * 0.001), MIN_DIST, MAX_DIST);
+      setDist(currentGoalDist() * (1 + e.deltaY * 0.001));
     };
 
     el.addEventListener('pointerdown', onDown);
@@ -97,19 +120,27 @@ export function CameraRig({ start }: { start: [number, number] }) {
     };
   }, [camera, gl]);
 
-  const bounds = campusBounds();
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
+    const dt = Math.min(rawDt, 0.05);
     const v = view.current;
-    // Gently follow the player while they walk, unless the finger is down.
-    if (playerWorld.moving && !gesture.active) {
-      const k = 1 - Math.exp(-dt * 3);
-      v.x += (playerWorld.pos.x - v.x) * k;
-      v.z += (playerWorld.pos.z - v.z) * k;
-    }
-    v.x = THREE.MathUtils.clamp(v.x, bounds.minX, bounds.maxX);
-    v.z = THREE.MathUtils.clamp(v.z, bounds.minZ, bounds.maxZ);
+    const g = goal.current;
+    const b = campusBounds();
+    g.ox = THREE.MathUtils.clamp(g.ox, b.minX, b.maxX);
+    g.oz = THREE.MathUtils.clamp(g.oz, b.minZ, b.maxZ);
+
+    const follow = modeRef.current === 'follow';
+    const tx = follow ? playerWorld.pos.x : g.ox;
+    const tz = follow ? playerWorld.pos.z : g.oz;
+    const td = follow ? g.followDist : g.overviewDist || v.dist;
+    // Follow the player tightly; glide more slowly when changing modes.
+    const k = 1 - Math.exp(-dt * (follow ? 6 : 4));
+    v.x += (tx - v.x) * k;
+    v.z += (tz - v.z) * k;
+    v.dist += (td - v.dist) * (1 - Math.exp(-dt * 4));
+
     camera.position.set(v.x, v.dist * Math.sin(TILT), v.z + v.dist * Math.cos(TILT));
     camera.lookAt(v.x, 0, v.z);
+    cameraState.dist = v.dist;
   });
 
   return null;

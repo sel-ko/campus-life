@@ -1,56 +1,107 @@
 // A thin Zustand wrapper around the engine. No game rules live here: each
-// method calls one engine function and stores the result. It also holds a
-// little screen state (which sheet is open, where the player is walking).
+// method calls one engine function and stores the result. It also holds the
+// screen state (open sheets, camera mode, phone) and the player's chat replies.
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { doAction, resolveEvent, startGame } from '../game/engine';
-import type { GameState, PlayerSetup } from '../game/types';
+import { currentSlot, doAction, resolveEvent, startGame } from '../game/engine';
+import type { GameState, PlayerSetup, Slot } from '../game/types';
+
+export type CameraMode = 'follow' | 'overview';
+export type PhoneApp =
+  | 'home'
+  | 'messages'
+  | 'calendar'
+  | 'wallet'
+  | 'updates'
+  | 'places'
+  | 'market'
+  | 'leaderboard'
+  | 'settings';
 
 interface GameStore {
   /** The saved game, or null before the first start. */
   game: GameState | null;
-  /** Which building the player is standing at on the map. Saved. */
+  /** Which building the player is standing at, or null when out walking. Saved. */
   playerLocationId: string | null;
-  /** Where the player is walking to on the 3D map. Not saved. */
-  travelTargetId: string | null;
-  /** Which building's sheet is open. Not saved. */
-  selectedLocationId: string | null;
   /** True once this semester's result is on the online leaderboard. Saved. */
   resultSubmitted: boolean;
+  /** Lines the player sent in the department group chat. Saved. */
+  chatReplies: Array<{ day: number; slot: Slot; text: string }>;
+  /** How many classmate messages the player has seen. Saved. */
+  chatRead: number;
+
+  // ---- screen state, not saved ----
+  /** Where the player is walking to after tapping a building. */
+  travelTargetId: string | null;
+  /** Which building's sheet is open. */
+  selectedLocationId: string | null;
+  /** Close-up on the player (with joystick) or the whole campus. */
+  cameraMode: CameraMode;
+  /** A door the player is standing near while walking with the joystick. */
+  nearbyLocationId: string | null;
+  /** Which phone screen is open, or null when the phone is away. */
+  phoneApp: PhoneApp | null;
+  profileOpen: boolean;
 
   start: (setup: PlayerSetup) => void;
-  /** Opens a building's sheet straight away (list view). */
+  /** Opens a building's sheet straight away (list, Places app, Enter button). */
   tapLocation: (locationId: string) => void;
   /** 3D map: walk to a building; the sheet opens on arrival. */
   travelTo: (locationId: string) => void;
   /** Called by the 3D scene when the walk ends. */
   arrive: () => void;
+  /** Joystick took over: stop any walk to a tapped building. */
+  cancelTravel: () => void;
+  /** The player walked away from the building they were at. */
+  leaveLocation: () => void;
+  setNearby: (locationId: string | null) => void;
+  setCameraMode: (mode: CameraMode) => void;
   closeSheet: () => void;
   act: (actionId: string) => void;
   chooseEvent: (choiceIndex: 0 | 1) => void;
+  openPhone: (app?: PhoneApp) => void;
+  closePhone: () => void;
+  setProfileOpen: (open: boolean) => void;
+  /** Cosmetic: change the character's look mid-semester. */
+  setCharacter: (characterId: string) => void;
+  sendReply: (text: string) => void;
+  markChatRead: (count: number) => void;
   reset: () => void;
   markResultSubmitted: () => void;
 }
+
+const freshScreen = {
+  travelTargetId: null,
+  selectedLocationId: null,
+  nearbyLocationId: null,
+  phoneApp: null,
+  profileOpen: false,
+} as const;
 
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
       game: null,
       playerLocationId: null,
-      travelTargetId: null,
-      selectedLocationId: null,
       resultSubmitted: false,
+      chatReplies: [],
+      chatRead: 0,
+      ...freshScreen,
+      cameraMode: 'follow',
 
       start: (setup) =>
         set({
           game: startGame(setup),
           playerLocationId: setup.homeId,
-          travelTargetId: null,
-          selectedLocationId: null,
           resultSubmitted: false,
+          chatReplies: [],
+          chatRead: 0,
+          ...freshScreen,
+          cameraMode: 'follow',
         }),
 
-      tapLocation: (locationId) => set({ selectedLocationId: locationId, playerLocationId: locationId }),
+      tapLocation: (locationId) =>
+        set({ selectedLocationId: locationId, playerLocationId: locationId, travelTargetId: null, phoneApp: null }),
 
       travelTo: (locationId) => {
         const { playerLocationId, game } = get();
@@ -64,6 +115,20 @@ export const useGameStore = create<GameStore>()(
         if (!target) return;
         set({ playerLocationId: target, selectedLocationId: target, travelTargetId: null });
       },
+
+      cancelTravel: () => {
+        if (get().travelTargetId) set({ travelTargetId: null });
+      },
+
+      leaveLocation: () => {
+        if (get().playerLocationId) set({ playerLocationId: null });
+      },
+
+      setNearby: (locationId) => {
+        if (get().nearbyLocationId !== locationId) set({ nearbyLocationId: locationId });
+      },
+
+      setCameraMode: (mode) => set({ cameraMode: mode }),
 
       closeSheet: () => set({ selectedLocationId: null }),
 
@@ -80,7 +145,28 @@ export const useGameStore = create<GameStore>()(
         set({ game: resolveEvent(game, choiceIndex) });
       },
 
-      reset: () => set({ game: null, playerLocationId: null, travelTargetId: null, selectedLocationId: null }),
+      openPhone: (app = 'home') => set({ phoneApp: app, profileOpen: false }),
+      closePhone: () => set({ phoneApp: null }),
+      setProfileOpen: (open) => set({ profileOpen: open, phoneApp: open ? null : get().phoneApp }),
+
+      setCharacter: (characterId) => {
+        const { game } = get();
+        if (!game) return;
+        set({ game: { ...game, player: { ...game.player, characterId } } });
+      },
+
+      sendReply: (text) => {
+        const { game, chatReplies } = get();
+        if (!game) return;
+        set({ chatReplies: [...chatReplies, { day: game.day, slot: currentSlot(game), text }] });
+      },
+
+      markChatRead: (count) => {
+        if (count > get().chatRead) set({ chatRead: count });
+      },
+
+      reset: () =>
+        set({ game: null, playerLocationId: null, chatReplies: [], chatRead: 0, ...freshScreen, cameraMode: 'follow' }),
 
       markResultSubmitted: () => set({ resultSubmitted: true }),
     }),
@@ -91,9 +177,11 @@ export const useGameStore = create<GameStore>()(
         game: state.game,
         playerLocationId: state.playerLocationId,
         resultSubmitted: state.resultSubmitted,
+        chatReplies: state.chatReplies,
+        chatRead: state.chatRead,
       }),
       // If the save format changes, start fresh rather than crash.
-      migrate: () => ({ game: null, playerLocationId: null, resultSubmitted: false }),
+      migrate: () => ({ game: null, playerLocationId: null, resultSubmitted: false, chatReplies: [], chatRead: 0 }),
     },
   ),
 );

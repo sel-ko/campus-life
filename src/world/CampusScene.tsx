@@ -5,6 +5,7 @@ import { useEffect, useMemo } from 'react';
 import { getLocation } from '../content/university';
 import { currentSlot } from '../game/engine';
 import { useGameStore } from '../store/gameStore';
+import { useSettings } from '../store/settingsStore';
 import { Buildings } from './Buildings';
 import { CameraRig } from './CameraRig';
 import { Ground } from './Ground';
@@ -22,6 +23,9 @@ export default function CampusScene({ paused }: { paused: boolean }) {
   const look = SLOT_LOOKS[slot];
   const characterId = useGameStore((s) => s.game?.player.characterId ?? 'm1');
   const look3d = useMemo(() => presetLook(characterId), [characterId]);
+  // Battery saver: lower resolution, no edge smoothing, fewer students.
+  const quality = useSettings((s) => s.quality);
+  const high = quality === 'high';
 
   useEffect(() => setWindowGlow(look.glow), [look]);
 
@@ -34,10 +38,12 @@ export default function CampusScene({ paused }: { paused: boolean }) {
 
   return (
     <Canvas
-      dpr={[1, 1.5]}
+      // A new canvas when quality changes, because smoothing is fixed at creation.
+      key={quality}
+      dpr={high ? [1, 1.5] : 1}
       frameloop={paused ? 'never' : 'always'}
-      camera={{ fov: 45, near: 1, far: 320, position: [0, 40, 40] }}
-      gl={{ antialias: true, powerPreference: 'default' }}
+      camera={{ fov: 45, near: 1, far: 600, position: [0, 40, 40] }}
+      gl={{ antialias: high, powerPreference: 'default' }}
       style={{ touchAction: 'none' }}
       onCreated={({ gl }) => {
         // Development only: lets you check draw calls in the console with
@@ -46,7 +52,6 @@ export default function CampusScene({ paused }: { paused: boolean }) {
       }}
     >
       <color attach="background" args={[look.sky]} />
-      <fog attach="fog" args={[look.sky, 140, 260]} />
       <hemisphereLight args={[look.hemiSky, look.hemiGround, look.hemiIntensity]} />
       <directionalLight position={look.sunPos} color={look.sunColor} intensity={look.sunIntensity} />
       <CameraRig start={start} />
@@ -54,7 +59,7 @@ export default function CampusScene({ paused }: { paused: boolean }) {
       <Trees />
       <Props />
       <Buildings />
-      <Npcs />
+      <Npcs count={high ? 6 : 3} />
       <Player look={look3d} />
     </Canvas>
   );
