@@ -3,7 +3,7 @@
 // place X"; it holds no game rules.
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
-import { currentSlot } from '../game/engine';
+import { currentSlot } from '../game/legacy/engine';
 import { useGameStore } from '../store/gameStore';
 import { useSettings } from '../store/settingsStore';
 import { CampusBuildings, setCampusGlow } from './campus/CampusBuildings';

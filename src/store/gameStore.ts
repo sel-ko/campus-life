@@ -4,8 +4,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getLocation, university } from '../content/university';
-import { currentSlot, doAction, resolveEvent, startGame } from '../game/engine';
-import type { GameState, PlayerSetup, Slot } from '../game/types';
+import { currentSlot, doAction, resolveEvent, startGame } from '../game/legacy/engine';
+import type { GameState, PlayerSetup, Slot } from '../game/legacy/types';
 
 export type CameraMode = 'follow' | 'overview';
 export type PhoneApp =

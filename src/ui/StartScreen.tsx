@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { university } from '../content/university';
-import { BACKGROUNDS } from '../game/config';
-import { naira } from '../game/format';
-import type { BackgroundId } from '../game/types';
+import { BACKGROUNDS } from '../game/legacy/config';
+import { naira } from '../game/legacy/format';
+import type { BackgroundId } from '../game/legacy/types';
 import { onlineConfigured } from '../online/supabase';
 import { useGameStore } from '../store/gameStore';
 import type { PresetId } from '../world/characters/look';

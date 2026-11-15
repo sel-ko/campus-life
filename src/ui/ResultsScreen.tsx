@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getDepartment } from '../content/university';
-import { finalResult } from '../game/engine';
-import { naira } from '../game/format';
-import type { GameState } from '../game/types';
+import { finalResult } from '../game/legacy/engine';
+import { naira } from '../game/legacy/format';
+import type { GameState } from '../game/legacy/types';
 import { track } from '../online/analytics';
 import { fetchRank, onlineConfigured, submitResult } from '../online/supabase';
 import { useGameStore } from '../store/gameStore';

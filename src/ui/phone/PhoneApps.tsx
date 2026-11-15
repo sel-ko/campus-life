@@ -1,12 +1,12 @@
 // The apps inside the in-game phone.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDepartment, getLocation, university } from '../../content/university';
-import { getAction } from '../../game/actions';
-import { CLASS_REP, QUICK_REPLIES, chatTime } from '../../game/chat';
-import { ALLOWANCE_DAYS, BACKGROUNDS, DAY_NAMES, SEMESTER_DAYS, WEEKEND_DAYS } from '../../game/config';
-import { currentSlot } from '../../game/engine';
-import { naira } from '../../game/format';
-import { SLOTS, type GameState } from '../../game/types';
+import { getAction } from '../../game/legacy/actions';
+import { CLASS_REP, QUICK_REPLIES, chatTime } from '../../game/legacy/chat';
+import { ALLOWANCE_DAYS, BACKGROUNDS, DAY_NAMES, SEMESTER_DAYS, WEEKEND_DAYS } from '../../game/legacy/config';
+import { currentSlot } from '../../game/legacy/engine';
+import { naira } from '../../game/legacy/format';
+import { SLOTS, type GameState } from '../../game/legacy/types';
 import { fetchVendors, type Vendor } from '../../online/supabase';
 import { useGameStore } from '../../store/gameStore';
 import { useSettings, type Quality } from '../../store/settingsStore';

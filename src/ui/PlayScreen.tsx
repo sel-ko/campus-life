@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react';
-import type { GameState } from '../game/types';
+import type { GameState } from '../game/legacy/types';
 import { useGameStore } from '../store/gameStore';
 import { ErrorBoundary } from './ErrorBoundary';
 import { EventCard } from './EventCard';

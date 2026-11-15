@@ -1,6 +1,6 @@
 import { university } from '../content/university';
 import { placeIsOpen } from '../content/placeHelpers';
-import type { GameState } from '../game/types';
+import type { GameState } from '../game/legacy/types';
 import { useGameStore } from '../store/gameStore';
 
 // A plain list of campus places, grouped by site. Used by the phone's Places

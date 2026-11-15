@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ACTIONS } from '../game/actions';
-import { canDoAction, doAction, startGame } from '../game/engine';
+import { ACTIONS } from '../game/legacy/actions';
+import { canDoAction, doAction, startGame } from '../game/legacy/engine';
 import { findPath, isBlocked, nearestDoor, nearestNode, roadGraph } from '../world/campus/navigation';
 import { buildings, campusPlaces, sections } from './campusMap';
 import raw from './campus-layout.json';

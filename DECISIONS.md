@@ -217,3 +217,20 @@ the code mentioned.
     where they don't cut a corner). Any trip takes at most about 6 seconds.
 64. **Draw calls:** about 25 in close-up and about 50 for the whole campus
     (walls in five meshes by window style, everything else in one).
+
+## The full-degree rebuild
+
+65. **The new rules live in `src/game/`** as pure TypeScript. While they were
+    being built, the old one-semester game sat in `src/game/legacy/` so the
+    app kept working; the screens moved to the new rules in part 8 and the
+    legacy folder was then deleted.
+66. **How rules stay pure:** every public rule function copies the state
+    (`structuredClone`), changes the copy and returns it (`produce` in
+    `draft.ts`). The caller's state is never changed.
+67. **One seeded generator** (mulberry32, `rng.ts`). Its whole state is one
+    number saved as `GameState.rng`, so a saved game replays the same luck.
+68. **Save format version 2.** Older saves are not migrated: the player starts
+    fresh and sees a short "the game has been rebuilt" note.
+69. **The clock:** `year` counts sessions played, `day` is 1 to 14, `slot` is
+    0 to 3 (Morning to Night), and `dayCount` never resets (used for
+    deadlines and "come back tomorrow").

@@ -1,6 +1,6 @@
 // Watches the game store and turns changes into analytics events and the
 // anonymous sign-in. Kept outside the store so the store stays rule-free.
-import { finalResult } from '../game/engine';
+import { finalResult } from '../game/legacy/engine';
 import { useGameStore } from '../store/gameStore';
 import { track } from './analytics';
 import { ensureSignedIn } from './supabase';

@@ -1,8 +1,8 @@
 import { getDepartment, getLocation } from '../content/university';
-import { BACKGROUNDS, SEMESTER_DAYS } from '../game/config';
-import { currentSlot, dayName } from '../game/engine';
-import { naira } from '../game/format';
-import type { GameState, MeterKey } from '../game/types';
+import { BACKGROUNDS, SEMESTER_DAYS } from '../game/legacy/config';
+import { currentSlot, dayName } from '../game/legacy/engine';
+import { naira } from '../game/legacy/format';
+import type { GameState, MeterKey } from '../game/legacy/types';
 import { useGameStore } from '../store/gameStore';
 import { PRESETS, PRESET_IDS, presetLook } from '../world/characters/look';
 import { CheckIcon, CloseIcon } from './icons';

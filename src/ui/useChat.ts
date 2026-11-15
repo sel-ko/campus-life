@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { chatFeed, mergeReplies, type ChatLine } from '../game/chat';
-import type { GameState } from '../game/types';
+import { chatFeed, mergeReplies, type ChatLine } from '../game/legacy/chat';
+import type { GameState } from '../game/legacy/types';
 import { useGameStore } from '../store/gameStore';
 
 /** The department group chat so far, with the player's replies, and how many

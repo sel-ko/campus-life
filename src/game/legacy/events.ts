@@ -1,7 +1,7 @@
 // Random campus events, as data. Every one is marked draft: true so it can be
 // rewritten with real in-jokes. School-specific words come from the content
 // file's slang, so this file never names a school.
-import { university } from '../content/university';
+import { university } from '../../content/university';
 import type { GameEvent } from './types';
 
 const s = university.slang;

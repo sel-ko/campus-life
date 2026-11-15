@@ -3,10 +3,10 @@
 // navigation, phone). A short toast shows what just happened.
 import { useEffect, useRef, useState } from 'react';
 import { getLocation } from '../content/university';
-import { SEMESTER_DAYS } from '../game/config';
-import { currentSlot, dayName } from '../game/engine';
-import { naira } from '../game/format';
-import type { GameState, MeterKey, Slot } from '../game/types';
+import { SEMESTER_DAYS } from '../game/legacy/config';
+import { currentSlot, dayName } from '../game/legacy/engine';
+import { naira } from '../game/legacy/format';
+import type { GameState, MeterKey, Slot } from '../game/legacy/types';
 import { useGameStore } from '../store/gameStore';
 import { presetLook } from '../world/characters/look';
 import { SLOT_CLOCK } from './clock';

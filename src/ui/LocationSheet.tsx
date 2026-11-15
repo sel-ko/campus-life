@@ -1,8 +1,8 @@
 import { getLocation, university } from '../content/university';
 import { placeActions } from '../content/placeHelpers';
-import { canDoAction } from '../game/engine';
-import { describeEffects } from '../game/format';
-import type { GameState } from '../game/types';
+import { canDoAction } from '../game/legacy/engine';
+import { describeEffects } from '../game/legacy/format';
+import type { GameState } from '../game/legacy/types';
 import { useGameStore } from '../store/gameStore';
 import { VendorSection } from './VendorSection';
 

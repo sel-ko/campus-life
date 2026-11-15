@@ -1,5 +1,5 @@
 // A clock time to show for each time slot (the game itself only knows slots).
-import type { Slot } from '../game/types';
+import type { Slot } from '../game/legacy/types';
 
 export const SLOT_CLOCK: Record<Slot, { time: string; ampm: 'AM' | 'PM' }> = {
   Morning: { time: '8:00', ampm: 'AM' },

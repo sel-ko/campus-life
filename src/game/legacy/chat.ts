@@ -1,7 +1,7 @@
 // The department group chat: simulated classmates whose messages arrive as
 // the semester goes on. Pure data and a pure function, so the same game always
 // shows the same chat. Every line is draft: rewrite with real in-jokes.
-import { getDepartment, university } from '../content/university';
+import { getDepartment, university } from '../../content/university';
 import { DAY_NAMES, WEEKEND_DAYS } from './config';
 import { SLOTS, type Slot } from './types';
 

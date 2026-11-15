@@ -1,6 +1,6 @@
-import { canChoose, getPendingEvent } from '../game/engine';
-import { describeEffects } from '../game/format';
-import type { GameState } from '../game/types';
+import { canChoose, getPendingEvent } from '../game/legacy/engine';
+import { describeEffects } from '../game/legacy/format';
+import type { GameState } from '../game/legacy/types';
 import { useGameStore } from '../store/gameStore';
 
 // Pop-up card for a random campus event. Time waits until the player chooses.

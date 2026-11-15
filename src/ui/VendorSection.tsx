@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getLocation, university, type CampusLocation } from '../content/university';
-import { naira } from '../game/format';
+import { naira } from '../game/legacy/format';
 import { track } from '../online/analytics';
 import { fetchVendors, onlineConfigured, type Vendor } from '../online/supabase';
 import { GAME_NAME, whatsappLink } from './site';

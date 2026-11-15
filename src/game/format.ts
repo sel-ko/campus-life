@@ -1,31 +1,34 @@
-// Small pure formatting helpers shared by the engine and the UI.
+// Shared formatting for money and effects (Nigerian English, naira).
 import type { Effects } from './types';
 
-/** 1800 -> "₦1,800", -700 -> "-₦700". Written by hand so it never depends on
- *  the phone's locale settings. */
+/** ₦12,500 */
 export function naira(amount: number): string {
   const sign = amount < 0 ? '-' : '';
-  const digits = Math.round(Math.abs(amount))
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return `${sign}₦${digits}`;
+  return `${sign}₦${Math.round(Math.abs(amount)).toLocaleString('en-NG')}`;
 }
 
-const EFFECT_LABELS: Record<keyof Effects, string> = {
-  grades: 'Grades',
-  energy: 'Energy',
-  social: 'Social',
-  stress: 'Stress',
-  money: 'Money',
-};
+function signed(n: number): string {
+  return n > 0 ? `+${n}` : `${n}`;
+}
 
-/** { grades: 4, money: -700 } -> ["Grades +4", "Money -₦700"] */
-export function describeEffects(effects: Effects): string[] {
-  return (Object.keys(effects) as Array<keyof Effects>)
-    .filter((k) => effects[k])
-    .map((k) => {
-      const v = effects[k]!;
-      if (k === 'money') return `Money ${v > 0 ? '+' : ''}${naira(v)}`;
-      return `${EFFECT_LABELS[k]} ${v > 0 ? '+' : ''}${v}`;
-    });
+/** Short, human lines for an effect, like "Energy -10", "₦-700". */
+export function describeEffects(e: Effects): string[] {
+  const out: string[] = [];
+  if (e.money) out.push(e.money > 0 ? `+${naira(e.money)}` : `-${naira(-e.money)}`);
+  if (e.energy) out.push(`Energy ${signed(e.energy)}`);
+  if (e.hunger) out.push(e.hunger < 0 ? `Hunger ${signed(e.hunger)}` : `Hunger ${signed(e.hunger)}`);
+  if (e.stress) out.push(`Stress ${signed(e.stress)}`);
+  if (e.knowledge) out.push(`Knowledge ${signed(e.knowledge)}`);
+  if (e.goodwill) out.push(`Lecturers ${e.goodwill > 0 ? 'like you more' : 'like you less'}`);
+  if (e.roommates) out.push(`Roommates ${e.roommates > 0 ? 'warmer' : 'colder'}`);
+  if (e.loseSlots) out.push(`Lose ${e.loseSlots} slot${e.loseSlots > 1 ? 's' : ''}`);
+  return out;
+}
+
+export function plural(n: number, word: string, many = `${word}s`): string {
+  return `${n} ${n === 1 ? word : many}`;
+}
+
+export function pct(n: number): string {
+  return `${Math.round(n * 100)}%`;
 }

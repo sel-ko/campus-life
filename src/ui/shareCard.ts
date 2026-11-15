@@ -1,8 +1,8 @@
 // Draws the shareable results card (1080 x 1350, Instagram/WhatsApp portrait)
 // onto a canvas. Plain canvas 2D, no libraries.
 import { university } from '../content/university';
-import { naira } from '../game/format';
-import type { SemesterResult } from '../game/types';
+import { naira } from '../game/legacy/format';
+import type { SemesterResult } from '../game/legacy/types';
 import { GAME_NAME } from './site';
 
 export interface ShareCardData {

@@ -3,10 +3,10 @@
 // screen inside the phone with a back button.
 import { useState, type ReactElement } from 'react';
 import { university } from '../../content/university';
-import { SEMESTER_DAYS } from '../../game/config';
-import { currentSlot } from '../../game/engine';
-import { nextHint } from '../../game/hints';
-import type { GameState, LocationType } from '../../game/types';
+import { SEMESTER_DAYS } from '../../game/legacy/config';
+import { currentSlot } from '../../game/legacy/engine';
+import { nextHint } from '../../game/legacy/hints';
+import type { GameState, LocationType } from '../../game/legacy/types';
 import { onlineConfigured } from '../../online/supabase';
 import { useGameStore, type PhoneApp } from '../../store/gameStore';
 import { FULL_DAY_NAMES, SLOT_CLOCK } from '../clock';

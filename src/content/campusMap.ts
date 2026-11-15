@@ -4,7 +4,7 @@
 //
 // Units: metres. One planner square is 10 m. The map is centred on 0, 0,
 // with x running east and z running south (north is up on the planner).
-import type { LocationType } from '../game/types';
+import type { LocationType } from '../game/legacy/types';
 import raw from './campus-layout.json';
 
 export type Pt = [number, number];
