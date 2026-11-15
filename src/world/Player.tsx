@@ -8,7 +8,7 @@ import { useRef } from 'react';
 import * as THREE from 'three';
 import { getLocation, university } from '../content/university';
 import { useGameStore } from '../store/gameStore';
-import type { Pt } from './campusLayout';
+import type { Pt } from '../content/campusMap';
 import { findPath, isBlocked, nearestDoor, campusBounds } from './campus/navigation';
 import { Character } from './characters/Character';
 import type { CharacterLook } from './characters/look';
@@ -99,10 +99,15 @@ export function Player({ look }: { look: CharacterLook }) {
       travelled.current += speed;
       moving = true;
     } else if (store.travelTargetId) {
-      // ---- walking to a tapped place along the roads ----
+      // ---- walking to a tapped place along the roads (or riding a keke) ----
       const target = getLocation(store.travelTargetId);
       if (!target) {
         store.cancelTravel();
+      } else if (store.riding) {
+        // A keke ride: arrive straight away; the camera glides over.
+        p.set(target.position[0], 0, target.position[1]);
+        route.current = null;
+        store.arrive();
       } else {
         if (!route.current || route.current.target !== target.id) {
           const points = findPath([p.x, p.z], target.position);

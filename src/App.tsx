@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useGameStore } from './store/gameStore';
-import { DebugLauncher } from './ui/debug/DebugLauncher';
 import { LeaderboardScreen } from './ui/LeaderboardScreen';
 import { PlayScreen } from './ui/PlayScreen';
 import { ResultsScreen } from './ui/ResultsScreen';
@@ -20,11 +19,5 @@ function Screen() {
 }
 
 export default function App() {
-  return (
-    <>
-      <Screen />
-      {/* Only appears with ?debug=1 in the address. */}
-      <DebugLauncher />
-    </>
-  );
+  return <Screen />;
 }

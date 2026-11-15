@@ -92,10 +92,19 @@ what protects the data.
 Each place shows two stall spaces; empty ones say "Stall available" with an
 "Advertise here" button.
 
+## Change the campus map
+
+The map comes from the layout drawn in the **Campus Planner** artifact
+(https://claude.ai/artifact/Gj4Sq6ekAz9z4tAFN8GHp7), saved in the project as
+`src/content/campus-layout.json`. Edit the layout in the planner, then ask Claude
+to pull it in. `src/content/campusMap.ts` turns it into buildings, doors, roads
+and game places.
+
 ## Change the school content
 
-Everything about the school is in `src/content/university.ts`: names, the three
-sites, map positions, departments, slang and colours. Placeholders are marked
+Everything about the school is in `src/content/university.ts`: names,
+departments, slang and colours. Sections and places come from the planner
+layout. Placeholders are marked
 `TODO`. Events are in `src/game/events.ts` (all marked `draft: true` for
 rewriting), result titles in `src/game/titles.ts`, and every balance number in
 `src/game/config.ts` and `src/game/actions.ts`.

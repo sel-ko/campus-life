@@ -6,7 +6,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '../store/gameStore';
-import { campusBounds, zoneAt, zoneBounds } from './campus/navigation';
+import { campusBounds } from './campus/navigation';
 import { cameraState, gesture, playerWorld } from './shared';
 
 const TILT = THREE.MathUtils.degToRad(60); // angle above the ground
@@ -14,7 +14,7 @@ const FOLLOW = { start: 75, min: 25, max: 180 };
 const TAP_SLOP = 8; // pixels a finger can wobble and still count as a tap
 
 /** Distance at which an area (the player's section, or the whole campus) fits on screen. */
-function fitDistance(cam: THREE.PerspectiveCamera, width: number, height: number, b = zoneBounds(zoneAt(playerWorld.pos.x, playerWorld.pos.z))): number {
+function fitDistance(cam: THREE.PerspectiveCamera, width: number, height: number, b = campusBounds()): number {
   const aspect = width / Math.max(height, 1);
   const t = Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
   const w = b.maxX - b.minX + 6;
@@ -36,7 +36,7 @@ export function CameraRig({ start }: { start: [number, number] }) {
   // Entering the map view: centre on the player's section, zoomed out to fit it.
   useEffect(() => {
     if (mode !== 'overview') return;
-    const b = zoneBounds(zoneAt(playerWorld.pos.x, playerWorld.pos.z));
+    const b = campusBounds();
     goal.current.ox = (b.minX + b.maxX) / 2;
     goal.current.oz = (b.minZ + b.maxZ) / 2;
     goal.current.overviewDist = fitDistance(camera as THREE.PerspectiveCamera, size.width, size.height);
@@ -125,10 +125,8 @@ export function CameraRig({ start }: { start: [number, number] }) {
     const dt = Math.min(rawDt, 0.05);
     const v = view.current;
     const g = goal.current;
-    // Panning stays within the player's section (with a small margin), unless
-    // zoomed out past it.
-    const zb = zoneBounds(zoneAt(playerWorld.pos.x, playerWorld.pos.z));
-    const b = g.overviewDist > fitDistance(camera as THREE.PerspectiveCamera, size.width, size.height) * 1.2 ? campusBounds() : zb;
+    // Panning stays over the campus.
+    const b = campusBounds();
     g.ox = THREE.MathUtils.clamp(g.ox, b.minX, b.maxX);
     g.oz = THREE.MathUtils.clamp(g.oz, b.minZ, b.maxZ);
 

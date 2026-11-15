@@ -1,4 +1,4 @@
-// The 3D campus, built from the real map data. Loaded lazily (its own
+// The 3D campus, built from the layout drawn in the Campus Planner. Loaded lazily (its own
 // download) after the start screen. It reads the store and sends "walk to
 // place X"; it holds no game rules.
 import { Canvas } from '@react-three/fiber';
@@ -6,7 +6,7 @@ import { useEffect, useMemo } from 'react';
 import { currentSlot } from '../game/engine';
 import { useGameStore } from '../store/gameStore';
 import { useSettings } from '../store/settingsStore';
-import { CampusBuildings, campusWallMaterial } from './campus/CampusBuildings';
+import { CampusBuildings, setCampusGlow } from './campus/CampusBuildings';
 import { CampusGround } from './campus/CampusGround';
 import { CampusLabels } from './campus/CampusLabels';
 import { CampusScenery } from './campus/CampusScenery';
@@ -28,7 +28,7 @@ export default function CampusScene({ paused }: { paused: boolean }) {
 
   // Windows glow in the evening and at night.
   useEffect(() => {
-    campusWallMaterial.emissiveIntensity = look.glow * 0.9;
+    setCampusGlow(look.glow * 0.9);
   }, [look]);
 
   return (

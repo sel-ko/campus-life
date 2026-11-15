@@ -3,7 +3,7 @@
 //
 // TODO: every value marked "TODO" is a placeholder. Replace it with the names
 // students really use.
-import { campus, campusPlaces, type CampusPlace } from './campusPlaces';
+import { campusPlaces, sections, type CampusPlace } from './campusMap';
 
 export interface CampusSite {
   id: string;
@@ -14,8 +14,7 @@ export interface CampusSite {
   centre: [x: number, z: number];
 }
 
-/** A place the player can go: a real building from the map, or a spot such as
- *  the gate or the sports field. See campusPlaces.ts. */
+/** A place the player can go: a building from the planner layout. See campusMap.ts. */
 export type CampusLocation = CampusPlace;
 
 export interface Department {
@@ -53,13 +52,14 @@ export const university: UniversityContent = {
     accent: '#F5B83D', // TODO: real school colour
   },
 
-  // The real campus is three separate sections, built from the map data in
-  // campus-data.ts. Places come from campusPlaces.ts.
-  sites: [
-    { id: 'ps', name: 'Permanent Site', shortName: 'PS', centre: campus.zoneCentres.ps },
-    { id: 'ts', name: 'Temporary Site', shortName: 'TS', centre: campus.zoneCentres.ts },
-    { id: 'estate', name: 'Crown Estate', shortName: 'Crown Estate', centre: campus.zoneCentres.estate },
-  ],
+  // Sections and places come from the layout drawn in the Campus Planner
+  // (campus-layout.json), via campusMap.ts.
+  sites: sections.map((s) => ({
+    id: s.id,
+    name: s.name,
+    shortName: s.short,
+    centre: [(s.rect.x0 + s.rect.x1) / 2, (s.rect.z0 + s.rect.z1) / 2] as [number, number],
+  })),
 
   locations: campusPlaces,
 

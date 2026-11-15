@@ -1,7 +1,7 @@
 // Small helpers that combine places with the game rules (read-only).
 import { actionsAt, hasAvailableAction } from '../game/engine';
 import type { ActionDef, GameState } from '../game/types';
-import type { CampusPlace } from './campusPlaces';
+import type { CampusPlace } from './campusMap';
 
 /** Every action offered at a place (a classroom block offers lectures and meetings). */
 export function placeActions(place: CampusPlace): ActionDef[] {

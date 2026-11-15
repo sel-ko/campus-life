@@ -170,99 +170,50 @@ the code mentioned.
     button (walks to a place that helps), search over apps and places, four
     main apps; swipe for all apps.
 
-## Real campus map, phase 1 (layout and debug view)
+## The campus map (from the Campus Planner)
 
-52. **The map data is never hand-edited**, except `GAP_SHRINK`, set to 0.35 as
-    asked. Fixes go in `src/content/campus-overrides.ts` (empty for now).
-53. **Scene coordinates** put the estate centre at 0, 0. `WORLD_SCALE` is
-    60 / 561 ≈ 0.107 scene units per metre: PS's buildings span 561 m, so PS is
-    60 units wide. A test checks it stays between 55 and 65.
-54. **Zone shrinking** moves every PS or TS item by the same amount (the zone's
-    offset from the estate times GAP_SHRINK − 1), so shapes and sizes inside a
-    zone never change. Open-ground polygons and the track have no zone in the
-    data, so each goes with the nearest zone centre.
-55. **Link roads:** the end nearer PS or TS moves fully with that zone, the
-    estate end stays, and points in between move in proportion to distance
-    along the road, so the road stays joined at both ends.
-56. **Outline cleaning:** points closer than 0.5 m are merged; points less
-    than 0.75 m off the line through their neighbours (and spikes) are removed;
-    winding is made positive in x/z; anything left with fewer than 3 points,
-    under 4 m², or crossing itself becomes its bounding rectangle. With the
-    current data no building needed the rectangle fallback.
-57. **GAP_SHRINK 0.35 makes zones overlap:** 30 buildings (for example
-    `ps-C2` lands on `estate-H12`). The estate is about 1.6 × 1.8 km, so PS and
-    TS cannot come that close. **0.6 is the smallest value with no overlap.**
-    The debug map outlines overlapping buildings in red and offers 0.35, 0.6
-    and 1.
-58. **The debug map is a 2D top-down drawing** (true orthographic, north up,
-    east right, to scale), not a 3D camera, so ids stay crisp at any zoom. It
-    can become a 3D top-down camera once buildings are extruded.
-59. **Scale warning for phase 2:** at 0.107 units per metre a one-storey
-    block is about 0.34 units tall, while a character is about 3 units tall
-    (28 m at this scale). Characters will need shrinking or heights
-    exaggerating; to be decided in phase 2.
-
-## Real campus map, phases 2 to 4 (3D buildings from the plan)
-
-60. **The 3D campus is built from the map data**; the placeholder campus is
-    gone. Every building is its real outline extruded to its height, at its
-    real position inside its section.
-61. **1 scene unit = 1 metre** (`WORLD_SCALE = 1`), not "PS 60 units wide".
-    At 60 units a character would stand as tall as a 9-storey block; at real
-    scale a character is about one storey tall. Long trips are made quick
-    instead: tap-to-walk follows the roads and never takes more than about
-    6 seconds; the joystick walks at 8 m/s.
-62. **Sections are pulled in per section, not by one shared factor.**
-    GAP_SHRINK (0.35) is the target, but each section only comes as close as
-    it can while staying 20 m clear of the estate's buildings (real outlines,
-    not boxes). Result: PS at 0.59, TS at 0.47 of their real distance. A
-    single shared value needed 0.6 for both.
-63. **Rectangular buildings are 3 storeys** (four corners within 15° of
-    square). Otherwise floors come from the data with minimums by kind (class,
-    lab, admin 2; hospital, library 3; hostels 2 or 3 and specials 1 or 2 by a
-    hash of the id). 3.2 m per storey. Overrides win.
-64. **Big irregular hostel outlines are compounds.** 20 estate "hostels" are
-    outlines of 3,000 to 15,000 m², which are clearly several houses traced as
-    one shape. They are drawn as a paved yard and a low wall on the real
-    outline, with separate 2 to 3 storey blocks packed inside (kept clear of
-    roads that cross them). Only the blocks are solid.
-65. **Doors** go on the wall facing the nearest road, with the standing spot
-    3 m outside. A deep notch falls back to the next-nearest wall.
-66. **Drawing:** per section, all walls are one mesh (window rows from a
-    128 px canvas texture, glowing at night) and roofs, plinths, parapets,
-    doors, signs and bus stops are a second mesh. Taps find the building from
-    the triangle hit, so there are no extra hit boxes. Closed places are
-    dimmed by recolouring their part of the mesh once per slot.
-67. **Roads** are flat ribbons with round joins, one mesh for all. Traced
-    roads are tarmac with a kerb; 'inferred' are narrower; 'unknown' are dirt.
-    The camera's near and far planes follow its zoom so roads never flicker.
-68. **Which buildings are playable:** class blocks offer lectures and
-    fellowship/club meetings; labs offer lectures; the library is the library;
-    admin and hospital say "Nothing to do here right now"; Access Bank points
-    to the Wallet; the named specials (church, mosque, hotel, morgue, animal
-    house, utilities, TS hostel) are labelled with nothing to do yet. Units,
-    "other" buildings and hostels are scenery unless assigned below.
-69. **Three playable hostels (placeholders):** the three largest real hostel
-    blocks in the estate (not compounds), named Crown Estate Hostel A, B and C,
-    until `playable` is set in campus-overrides.ts.
-70. **Places the old game had without a building in the data** (please
-    correct in campus-overrides.ts):
-    - Buka: the unidentified estate "other" building nearest the Supermall
-      junction.
-    - Business centre: the small PS "unit" nearest the PS bus stop.
-    - Sports field: the PS running track (tap the track).
-    - Main gate: the "Main entrance" marker, drawn as a gate over the road.
-    - Crown Estate bus stop: the Supermall junction marker.
-71. **Walking:** the road network is the road points every 12 m, joined
-    where road ends come within 10 m (plus half widths) of another road and
-    where roads cross; any stranded piece is joined to the main network at its
-    closest point. Routes use A*. A test checks every place is reachable.
-72. **Camera:** steeper (60°) and further out in close-up. The Map view fits
-    the player's section; pinching out reaches the whole campus. Panning stays
-    within the section (40 m margin) unless zoomed right out.
-73. **Buildings no longer hide the player:** a flat silhouette of the
-    player shows through anything in front of them.
-74. **Old saves** that pointed at the placeholder hostels are moved to the
-    first real hostel (save version 4).
-75. **Not done yet (next):** bus-stop "Travel to" sheet with a fade, the
-    minimap, hiding distant sections, and a per-section performance report.
+52. **The satellite-map version was dropped** at your request. The map is now
+    the layout you drew in the Campus Planner artifact, saved in the
+    project as `src/content/campus-layout.json`. To change the map, edit it in the
+    planner and ask Claude to pull the new layout in.
+53. **Units:** one planner square is 10 m and one scene unit is 1 m, so the
+    campus is 480 × 360 m and a character is about one storey tall.
+54. **Buildings are boxes only** (rectangles and squares), placed on your
+    squares with a margin of 2 to 3.5 m that varies by building, so
+    neighbours don't touch and sizes differ. Single-square shops are 5 m
+    kiosks with alleys between them, so every kiosk in a cluster has a door.
+55. **Every building looks different.** Its id picks the wall colour, trim
+    colour, window style (punched, ribbon, tall, breeze-block or shopfront),
+    floor height, and extras by type: balconies, breeze-block stair towers,
+    setback top floors and roof water tanks on apartments; covered walkways on
+    classrooms and lecture theatres; porticos and a rooftop tower on the
+    library, faculty and admin blocks; rooftop vents on labs; a canopy and red
+    cross on the clinic; striped awnings and signboards on shops and the buka.
+    Windows are drawn per floor and light up at night.
+56. **Heights:** where you left the planner's default floors, floors vary by
+    building within a range for its type (apartments 2 to 5, classrooms 2 to
+    3, libraries and faculty blocks 3 to 4, admin 2 to 4, labs 1 to 3, shops 1
+    to 2). Where you set floors yourself, your number is kept.
+57. **Long plots become several buildings:** apartment and classroom plots
+    longer than about 42 m are split into separate blocks 24 to 30 m long with
+    6 m gaps, and very deep apartment plots also into two rows. Each block
+    gets its own height and look.
+58. **Doors** face the side with the most road along it. If that side is
+    blocked by a neighbour, the next clear side is used.
+59. **What each building does in the game:** classroom blocks offer lectures
+    and fellowship/club meetings; lecture theatres lectures; labs lectures;
+    library reading; faculty blocks meetings; apartments all the hostel
+    actions (each one can be your home); shops print and type; the buka and
+    the market food; the field hanging out. Admin, clinic and gate have nothing
+    to do yet. Gardens are scenery and can't be tapped.
+60. **Names:** generic planner names get numbers when repeated ("Shop 3",
+    "Apartment Block 7", "Block B 2"). Your fourth section is still called
+    "New section"; rename it in the planner.
+61. **Keke stops are working:** tap a stop to ride to any other stop
+    instantly. Rides are free (no game rule was added).
+62. **Map view** shows the whole campus. Building names appear once you zoom
+    in a little; section names always show.
+63. **Walking** follows your road squares (A* over the squares, diagonals only
+    where they don't cut a corner). Any trip takes at most about 6 seconds.
+64. **Draw calls:** about 25 in close-up and about 50 for the whole campus
+    (walls in five meshes by window style, everything else in one).

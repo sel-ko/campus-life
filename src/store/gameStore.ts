@@ -34,6 +34,8 @@ interface GameStore {
   // ---- screen state, not saved ----
   /** Where the player is walking to after tapping a building. */
   travelTargetId: string | null;
+  /** True while that trip is a keke ride (instant) rather than a walk. */
+  riding: boolean;
   /** Which building's sheet is open. */
   selectedLocationId: string | null;
   /** Close-up on the player (with joystick) or the whole campus. */
@@ -51,6 +53,8 @@ interface GameStore {
   travelTo: (locationId: string) => void;
   /** Called by the 3D scene when the walk ends. */
   arrive: () => void;
+  /** Ride a keke from a stop to another stop. */
+  rideTo: (stopId: string) => void;
   /** Joystick took over: stop any walk to a tapped building. */
   cancelTravel: () => void;
   /** The player walked away from the building they were at. */
@@ -73,6 +77,7 @@ interface GameStore {
 
 const freshScreen = {
   travelTargetId: null,
+  riding: false,
   selectedLocationId: null,
   nearbyLocationId: null,
   phoneApp: null,
@@ -108,17 +113,22 @@ export const useGameStore = create<GameStore>()(
         const { playerLocationId, game } = get();
         if (!game || game.pendingEventId) return;
         if (locationId === playerLocationId) set({ selectedLocationId: locationId, travelTargetId: null });
-        else set({ travelTargetId: locationId, selectedLocationId: null });
+        else set({ travelTargetId: locationId, selectedLocationId: null, riding: false });
+      },
+
+      rideTo: (stopId) => {
+        if (!get().game) return;
+        set({ travelTargetId: stopId, selectedLocationId: null, riding: true });
       },
 
       arrive: () => {
         const target = get().travelTargetId;
         if (!target) return;
-        set({ playerLocationId: target, selectedLocationId: target, travelTargetId: null });
+        set({ playerLocationId: target, selectedLocationId: target, travelTargetId: null, riding: false });
       },
 
       cancelTravel: () => {
-        if (get().travelTargetId) set({ travelTargetId: null });
+        if (get().travelTargetId) set({ travelTargetId: null, riding: false });
       },
 
       leaveLocation: () => {
@@ -173,7 +183,7 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'campus-life-save',
-      version: 4,
+      version: 5,
       partialize: (state) => ({
         game: state.game,
         playerLocationId: state.playerLocationId,

@@ -7,7 +7,8 @@ export const SLOTS = ['Morning', 'Afternoon', 'Evening', 'Night'] as const;
 export type Slot = (typeof SLOTS)[number];
 
 /** Kinds of place. Actions point at a type; the content file says which real
- *  buildings are of that type. The last six have no actions yet. */
+ *  buildings are of that type. Types after 'gate' are place kinds with no
+ *  actions of their own (they borrow other lists, or have none yet). */
 export type LocationType =
   | 'lecture'
   | 'library'
@@ -23,7 +24,9 @@ export type LocationType =
   | 'hospital'
   | 'bank'
   | 'busstop'
-  | 'special';
+  | 'special'
+  | 'market'
+  | 'clinic';
 
 export type BackgroundId = 'broke' | 'average' | 'comfortable';
 
