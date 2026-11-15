@@ -336,3 +336,29 @@ the code mentioned.
 91. **Result problems:** each graded course has a 4% chance of a missing
     script (shows 0, fixed at the Registry) or a wrong grade (12 marks low,
     fixed at the College Office). Each visit has a 50% chance to fix it.
+92. **Needs:** Hunger rises 7 a slot (0 is full, 100 starving), Energy falls
+    3 a slot. Being starving (80+), exhausted (10 or less) or very stressed
+    (85+) wears hidden Health down 3 a slot, otherwise it recovers 1. Below
+    35 you fall ill (learn half, write worse) until treated (Medical Centre
+    ₦1,500, Sick Bay ₦800). At 10 you collapse and lose the day at the
+    clinic. Energy at 0 loses the next slot. A night without sleep costs
+    energy and stress.
+93. **What takes a slot:** lectures, reading, assignments, hustles, office
+    visits, the clinic, exams, sleeping, napping and crossing between
+    sections on foot. Eating, buying, cooking, paying on the portal and
+    chatting are instant, so meals never crowd out the timetable.
+94. **Light and water** fail on 25% and 20% of days (more in some campus
+    weeks). No light: sleep is hot and short, reading at night is by phone
+    torch, cooking in the dark wastes food. No water: noodles and garri need
+    a bag of sachet water.
+95. **Roommates** (three, drawn each session; 30% chance a friend stays):
+    a borrower takes provisions or cash some nights (18%, a fifth of that
+    with a padlock); noisy ones spoil sleep; generous ones share food; night
+    crawlers wake you at 4 a.m.; readers and tidy ones wake you so you never
+    oversleep (12% otherwise). Room levies come up now and then.
+96. **Hustles:** snacks (from the start), typing (4 shifts, ₦6,000), tutoring
+    (6 shifts and an A somewhere), POS (12 shifts, ₦30,000; fake alerts
+    happen), business centre (24 shifts, ₦90,000). A good relationship with
+    the hustle partner adds 15%. Errands in the hostel (₦400) and washing
+    plates at a buka (₦500 plus a free plate) are always there, so being
+    broke is never a dead end.

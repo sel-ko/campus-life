@@ -6,9 +6,11 @@ import { buildSemester, closeSlot, endOfSession, moveGstBatches, semesterResults
 import { ALLOWANCE_DAYS } from './config';
 import { log, produce } from './draft';
 import { addLateFeeIfDue, allowanceDay, landLateAllowance, sendFeeMoney, sessionFees, weeklyData } from './money';
+import { dayOutagesMut, oversleepMut, reallocateMut, roommateNightMut } from './hostel';
+import { checkCollapse, nightWithoutSleep, tickNeeds } from './needs';
 import { Rng } from './rng';
 import { blankState, type NewGameSetup } from './state';
-import { stepClock } from './time';
+import { slotName, stepClock } from './time';
 import type { GameState } from './types';
 
 // ---------- starting ----------
@@ -24,9 +26,10 @@ export function newGame(setup: NewGameSetup): GameState {
 }
 
 /** Start of a session (two semesters): fees. */
-export function beginSession(d: GameState, _r: Rng): void {
+export function beginSession(d: GameState, r: Rng): void {
   const firstYear = d.clock.year === 1;
   d.finance.fees = sessionFees(d.player.programmeId, firstYear);
+  if (!firstYear) reallocateMut(d, r);
 }
 
 /** Start of a semester: family fee money and a fresh registration. */
@@ -34,6 +37,7 @@ export function beginSemester(d: GameState, _r: Rng): void {
   d.academics.registered = false;
   d.academics.lateRegistration = false;
   d.finance.fees = d.finance.fees.filter((f) => f.id !== 'late_reg');
+  d.hustle.profitSemester = 0;
   sendFeeMoney(d);
   buildSemester(d, _r);
 }
@@ -47,9 +51,15 @@ export function beginDay(d: GameState, r: Rng): void {
   }
   addLateFeeIfDue(d);
   moveGstBatches(d, r);
+  dayOutagesMut(d, r);
+  oversleepMut(d, r);
 }
 
-export function endDay(_d: GameState, _r: Rng): void {}
+/** End of a day (after the Night slot), before the clock moves. */
+export function endDay(d: GameState, r: Rng): void {
+  nightWithoutSleep(d);
+  roommateNightMut(d, r);
+}
 
 export function endSemester(d: GameState, r: Rng): void {
   semesterResults(d, r);
@@ -60,6 +70,8 @@ export function endSemester(d: GameState, r: Rng): void {
 export function passSlot(d: GameState, r: Rng): void {
   if (d.phase !== 'playing') return;
   closeSlot(d);
+  tickNeeds(d);
+  checkCollapse(d);
   const before = d.clock;
   const step = stepClock(before);
   if (step.newDay) endDay(d, r);
@@ -79,12 +91,23 @@ export function passSlots(d: GameState, r: Rng, n: number): void {
   for (let i = 0; i < n && d.phase === 'playing'; i++) passSlot(d, r);
 }
 
+/** After an action: spend its slots, then any slots lost to collapse or oversleeping. */
+export function advance(d: GameState, r: Rng, slots: number): void {
+  passSlots(d, r, slots);
+  let guard = 0;
+  while (d.lostSlots > 0 && d.phase === 'playing' && guard++ < 12) {
+    d.lostSlots -= 1;
+    log(d, `The ${slotName(d.clock).toLowerCase()} passed without you.`);
+    passSlot(d, r);
+  }
+}
+
 // ---------- public, pure ----------
 
 /** Do nothing for one slot (always possible: no dead ends). */
 export function waitSlot(state: GameState): GameState {
   return produce(state, (d, r) => {
     log(d, 'You rested and let time pass.');
-    passSlot(d, r);
+    advance(d, r, 1);
   });
 }

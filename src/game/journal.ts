@@ -1,6 +1,6 @@
 // The journal: every open task, most urgent first, so the player always
 // knows what to do next. Pure: reads the state, changes nothing.
-import { placeName } from '../content/places';
+import { fieldPlace, mainBuka, medicalCentre, placeName } from '../content/places';
 import { attendance, canDoAssignment } from './academics';
 import { clearanceSteps, officeName, officePlaceId } from './clearance';
 import { naira } from './format';
@@ -116,7 +116,19 @@ const studyTasks: Producer = (d) => {
   return out;
 };
 
-const PRODUCERS: Producer[] = [studyTasks, clearanceTasks, moneyTasks];
+const healthTasks: Producer = (d) => {
+  const out: JournalTask[] = [];
+  const n = d.needs;
+  if (d.ill) out.push({ id: 'ill', text: 'You are sick: see a doctor at the Medical Centre or the Sick Bay', placeId: medicalCentre().id, urgent: true, group: 'health' });
+  if (n.hunger >= 70) out.push({ id: 'hungry', text: 'You are very hungry: eat something (buka, kiosk, or cook in your room)', placeId: mainBuka().id, urgent: n.hunger >= 85, group: 'health' });
+  if (n.energy <= 25) out.push({ id: 'tired', text: 'You are exhausted: sleep tonight or take a nap in your room', placeId: d.room.placeId, urgent: n.energy <= 12, group: 'health' });
+  if (n.stress >= 75) out.push({ id: 'stressed', text: 'Stress is high: hang out at the Sports Complex or rest', placeId: fieldPlace().id, group: 'health' });
+  if (d.room.levy) out.push({ id: 'levy', text: `Pay the room levy (${naira(d.room.levy)}) in your room`, placeId: d.room.placeId, group: 'money' });
+  if (d.money < 1500) out.push({ id: 'broke', text: 'Money is very low: run errands in the hostel, wash plates at a buka, or borrow from a friend', placeId: d.room.placeId, group: 'money' });
+  return out;
+};
+
+const PRODUCERS: Producer[] = [studyTasks, healthTasks, clearanceTasks, moneyTasks];
 
 export function journal(d: GameState): JournalTask[] {
   const tasks = PRODUCERS.flatMap((p) => p(d));
