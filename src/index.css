@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Design tokens used by the 2D interface. School accent colours come from
+   src/content/university.ts and are applied at runtime as CSS variables. */
+@theme {
+  --color-night: #14202b;
+  --color-panel: #1d2e3c;
+  --color-line: #34495a;
+  --color-ink: #f2eee3;
+  --color-muted: #b4c2cc;
+  --color-sun: #f5b83d;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-night);
+  color: var(--color-ink);
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}

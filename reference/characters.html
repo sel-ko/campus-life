@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campus Life Characters</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+:root {
+  /* Layout: a character-select screen. Two rows (male, female), two stages per row, on a dusk-campus backdrop. Single theme by choice. */
+  color-scheme: dark;
+  --night: #14202B;
+  --panel: #1D2E3C;
+  --line: #34495A;
+  --text: #F2EEE3;
+  --muted: #B4C2CC;
+  --sun: #F5B83D;
+  --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --body: "Figtree", "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--night);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+main {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+header { display: flex; flex-direction: column; gap: 10px; }
+h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(30px, 6vw, 46px);
+  line-height: 1.05;
+  margin: 0;
+  text-wrap: balance;
+}
+header p { margin: 0; color: var(--muted); max-width: 62ch; }
+.toggle { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: var(--text); font-weight: 500; }
+.toggle input { width: 20px; height: 20px; accent-color: var(--sun); }
+section { display: flex; flex-direction: column; gap: 14px; }
+h2 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 22px;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.stage {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  background: linear-gradient(#2B4558 0%, #1D2E3C 70%);
+  touch-action: pan-y;
+  cursor: grab;
+}
+.stage:active { cursor: grabbing; }
+.stage canvas { display: block; width: 100%; height: 100%; }
+.stage:focus-visible { outline: 3px solid var(--sun); outline-offset: -3px; }
+.fallback {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: 20px; text-align: center; color: var(--muted);
+}
+.info { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+.code {
+  align-self: flex-start;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--night);
+  background: var(--sun);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+h3 { font-family: var(--display); font-weight: 600; font-size: 20px; margin: 0; }
+.info p { margin: 0; color: var(--muted); font-size: 15px; }
+footer { color: var(--muted); font-size: 14px; max-width: 62ch; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Pick your Campus Life students</h1>
+    <p>Four big-head block characters with clear faces, built in Three.js the same way they would be built in the game. Drag a character to turn it round.</p>
+    <label class="toggle" for="autorotate"><input type="checkbox" id="autorotate" checked> Turn the characters automatically</label>
+  </header>
+
+  <section aria-labelledby="male-h">
+    <h2 id="male-h">Male</h2>
+    <div class="row">
+      <article class="card">
+        <div class="stage" data-char="m1" tabindex="0" role="img" aria-label="Male option 1: big block head with a low fade, green hoodie, jeans, white sneakers and an orange backpack. Use left and right arrow keys to turn."></div>
+        <div class="info"><span class="code">M1</span><h3>Hoodie fresher</h3><p>Low fade, green hoodie, jeans, white sneakers and an orange backpack.</p></div>
+      </article>
+      <article class="card">
+        <div class="stage" data-char="m2" tabindex="0" role="img" aria-label="Male option 2: big block head with a chin-strap beard and moustache, burgundy cap, cream kaftan with gold embroidery and sandals. Use left and right arrow keys to turn."></div>
+        <div class="info"><span class="code">M2</span><h3>Native Friday</h3><p>Chin-strap beard and moustache, burgundy cap, cream kaftan with gold embroidery and sandals.</p></div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="female-h">
+    <h2 id="female-h">Female</h2>
+    <div class="row">
+      <article class="card">
+        <div class="stage" data-char="f1" tabindex="0" role="img" aria-label="Female option 1: big block head with two afro puffs, hoop earrings, yellow tee, wide-leg jeans and a tote bag. Use left and right arrow keys to turn."></div>
+        <div class="info"><span class="code">F1</span><h3>Afro puffs</h3><p>Two afro puffs with gold ties, hoop earrings, yellow tee, wide-leg jeans and a tote bag.</p></div>
+      </article>
+      <article class="card">
+        <div class="stage" data-char="f2" tabindex="0" role="img" aria-label="Female option 2: big block head with long braids and gold beads, purple gown with an orange waistband and hem, and flat shoes. Use left and right arrow keys to turn."></div>
+        <div class="info"><span class="code">F2</span><h3>Braids and gown</h3><p>Long braids with gold beads, purple gown with an orange waistband and hem, and flats.</p></div>
+      </article>
+    </div>
+  </section>
+
+  <footer>Each character is 40 to 60 simple shapes with bevelled edges, light enough to show dozens at once on a budget phone. Skin, hair, face and outfit are separate parts, so players could mix them in a character creator.</footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  var stages = Array.prototype.slice.call(document.querySelectorAll('.stage'));
+  function fail(el) {
+    var d = document.createElement('div');
+    d.className = 'fallback';
+    d.textContent = 'The 3D preview needs WebGL, which this browser has not made available.';
+    el.appendChild(d);
+  }
+  if (!window.THREE) { stages.forEach(fail); return; }
+
+  var matCache = {};
+  function mat(color, flat) {
+    var k = color + (flat ? 'f' : 's');
+    if (!matCache[k]) matCache[k] = new THREE.MeshStandardMaterial({ color: color, flatShading: !!flat, roughness: 0.8, metalness: 0 });
+    return matCache[k];
+  }
+  function shade(color, f) { return '#' + new THREE.Color(color).multiplyScalar(f).getHexString(); }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  // Box with bevelled, smoothly shaded edges.
+  function rgeo(w, h, d, r) {
+    var g = new THREE.BoxGeometry(w, h, d, 6, 6, 6);
+    var pos = g.attributes.position, nor = g.attributes.normal;
+    var v = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3();
+    for (var i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      c.set(clamp(v.x, -w / 2 + r, w / 2 - r), clamp(v.y, -h / 2 + r, h / 2 - r), clamp(v.z, -d / 2 + r, d / 2 - r));
+      n.copy(v).sub(c);
+      if (n.lengthSq() < 1e-10) n.fromBufferAttribute(nor, i); else n.normalize();
+      pos.setXYZ(i, c.x + n.x * r, c.y + n.y * r, c.z + n.z * r);
+      nor.setXYZ(i, n.x, n.y, n.z);
+    }
+    return g;
+  }
+  function put(mesh, x, y, z, parent) { mesh.position.set(x || 0, y || 0, z || 0); parent.add(mesh); return mesh; }
+  function rbox(p, w, h, d, r, color, x, y, z) { return put(new THREE.Mesh(rgeo(w, h, d, r), mat(color)), x, y, z, p); }
+  function box(p, w, h, d, color, x, y, z) { return put(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, true)), x, y, z, p); }
+  function cyl(p, rt, rb, h, seg, color, x, y, z, flat) { return put(new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat(color, flat)), x, y, z, p); }
+  function ico(p, r, detail, color, x, y, z) { return put(new THREE.Mesh(new THREE.IcosahedronGeometry(r, detail), mat(color, true)), x, y, z, p); }
+
+  var HY = 2.05, FZ = 0.7;
+
+  // Big cube head with eyes, brows, nose, mouth and ears.
+  function head(g, skin, o) {
+    rbox(g, 1.5, 1.4, 1.4, 0.17, skin, 0, HY, 0);
+    rbox(g, 0.3, 0.14, 0.3, 0.05, skin, 0, 1.36, 0);
+    var dark = shade(skin, 0.8);
+    [-1, 1].forEach(function (s) {
+      box(g, 0.27, 0.23, 0.04, '#FBF7EE', s * 0.34, HY + 0.05, FZ + 0.005);
+      box(g, 0.13, 0.16, 0.04, '#2A1810', s * 0.33, HY + 0.04, FZ + 0.02);
+      box(g, 0.04, 0.04, 0.04, '#FFFFFF', s * 0.33 + 0.035, HY + 0.085, FZ + 0.035);
+      var b = box(g, 0.33, 0.07, 0.05, o.hair, s * 0.34, HY + 0.28, FZ + 0.01);
+      b.rotation.z = -s * (o.brow || 0.06);
+      if (o.lashes) { var l = box(g, 0.12, 0.05, 0.04, '#1B120D', s * 0.5, HY + 0.18, FZ + 0.012); l.rotation.z = s * 0.5; }
+      rbox(g, 0.13, 0.32, 0.24, 0.05, skin, s * 0.79, HY - 0.02, 0);
+      box(g, 0.03, 0.16, 0.1, dark, s * 0.855, HY - 0.02, 0.01);
+      box(g, 0.08, 0.06, 0.04, o.lip, s * 0.17, HY - 0.355, FZ + 0.01);
+    });
+    rbox(g, 0.17, 0.15, 0.12, 0.04, dark, 0, HY - 0.13, FZ + 0.03);
+    box(g, 0.3, 0.06, 0.04, o.lip, 0, HY - 0.39, FZ + 0.01);
+  }
+  function arm(g, s, sleeve, sleeveLen, skin, tilt) {
+    var a = new THREE.Group();
+    a.position.set(s * 0.5, 1.3, 0);
+    a.rotation.z = s * (tilt === undefined ? 0.42 : tilt);
+    rbox(a, 0.25, sleeveLen, 0.29, 0.06, sleeve, 0, -sleeveLen / 2, 0);
+    var rest = 0.44 - sleeveLen;
+    if (rest > 0.02) rbox(a, 0.21, rest + 0.06, 0.24, 0.05, skin, 0, -sleeveLen - rest / 2, 0);
+    rbox(a, 0.23, 0.18, 0.26, 0.07, skin, 0, -0.52, 0);
+    g.add(a);
+  }
+  function legs(g, color, shoe, w) {
+    [-1, 1].forEach(function (s) {
+      rbox(g, w || 0.34, 0.52, (w || 0.34) + 0.04, 0.06, color, s * 0.2, 0.42, 0);
+      rbox(g, (w || 0.34) + 0.02, 0.2, 0.5, 0.07, shoe, s * 0.2, 0.1, 0.06);
+    });
+  }
+  // Hair cap: top slab, front hairline, sides and back.
+  function hairCap(g, color, sideH, backH) {
+    rbox(g, 1.56, 0.3, 1.46, 0.1, color, 0, HY + 0.68, 0);
+    box(g, 1.46, 0.16, 0.06, color, 0, HY + 0.56, FZ + 0.012);
+    [-1, 1].forEach(function (s) {
+      box(g, 0.06, sideH, 1.3, color, s * 0.755, HY + 0.62 - sideH / 2, -0.04);
+      box(g, 0.14, 0.26, 0.06, color, s * 0.66, HY + 0.38, FZ + 0.012);
+    });
+    box(g, 1.46, backH, 0.06, color, 0, HY + 0.62 - backH / 2, -0.705);
+  }
+
+  var builders = {
+    m1: function () {
+      var g = new THREE.Group(), skin = '#7A4B2E', hoodie = '#2E8B57', hair = '#17110D';
+      legs(g, '#31507A', '#F1EFE8');
+      rbox(g, 0.86, 0.78, 0.6, 0.12, hoodie, 0, 0.98, 0);
+      rbox(g, 0.5, 0.2, 0.06, 0.03, shade(hoodie, 0.82), 0, 0.8, 0.3);
+      rbox(g, 0.82, 0.3, 0.34, 0.1, hoodie, 0, 1.36, -0.3);
+      box(g, 0.035, 0.26, 0.03, '#F1EFE8', -0.1, 1.16, 0.31);
+      box(g, 0.035, 0.26, 0.03, '#F1EFE8', 0.1, 1.16, 0.31);
+      rbox(g, 0.64, 0.62, 0.28, 0.08, '#E8742A', 0, 0.98, -0.44);
+      rbox(g, 0.36, 0.22, 0.06, 0.03, '#B8540F', 0, 0.86, -0.59);
+      arm(g, -1, hoodie, 0.44, skin);
+      arm(g, 1, hoodie, 0.44, skin);
+      head(g, skin, { hair: hair, lip: '#3A1F16' });
+      hairCap(g, hair, 0.34, 0.75);
+      rbox(g, 1.1, 0.14, 1.0, 0.06, hair, 0, HY + 0.86, -0.05);
+      return g;
+    },
+    m2: function () {
+      var g = new THREE.Group(), skin = '#5A3620', cloth = '#EDE6D6', gold = '#C9992E', hair = '#17110D', capc = '#7A1F2B';
+      legs(g, cloth, '#6B4423');
+      rbox(g, 0.9, 1.0, 0.62, 0.12, cloth, 0, 0.86, 0);
+      box(g, 0.14, 0.5, 0.03, gold, 0, 1.06, 0.312);
+      box(g, 0.38, 0.06, 0.03, gold, 0, 1.3, 0.3);
+      box(g, 0.86, 0.05, 0.03, gold, 0, 0.42, 0.312);
+      arm(g, -1, cloth, 0.44, skin);
+      arm(g, 1, cloth, 0.44, skin);
+      head(g, skin, { hair: hair, lip: '#3A1F16', brow: 0.02 });
+      [-1, 1].forEach(function (s) {
+        box(g, 0.06, 0.3, 1.3, hair, s * 0.755, HY + 0.4, -0.04);
+        box(g, 0.06, 0.62, 0.34, hair, s * 0.755, HY - 0.36, 0.5);
+      });
+      box(g, 1.46, 0.5, 0.06, hair, 0, HY + 0.3, -0.705);
+      box(g, 1.5, 0.15, 0.06, hair, 0, HY - 0.62, FZ + 0.012);
+      box(g, 0.36, 0.07, 0.05, hair, 0, HY - 0.28, FZ + 0.02);
+      rbox(g, 1.44, 0.5, 1.36, 0.12, capc, 0, HY + 0.84, 0);
+      rbox(g, 1.5, 0.1, 1.42, 0.04, gold, 0, HY + 0.62, 0);
+      return g;
+    },
+    f1: function () {
+      var g = new THREE.Group(), skin = '#8D5A3A', tee = '#F2C230', jeans = '#5B86B8', hair = '#1B120D', gold = '#E3B341';
+      legs(g, jeans, '#F1EFE8', 0.38);
+      rbox(g, 0.82, 0.26, 0.58, 0.08, jeans, 0, 0.7, 0);
+      rbox(g, 0.8, 0.6, 0.56, 0.12, tee, 0, 1.08, 0);
+      arm(g, -1, tee, 0.2, skin);
+      arm(g, 1, tee, 0.2, skin, 0.5);
+      rbox(g, 0.14, 0.46, 0.5, 0.05, '#D9482B', 0.86, 0.62, 0.02);
+      box(g, 0.04, 0.5, 0.05, '#D9482B', 0.72, 1.05, 0.02).rotation.z = 0.3;
+      head(g, skin, { hair: hair, lip: '#9E3B4B', lashes: true, brow: 0.1 });
+      hairCap(g, hair, 0.3, 1.0);
+      [-1, 1].forEach(function (s) {
+        ico(g, 0.5, 1, hair, s * 0.72, HY + 1.0, -0.08);
+        cyl(g, 0.16, 0.16, 0.1, 8, gold, s * 0.5, HY + 0.8, -0.06);
+        var hoop = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.03, 6, 12), mat(gold));
+        hoop.rotation.y = Math.PI / 2;
+        put(hoop, s * 0.82, HY - 0.27, 0.02, g);
+      });
+      return g;
+    },
+    f2: function () {
+      var g = new THREE.Group(), skin = '#6B4226', gown = '#8E3B8A', band = '#F08A24', hair = '#20140E', gold = '#E3B341';
+      [-1, 1].forEach(function (s) {
+        rbox(g, 0.2, 0.26, 0.22, 0.05, skin, s * 0.2, 0.2, 0);
+        rbox(g, 0.24, 0.12, 0.44, 0.05, '#2A1E33', s * 0.2, 0.06, 0.06);
+      });
+      rbox(g, 0.8, 0.62, 0.56, 0.12, gown, 0, 1.07, 0);
+      rbox(g, 0.82, 0.12, 0.58, 0.04, band, 0, 0.74, 0);
+      cyl(g, 0.42, 0.66, 0.44, 12, gown, 0, 0.48, 0);
+      cyl(g, 0.66, 0.68, 0.07, 12, band, 0, 0.24, 0);
+      arm(g, -1, gown, 0.18, skin);
+      arm(g, 1, gown, 0.18, skin);
+      head(g, skin, { hair: hair, lip: '#B03A5B', lashes: true, brow: 0.1 });
+      hairCap(g, hair, 0.3, 0.6);
+      box(g, 0.03, 0.02, 1.2, shade(skin, 0.9), 0, HY + 0.835, 0.05);
+      for (var i = -4; i <= 4; i++) {
+        var len = 1.75 - (Math.abs(i) % 2) * 0.12;
+        box(g, 0.13, len, 0.12, hair, i * 0.165, HY + 0.7 - len / 2, -0.76);
+      }
+      [-1, 1].forEach(function (s) {
+        box(g, 0.12, 1.6, 0.12, hair, s * 0.8, HY + 0.7 - 0.8, -0.55);
+        box(g, 0.12, 1.5, 0.12, hair, s * 0.8, HY + 0.7 - 0.75, -0.32);
+        box(g, 0.11, 1.15, 0.11, hair, s * 0.78, HY + 0.62 - 0.575, 0.52);
+        box(g, 0.13, 0.07, 0.13, gold, s * 0.78, HY - 0.45, 0.52);
+        cyl(g, 0.05, 0.05, 0.05, 8, gold, s * 0.82, HY - 0.22, 0.03);
+      });
+      return g;
+    }
+  };
+
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var auto = document.getElementById('autorotate');
+  if (reduce) auto.checked = false;
+
+  var views = [];
+  stages.forEach(function (el, idx) {
+    var renderer;
+    try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+    catch (e) { fail(el); return; }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    el.appendChild(renderer.domElement);
+
+    var scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight('#DCEBFF', '#3A2A1C', 0.85));
+    var sun = new THREE.DirectionalLight('#FFE2B0', 0.95);
+    sun.position.set(3, 6, 5);
+    scene.add(sun);
+    var rim = new THREE.DirectionalLight('#7FB4FF', 0.35);
+    rim.position.set(-4, 3, -4);
+    scene.add(rim);
+
+    var disc = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.45, 0.12, 24), mat('#3F6B4E'));
+    disc.position.y = -0.06;
+    scene.add(disc);
+
+    var figure = builders[el.getAttribute('data-char')]();
+    scene.add(figure);
+
+    var camera = new THREE.PerspectiveCamera(30, 0.8, 0.1, 50);
+    camera.position.set(0, 2.0, 8.4);
+    camera.lookAt(0, 1.6, 0);
+
+    var v = { el: el, renderer: renderer, scene: scene, camera: camera, figure: figure, disc: disc, angle: 0.5 - idx * 0.05, dragging: false, lastX: 0, phase: idx * 1.3 };
+    views.push(v);
+
+    function size() {
+      var w = el.clientWidth, h = el.clientHeight;
+      if (!w || !h) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    size();
+    if (window.ResizeObserver) new ResizeObserver(size).observe(el); else window.addEventListener('resize', size);
+
+    el.addEventListener('pointerdown', function (e) { v.dragging = true; v.lastX = e.clientX; try { el.setPointerCapture(e.pointerId); } catch (err) {} });
+    el.addEventListener('pointermove', function (e) { if (!v.dragging) return; v.angle += (e.clientX - v.lastX) * 0.012; v.lastX = e.clientX; });
+    function stop() { v.dragging = false; }
+    el.addEventListener('pointerup', stop);
+    el.addEventListener('pointercancel', stop);
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { v.angle -= 0.3; e.preventDefault(); }
+      if (e.key === 'ArrowRight') { v.angle += 0.3; e.preventDefault(); }
+    });
+  });
+
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    views.forEach(function (v) {
+      if (auto.checked && !v.dragging) v.angle += dt * 0.6;
+      v.figure.rotation.y = v.angle;
+      v.disc.rotation.y = v.angle;
+      v.figure.position.y = reduce ? 0 : Math.sin(now / 600 + v.phase) * 0.025;
+      v.renderer.render(v.scene, v.camera);
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
