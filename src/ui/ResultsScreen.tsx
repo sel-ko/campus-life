@@ -1,22 +1,50 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getDepartment } from '../content/university';
 import { finalResult } from '../game/engine';
 import { naira } from '../game/format';
 import type { GameState } from '../game/types';
+import { track } from '../online/analytics';
+import { fetchRank, onlineConfigured, submitResult } from '../online/supabase';
 import { useGameStore } from '../store/gameStore';
 import { ShareSheet } from './ShareSheet';
 import type { ShareCardData } from './shareCard';
 import { gameUrl } from './site';
 
-export function ResultsScreen({ game }: { game: GameState }) {
+export function ResultsScreen({ game, onLeaderboard }: { game: GameState; onLeaderboard: () => void }) {
   const reset = useGameStore((s) => s.reset);
+  const submitted = useGameStore((s) => s.resultSubmitted);
+  const markSubmitted = useGameStore((s) => s.markResultSubmitted);
   const [sharing, setSharing] = useState(false);
+  const [rank, setRank] = useState<{ rank: number; total: number } | null>(null);
   const result = useMemo(() => finalResult(game), [game]);
   const department = getDepartment(game.player.departmentId)?.name ?? '';
 
+  // Save the result online once (retried each time this screen opens until it
+  // works), then look up the department rank. Offline, this quietly does nothing.
+  useEffect(() => {
+    if (!onlineConfigured()) return;
+    let alive = true;
+    void (async () => {
+      if (!submitted) {
+        const ok = await submitResult({
+          nickname: game.player.nickname,
+          department: game.player.departmentId,
+          cgpa: result.cgpa,
+          money: game.money,
+          title: result.title,
+        });
+        if (ok) markSubmitted();
+      }
+      const r = await fetchRank(game.player.departmentId, result.cgpa);
+      if (alive) setRank(r);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [game, result, submitted, markSubmitted]);
+
   const shareData: ShareCardData = useMemo(
     () => ({ nickname: game.player.nickname, department, result, money: game.money, url: gameUrl() }),
-    // Everything here comes from the finished game, which no longer changes.
     [game, department, result],
   );
 
@@ -49,10 +77,30 @@ export function ResultsScreen({ game }: { game: GameState }) {
         ))}
       </dl>
 
+      {rank && (
+        <p className="text-center">
+          <span className="text-2xl font-extrabold text-sun">#{rank.rank}</span>{' '}
+          <span className="text-muted">
+            of {rank.total} in {department}
+          </span>
+        </p>
+      )}
+
       <div className="mt-auto flex flex-col gap-3">
-        <button onClick={() => setSharing(true)} className="min-h-12 rounded-lg bg-sun font-bold text-night">
+        <button
+          onClick={() => {
+            track('share_tapped');
+            setSharing(true);
+          }}
+          className="min-h-12 rounded-lg bg-sun font-bold text-night"
+        >
           Share my result
         </button>
+        {onlineConfigured() && (
+          <button onClick={onLeaderboard} className="min-h-12 rounded-lg border border-line bg-panel font-bold">
+            Leaderboard
+          </button>
+        )}
         <button onClick={reset} className="min-h-12 rounded-lg border border-line bg-panel font-bold">
           Play again
         </button>

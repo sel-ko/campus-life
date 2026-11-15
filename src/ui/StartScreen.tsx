@@ -3,6 +3,7 @@ import { university } from '../content/university';
 import { BACKGROUNDS } from '../game/config';
 import { naira } from '../game/format';
 import type { BackgroundId } from '../game/types';
+import { onlineConfigured } from '../online/supabase';
 import { useGameStore } from '../store/gameStore';
 import type { PresetId } from '../world/characters/look';
 import { CharacterChooser } from './CharacterChooser';
@@ -10,7 +11,7 @@ import { CharacterChooser } from './CharacterChooser';
 const BACKGROUND_IDS: BackgroundId[] = ['broke', 'average', 'comfortable'];
 const HOMES = university.locations.filter((l) => l.type === 'hostel');
 
-export function StartScreen() {
+export function StartScreen({ onLeaderboard }: { onLeaderboard: () => void }) {
   const start = useGameStore((s) => s.start);
   const [nickname, setNickname] = useState('');
   const [departmentId, setDepartmentId] = useState('');
@@ -123,6 +124,12 @@ export function StartScreen() {
           Start the semester
         </button>
       </form>
+
+      {onlineConfigured() && (
+        <button onClick={onLeaderboard} className="min-h-11 self-center px-4 font-semibold text-sun underline">
+          See the leaderboard
+        </button>
+      )}
 
       <p className="mt-auto text-center text-xs text-muted">
         Unofficial fan-made game, not affiliated with {university.shortName}.

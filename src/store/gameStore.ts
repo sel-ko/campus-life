@@ -15,6 +15,8 @@ interface GameStore {
   travelTargetId: string | null;
   /** Which building's sheet is open. Not saved. */
   selectedLocationId: string | null;
+  /** True once this semester's result is on the online leaderboard. Saved. */
+  resultSubmitted: boolean;
 
   start: (setup: PlayerSetup) => void;
   /** Opens a building's sheet straight away (list view). */
@@ -27,6 +29,7 @@ interface GameStore {
   act: (actionId: string) => void;
   chooseEvent: (choiceIndex: 0 | 1) => void;
   reset: () => void;
+  markResultSubmitted: () => void;
 }
 
 export const useGameStore = create<GameStore>()(
@@ -36,6 +39,7 @@ export const useGameStore = create<GameStore>()(
       playerLocationId: null,
       travelTargetId: null,
       selectedLocationId: null,
+      resultSubmitted: false,
 
       start: (setup) =>
         set({
@@ -43,6 +47,7 @@ export const useGameStore = create<GameStore>()(
           playerLocationId: setup.homeId,
           travelTargetId: null,
           selectedLocationId: null,
+          resultSubmitted: false,
         }),
 
       tapLocation: (locationId) => set({ selectedLocationId: locationId, playerLocationId: locationId }),
@@ -76,13 +81,19 @@ export const useGameStore = create<GameStore>()(
       },
 
       reset: () => set({ game: null, playerLocationId: null, travelTargetId: null, selectedLocationId: null }),
+
+      markResultSubmitted: () => set({ resultSubmitted: true }),
     }),
     {
       name: 'campus-life-save',
       version: 2,
-      partialize: (state) => ({ game: state.game, playerLocationId: state.playerLocationId }),
+      partialize: (state) => ({
+        game: state.game,
+        playerLocationId: state.playerLocationId,
+        resultSubmitted: state.resultSubmitted,
+      }),
       // If the save format changes, start fresh rather than crash.
-      migrate: () => ({ game: null, playerLocationId: null }),
+      migrate: () => ({ game: null, playerLocationId: null, resultSubmitted: false }),
     },
   ),
 );

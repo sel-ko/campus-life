@@ -3,6 +3,7 @@ import { actionsAt, canDoAction } from '../game/engine';
 import { describeEffects } from '../game/format';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
+import { VendorSection } from './VendorSection';
 
 // Bottom sheet with the actions for the selected place.
 export function LocationSheet({ game }: { game: GameState }) {
@@ -50,6 +51,8 @@ export function LocationSheet({ game }: { game: GameState }) {
             );
           })}
         </ul>
+
+        <VendorSection location={location} homeId={game.player.homeId} />
       </section>
     </div>
   );
