@@ -18,12 +18,14 @@ import {
   WEEKEND_DAYS,
 } from './config';
 import { EVENTS } from './events';
+import { pickTitle } from './titles';
 import { describeEffects, naira } from './format';
 import {
   SLOTS,
   type ActionDef,
   type Availability,
   type Effects,
+  type EventChoice,
   type GameEvent,
   type GameState,
   type LocationType,
@@ -226,6 +228,13 @@ export function getPendingEvent(state: GameState, events: GameEvent[] = EVENTS):
   return events.find((e) => e.id === state.pendingEventId) ?? null;
 }
 
+/** A choice that costs more money than the player has is disabled. */
+export function canChoose(state: GameState, choice: EventChoice): Availability {
+  const cost = -(choice.effects.money ?? 0);
+  if (cost > 0 && state.money < cost) return { ok: false, reason: `You need ${naira(cost)}` };
+  return { ok: true };
+}
+
 /** The player picked choice 0 or 1 on the pending event. */
 export function resolveEvent(
   state: GameState,
@@ -238,6 +247,7 @@ export function resolveEvent(
     return advanceSlot({ ...state, pendingEventId: null });
   }
   const choice = event.choices[choiceIndex];
+  if (!canChoose(state, choice).ok) return state;
   const effectText = describeEffects(choice.effects).join(', ');
   let s = applyEffects({ ...state, pendingEventId: null }, choice.effects);
   s = addLog(s, effectText ? `${choice.outcome} (${effectText})` : choice.outcome);
@@ -292,5 +302,6 @@ export function degreeClass(cgpa: number): string {
 
 export function finalResult(state: GameState): SemesterResult {
   const cgpa = computeCgpa(state.meters.grades);
-  return { cgpa, className: degreeClass(cgpa) };
+  const title = pickTitle(state.meters, state.money);
+  return { cgpa, className: degreeClass(cgpa), title: title.title, titleBlurb: title.blurb };
 }

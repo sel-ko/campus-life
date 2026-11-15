@@ -97,4 +97,6 @@ export type Availability = { ok: true } | { ok: false; reason: string };
 export interface SemesterResult {
   cgpa: number;
   className: string;
+  title: string;
+  titleBlurb: string;
 }

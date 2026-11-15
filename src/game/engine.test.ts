@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ACTIONS, getAction } from './actions';
+import { EVENTS } from './events';
+import { TITLES, pickTitle } from './titles';
 import {
   advanceSlot,
   applyEffects,
+  canChoose,
   canDoAction,
+  getPendingEvent,
   clampMeter,
   computeCgpa,
   currentSlot,
@@ -271,7 +275,7 @@ describe('CGPA and class', () => {
 
   it('builds the final result from grades', () => {
     const s = game({ meters: { grades: 92, energy: 50, social: 50, stress: 50 } });
-    expect(finalResult(s)).toEqual({ cgpa: 4.6, className: 'First Class' });
+    expect(finalResult(s)).toMatchObject({ cgpa: 4.6, className: 'First Class' });
   });
 });
 
@@ -290,5 +294,71 @@ describe('a whole semester', () => {
     expect(moves).toBeLessThanOrEqual(56);
     // Once finished, nothing else is allowed.
     expect(canDoAction(s, action('noodles')).ok).toBe(false);
+  });
+});
+
+describe('event data', () => {
+  it('has 20 draft events with unique ids', () => {
+    expect(EVENTS).toHaveLength(20);
+    expect(new Set(EVENTS.map((e) => e.id)).size).toBe(20);
+    expect(EVENTS.every((e) => e.draft)).toBe(true);
+  });
+
+  it('always offers at least one choice that costs no money', () => {
+    for (const e of EVENTS) {
+      const free = e.choices.some((c) => (c.effects.money ?? 0) >= 0);
+      expect(free, e.id).toBe(true);
+    }
+  });
+
+  it('disables a choice the player cannot afford', () => {
+    const loan = EVENTS.find((e) => e.id === 'friend-loan')!;
+    const poor = game({ money: 500, pendingEventId: 'friend-loan' });
+    expect(canChoose(poor, loan.choices[0])).toEqual({ ok: false, reason: 'You need ₦2,000' });
+    expect(canChoose(poor, loan.choices[1]).ok).toBe(true);
+    // Trying the unaffordable choice changes nothing.
+    expect(resolveEvent(poor, 0)).toBe(poor);
+    expect(resolveEvent(poor, 1).pendingEventId).toBeNull();
+  });
+});
+
+describe('titles', () => {
+  const m = (grades: number, energy: number, social: number, stress: number) => ({ grades, energy, social, stress });
+
+  it('has 8 titles and the last always matches', () => {
+    expect(TITLES).toHaveLength(8);
+    expect(TITLES[TITLES.length - 1]!.when(m(50, 50, 50, 50), 5000)).toBe(true);
+  });
+
+  it('picks titles from the final meters', () => {
+    expect(pickTitle(m(90, 50, 10, 30), 5000).title).toBe('Library Ghost');
+    expect(pickTitle(m(40, 50, 40, 30), 40000).title).toBe('Hustler of the Semester');
+    expect(pickTitle(m(85, 50, 80, 30), 5000).title).toBe('Campus Celebrity Scholar');
+    expect(pickTitle(m(40, 50, 90, 30), 5000).title).toBe('Owambe Minister');
+    expect(pickTitle(m(60, 50, 50, 80), 5000).title).toBe('Running on Panadol');
+    expect(pickTitle(m(60, 10, 50, 30), 5000).title).toBe('Sleep Is a Myth');
+    expect(pickTitle(m(60, 50, 50, 30), 500).title).toBe('Surviving on Garri');
+    expect(pickTitle(m(60, 50, 50, 30), 5000).title).toBe('Certified Survivor');
+  });
+});
+
+describe('a whole semester with events', () => {
+  it('finishes when an event can fire on every action', () => {
+    let s = startGame({ ...setup, background: 'broke' });
+    let events = 0;
+    for (let i = 0; i < 300 && !s.finished; i++) {
+      const pending = getPendingEvent(s);
+      if (pending) {
+        const pick = canChoose(s, pending.choices[0]).ok ? 0 : 1;
+        s = resolveEvent(s, pick);
+        events++;
+        continue;
+      }
+      const next = ACTIONS.find((a) => canDoAction(s, a).ok)!;
+      s = doAction(s, next.id, () => 0);
+    }
+    expect(s.finished).toBe(true);
+    expect(events).toBeGreaterThan(0);
+    expect(events).toBeLessThanOrEqual(14);
   });
 });
