@@ -38,7 +38,7 @@ function buildGround() {
   return p.merge();
 }
 
-const grassGeometry = new THREE.PlaneGeometry(140, 140).rotateX(-Math.PI / 2);
+const grassGeometry = new THREE.PlaneGeometry(400, 400).rotateX(-Math.PI / 2);
 
 export function Ground({ grass }: { grass: string }) {
   const parts = useMemo(buildGround, []);

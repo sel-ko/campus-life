@@ -43,6 +43,32 @@ export function footpaths(): Segment[] {
   });
 }
 
+export interface WalkNode {
+  at: [number, number];
+  /** Indexes of the nodes you can walk to from here. */
+  next: number[];
+}
+
+let graphCache: WalkNode[] | null = null;
+
+/** Spots non-player students walk between: each site hub, each door. Hubs
+ *  link to each other (roads) and to their own doors (footpaths). */
+export function walkGraph(): WalkNode[] {
+  if (graphCache) return graphCache;
+  const nodes: WalkNode[] = university.sites.map((s) => ({ at: s.centre, next: [] }));
+  university.sites.forEach((_, i) => {
+    nodes[i]!.next = university.sites.map((__, j) => j).filter((j) => j !== i);
+  });
+  for (const loc of university.locations) {
+    const hub = university.sites.findIndex((s) => s.id === loc.siteId);
+    const index = nodes.length;
+    nodes.push({ at: doorPoint(loc), next: hub >= 0 ? [hub] : [] });
+    if (hub >= 0) nodes[hub]!.next.push(index);
+  }
+  graphCache = nodes;
+  return nodes;
+}
+
 /** Radius of each site's ground pad, big enough to hold its buildings. */
 export function siteRadius(siteId: string): number {
   const site = university.sites.find((s) => s.id === siteId);

@@ -10,7 +10,9 @@ import { CameraRig } from './CameraRig';
 import { Ground } from './Ground';
 import { doorPoint } from './layout';
 import { SLOT_LOOKS } from './lighting';
-import { Player, PlayerMarker } from './Player';
+import { presetLook } from './characters/look';
+import { Npcs } from './Npcs';
+import { Player } from './Player';
 import { Props } from './Props';
 import { setWindowGlow } from './three-utils';
 import { Trees } from './Trees';
@@ -18,6 +20,8 @@ import { Trees } from './Trees';
 export default function CampusScene({ paused }: { paused: boolean }) {
   const slot = useGameStore((s) => (s.game ? currentSlot(s.game) : 'Morning'));
   const look = SLOT_LOOKS[slot];
+  const characterId = useGameStore((s) => s.game?.player.characterId ?? 'm1');
+  const look3d = useMemo(() => presetLook(characterId), [characterId]);
 
   useEffect(() => setWindowGlow(look.glow), [look]);
 
@@ -50,9 +54,8 @@ export default function CampusScene({ paused }: { paused: boolean }) {
       <Trees />
       <Props />
       <Buildings />
-      <Player>
-        <PlayerMarker />
-      </Player>
+      <Npcs />
+      <Player look={look3d} />
     </Canvas>
   );
 }

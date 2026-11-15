@@ -1,10 +1,12 @@
 // The player on the map. Walks in a straight line with a little hop to the
 // building that was tapped, then tells the store it has arrived.
 import { useFrame } from '@react-three/fiber';
-import { useRef, type ReactNode } from 'react';
+import { useRef } from 'react';
 import * as THREE from 'three';
 import { getLocation } from '../content/university';
 import { useGameStore } from '../store/gameStore';
+import { Character } from './characters/Character';
+import type { CharacterLook } from './characters/look';
 import { doorPoint } from './layout';
 import { playerWorld } from './shared';
 
@@ -26,76 +28,64 @@ function startPoint(): THREE.Vector3 {
   return new THREE.Vector3(x, 0, z);
 }
 
-/**
- * `children` is the character model. It receives nothing; instead the
- * `walking` ref tells animated characters whether to swing their legs.
- */
-export function Player({ children, walking }: { children: ReactNode; walking?: { current: boolean } }) {
+const SCALE = 0.95;
+
+/** The player's character, walking to whichever building was tapped. */
+export function Player({ look }: { look: CharacterLook }) {
   const group = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
-  const pos = useRef(startPoint());
+  const pos = useRef<THREE.Vector3 | null>(null);
+  if (!pos.current) pos.current = startPoint();
   const travelled = useRef(0);
+  const walking = useRef(false);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
     const { travelTargetId, arrive } = useGameStore.getState();
     const target = travelTargetId ? getLocation(travelTargetId) : undefined;
     const g = group.current;
+    const p = pos.current!;
     if (!g || !body.current) return;
 
     if (target) {
       const [tx, tz] = doorPoint(target);
-      const dx = tx - pos.current.x;
-      const dz = tz - pos.current.z;
+      const dx = tx - p.x;
+      const dz = tz - p.z;
       const dist = Math.hypot(dx, dz);
       const step = SPEED * dt;
       if (dist <= step) {
-        pos.current.set(tx, 0, tz);
+        p.set(tx, 0, tz);
         travelled.current = 0;
         body.current.position.y = 0;
         playerWorld.moving = false;
-        if (walking) walking.current = false;
+        walking.current = false;
         arrive();
       } else {
-        pos.current.x += (dx / dist) * step;
-        pos.current.z += (dz / dist) * step;
+        p.x += (dx / dist) * step;
+        p.z += (dz / dist) * step;
         travelled.current += step;
         g.rotation.y = Math.atan2(dx, dz);
+        // A small hop on every stride.
         body.current.position.y = Math.abs(Math.sin(travelled.current * 1.6)) * HOP;
         playerWorld.moving = true;
-        if (walking) walking.current = true;
+        walking.current = true;
       }
     } else {
       playerWorld.moving = false;
-      if (walking) walking.current = false;
+      walking.current = false;
       // Turn to face the camera when standing still.
       g.rotation.y += (0 - g.rotation.y) * Math.min(1, dt * 6);
     }
-    g.position.copy(pos.current);
-    playerWorld.pos.copy(pos.current);
+    g.position.copy(p);
+    playerWorld.pos.copy(p);
   });
 
   return (
     <group ref={group}>
-      <Blob />
-      <group ref={body}>{children}</group>
-    </group>
-  );
-}
-
-/** A plain marker used until a character is chosen. */
-export function PlayerMarker() {
-  const { primary, accent } = { primary: '#F5B83D', accent: '#14202B' };
-  return (
-    <group>
-      <mesh position={[0, 0.9, 0]}>
-        <cylinderGeometry args={[0.45, 0.55, 1.4, 12]} />
-        <meshLambertMaterial color={primary} />
-      </mesh>
-      <mesh position={[0, 2, 0]}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshLambertMaterial color={accent} />
-      </mesh>
+      <Blob scale={1.1} />
+      <group ref={body} scale={SCALE}>
+        <Character look={look} walking={walking} />
+      </group>
     </group>
   );
 }

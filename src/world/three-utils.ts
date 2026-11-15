@@ -155,6 +155,11 @@ export class Parts {
     return this;
   }
 
+  /** The raw shapes, for mergeWithVertexColours. */
+  list(): ReadonlyArray<Part> {
+    return this.parts;
+  }
+
   merge(): MergedPart[] {
     const groups = new Map<string, Part[]>();
     for (const p of this.parts) {
@@ -183,6 +188,46 @@ export class Parts {
     }
     return out;
   }
+}
+
+/** Shared materials for meshes that carry their own colours per vertex. */
+export const vertexColourMaterials = {
+  smooth: new THREE.MeshLambertMaterial({ vertexColors: true }),
+  flat: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }),
+};
+
+/**
+ * Like Parts.merge, but bakes each shape's colour into the geometry so a whole
+ * group needs only two draw calls (smooth shapes and flat shapes), whatever
+ * its colours. Used for characters.
+ */
+export function mergeWithVertexColours(parts: Parts): { smooth: THREE.BufferGeometry | null; flat: THREE.BufferGeometry | null } {
+  const out = { smooth: null as THREE.BufferGeometry | null, flat: null as THREE.BufferGeometry | null };
+  const c = new THREE.Color();
+  for (const flat of [false, true]) {
+    const geos = parts
+      .list()
+      .filter((p) => p.flat === flat)
+      .map((p) => {
+        const g = (p.geo.index ? p.geo.toNonIndexed() : p.geo.clone()).applyMatrix4(p.matrix);
+        for (const name of Object.keys(g.attributes)) {
+          if (name !== 'position' && name !== 'normal') g.deleteAttribute(name);
+        }
+        c.set(p.color);
+        const n = g.attributes.position!.count;
+        const colours = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) colours.set([c.r, c.g, c.b], i * 3);
+        g.setAttribute('color', new THREE.BufferAttribute(colours, 3));
+        return g;
+      });
+    if (geos.length) {
+      const merged = mergeGeometries(geos, false);
+      geos.forEach((g) => g.dispose());
+      if (merged) merged.computeBoundingSphere();
+      out[flat ? 'flat' : 'smooth'] = merged;
+    }
+  }
+  return out;
 }
 
 // ---------- labels ----------

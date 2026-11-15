@@ -4,6 +4,8 @@ import { BACKGROUNDS } from '../game/config';
 import { naira } from '../game/format';
 import type { BackgroundId } from '../game/types';
 import { useGameStore } from '../store/gameStore';
+import type { PresetId } from '../world/characters/look';
+import { CharacterChooser } from './CharacterChooser';
 
 const BACKGROUND_IDS: BackgroundId[] = ['broke', 'average', 'comfortable'];
 const HOMES = university.locations.filter((l) => l.type === 'hostel');
@@ -14,6 +16,7 @@ export function StartScreen() {
   const [departmentId, setDepartmentId] = useState('');
   const [background, setBackground] = useState<BackgroundId>('average');
   const [homeId, setHomeId] = useState(HOMES[0]?.id ?? '');
+  const [characterId, setCharacterId] = useState<PresetId>('m1');
 
   const name = nickname.trim();
   const ready = name.length > 0 && departmentId !== '';
@@ -21,8 +24,7 @@ export function StartScreen() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!ready) return;
-    // Character picker arrives in Phase 4; m1 until then.
-    start({ nickname: name, departmentId, background, characterId: 'm1', homeId });
+    start({ nickname: name, departmentId, background, characterId, homeId });
   }
 
   return (
@@ -110,6 +112,8 @@ export function StartScreen() {
             );
           })}
         </fieldset>
+
+        <CharacterChooser value={characterId} onChange={setCharacterId} />
 
         <button
           type="submit"
