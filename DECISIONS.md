@@ -362,3 +362,29 @@ the code mentioned.
     the hustle partner adds 15%. Errands in the hostel (₦400) and washing
     plates at a buka (₦500 plus a free plate) are always there, so being
     broke is never a dead end.
+97. **Recurring cast** (all fictional): Tobi (course rep), Ifeoma "Prof"
+    (efiko), Kelechi "K-Money" (hustle partner), Damilola, Osaze and Zainab
+    (coursemates), Ejiro (optional love interest), Comrade Tega (senior and
+    campus politician), Mama Blessing (buka), six office staff and Dr Osifo
+    at the Medical Centre. Plus 12 possible roommates and 20 lecturers.
+    Talking once a day raises a relationship. Help unlocks at: course rep 30
+    (cover one attendance bar a semester; 40 also leaks test dates two days
+    earlier and keeps you a GST seat), efiko 25 (notes) and 40 (group
+    study), coursemates and hustle partner 20 (loans of ₦3,000/₦5,000),
+    Mama Blessing 15 (a meal on credit), Ejiro 50 (dates), officers (better
+    clearance and Bursary luck). Unpaid loans cost 20 relationship points.
+98. **Chat:** a freshers' group and a class group from admission, a room chat
+    from allocation, and one-to-one threads with anyone you get close to.
+    Messages are triggered by the calendar (timetable, class dues,
+    departmental week, exam timetable, registration deadline), tomorrow's
+    changes (cancelled, moved, weekend lectures, GST batch moves), tests
+    (announced 2 days ahead, 4 if the course rep likes you), rumours, false
+    alarms and daily chatter. Some messages have reply buttons with effects.
+    Threads list their members so real player-to-player chat could replace
+    the one-to-one threads later.
+99. **Events:** 93 random cards and 5 follow-ups. At most one random event a
+    day, with a 20% chance after each action that takes a slot, picked from
+    the cards whose conditions match (place, time, level, money, needs,
+    roommates, hustles, course kinds, relationships...). Cards already seen
+    are less likely. The morning after a theft, a confrontation card comes
+    up.

@@ -3,11 +3,14 @@
 // goals) in a fixed order. Internal functions change a draft (see draft.ts);
 // the exported pure versions copy the state first.
 import { buildSemester, closeSlot, endOfSession, moveGstBatches, semesterResults } from './academics';
+import { chatDayMut, scriptMut, semesterChatMut, setupChatMut } from './chat';
 import { ALLOWANCE_DAYS } from './config';
+import { dueEventsMut } from './events';
 import { log, produce } from './draft';
 import { addLateFeeIfDue, allowanceDay, landLateAllowance, sendFeeMoney, sessionFees, weeklyData } from './money';
 import { dayOutagesMut, oversleepMut, reallocateMut, roommateNightMut } from './hostel';
 import { checkCollapse, nightWithoutSleep, tickNeeds } from './needs';
+import { loansDayMut } from './people';
 import { Rng } from './rng';
 import { blankState, type NewGameSetup } from './state';
 import { slotName, stepClock } from './time';
@@ -18,6 +21,7 @@ import type { GameState } from './types';
 export function newGame(setup: NewGameSetup): GameState {
   const d = blankState(setup);
   const r = new Rng(d.rng);
+  setupChatMut(d, r);
   beginSession(d, r);
   beginSemester(d, r);
   beginDay(d, r);
@@ -40,6 +44,7 @@ export function beginSemester(d: GameState, _r: Rng): void {
   d.hustle.profitSemester = 0;
   sendFeeMoney(d);
   buildSemester(d, _r);
+  semesterChatMut(d, _r);
 }
 
 /** Start of a day (in the morning). */
@@ -50,9 +55,12 @@ export function beginDay(d: GameState, r: Rng): void {
     weeklyData(d);
   }
   addLateFeeIfDue(d);
-  moveGstBatches(d, r);
+  const moved = moveGstBatches(d, r);
   dayOutagesMut(d, r);
   oversleepMut(d, r);
+  chatDayMut(d, r, moved);
+  loansDayMut(d, r);
+  dueEventsMut(d);
 }
 
 /** End of a day (after the Night slot), before the clock moves. */
@@ -62,7 +70,9 @@ export function endDay(d: GameState, r: Rng): void {
 }
 
 export function endSemester(d: GameState, r: Rng): void {
+  const before = d.academics.transcript.length;
   semesterResults(d, r);
+  if (d.academics.transcript.length > before) scriptMut(d, r, 'results_out');
   if (d.clock.semester === 2) endOfSession(d);
 }
 

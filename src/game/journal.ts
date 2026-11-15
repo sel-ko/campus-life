@@ -1,5 +1,6 @@
 // The journal: every open task, most urgent first, so the player always
 // knows what to do next. Pure: reads the state, changes nothing.
+import { getPerson } from '../content/people';
 import { fieldPlace, mainBuka, medicalCentre, placeName } from '../content/places';
 import { attendance, canDoAssignment } from './academics';
 import { clearanceSteps, officeName, officePlaceId } from './clearance';
@@ -128,7 +129,17 @@ const healthTasks: Producer = (d) => {
   return out;
 };
 
-const PRODUCERS: Producer[] = [studyTasks, healthTasks, clearanceTasks, moneyTasks];
+const peopleTasks: Producer = (d) =>
+  d.loans
+    .filter((l) => l.playerOwes)
+    .map((l) => ({
+      id: `loan:${l.id}`,
+      text: `Pay back ${naira(l.amount)} to ${getPerson(l.personId)?.name ?? 'a friend'} by day ${l.due - d.clock.dayCount + d.clock.day}`,
+      urgent: l.due <= d.clock.dayCount + 1,
+      group: 'people' as const,
+    }));
+
+const PRODUCERS: Producer[] = [studyTasks, healthTasks, clearanceTasks, moneyTasks, peopleTasks];
 
 export function journal(d: GameState): JournalTask[] {
   const tasks = PRODUCERS.flatMap((p) => p(d));

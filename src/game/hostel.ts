@@ -2,6 +2,7 @@
 import { ROOMMATE_POOL, getPerson } from '../content/people';
 import { hostels } from '../content/places';
 import { modifiers } from './campus';
+import { setupRoomChatMut } from './chat';
 import { KEEP_ROOMMATE_CHANCE, OUTAGES, OVERSLEEP_CHANCE, THEFT } from './config';
 import { clamp, log } from './draft';
 import { naira } from './format';
@@ -46,6 +47,7 @@ export function allocateRoomMut(d: GameState, r: Rng, temporary = false): void {
     suspect: null,
     levy: 0,
   };
+  setupRoomChatMut(d, r);
   const names = roommates.map((id) => getPerson(id)?.name.split(' ')[0]).join(', ');
   log(
     d,
