@@ -48,3 +48,77 @@ the code mentioned.
 13. **Tooling not named in the brief but needed by the listed stack:**
     `@vitejs/plugin-react` (React in Vite), `@tailwindcss/vite` (Tailwind's
     official Vite plugin), `typescript`, `@types/react`, `@types/react-dom`.
+
+## Phase 2
+
+14. **Events use slang from the content file.** `events.ts` imports
+    `university.slang`, so rewriting a joke usually means editing the content
+    file, not the events.
+15. **Unaffordable event choices are disabled** with "You need ₦X", like
+    actions. Every event has at least one choice that costs no money (a test
+    checks this).
+16. **Titles:** 8 titles in `titles.ts`, checked top to bottom; the last,
+    "Certified Survivor", always matches.
+17. **The results screen shows** Social, Stress and Money as its three stats
+    (Grades is already shown as the CGPA).
+18. **Share card:** "Save image" downloads the PNG; "Share on WhatsApp" opens
+    WhatsApp with the text and link (WhatsApp links cannot attach images, so the
+    sheet suggests saving first).
+
+## Phase 3
+
+19. **Map layout is not to scale.** PS, TS and Crown Estate are three clusters
+    around a clear "hub" each, joined by roads. Positions live in the content
+    file.
+20. **Lambert materials instead of Standard (PBR).** Almost the same look on
+    chunky shapes, much cheaper per pixel on cheap phones.
+21. **Same-colour parts are merged** into one mesh per building, and trees are
+    instanced, so the whole campus is about 70 draw calls.
+22. **Labels are canvas textures on sprites**, not HTML or a font library: no
+    extra download.
+23. **drei is not used.** Everything needed was short enough to write by hand;
+    it can be added later if wanted.
+24. **The map pauses** when the tab is hidden, a sheet is open or an event card
+    is up. The last frame stays on screen.
+25. **The player starts at their own estate.** The start screen asks "Where do
+    you stay?"; this also goes into vendor order messages.
+26. **"List of places" button** on the map switches to the plain list, which
+    is also the automatic fallback when WebGL is missing or the map crashes.
+
+## Phase 4
+
+27. **Characters keep the reference shapes but use vertex colours**, so each
+    body part is one mesh and a character is about 10 draw calls instead of 50.
+28. **Characters on the map are scaled to about 0.9** so they read at the
+    default zoom; buildings stay the same size.
+29. **The four previews share one canvas** on the start screen. The 3D code
+    loads after the form is showing, so "lazy-load after the start screen"
+    means the form appears first and the previews fill in.
+30. **Non-player students walk along roads and footpaths** (hub to hub, hub to
+    door), never through buildings. Six of them, with seeded random looks.
+
+## Phase 5
+
+31. **Department is stored as its id** (e.g. `law`) in Supabase, so renaming a
+    department in the content file does not split the leaderboard.
+32. **The leaderboard shows each player's best result only** (a database
+    view), so one person cannot fill the top 20.
+33. **Simple spam guard:** a player can add at most one result a minute.
+    Results are still sent by the browser, so a determined cheater could post a
+    fake CGPA; checking results on a server would need paid or extra services.
+34. **Results are saved once**, retried each time the results screen opens
+    until it works. Department rank appears under the stats when online.
+35. **Two stall spaces per place.** Vendors at a place fill them first; the
+    rest show "Stall available". The "Advertise here" button only appears when
+    `VITE_ADVERTISE_WHATSAPP` is set.
+36. **Analytics never includes the nickname.** No autocapture or session
+    recording. PostHog loads when the browser is idle.
+
+## Phase 6
+
+37. **Icons are drawn by `scripts/make-icons.mjs`** (no image tools needed).
+38. **A small hand-written service worker** caches the game so the installed
+    app opens offline. It never caches Supabase, PostHog or WhatsApp, and it is
+    only registered in production builds.
+39. **The map code is prefetched** 1.5 seconds after the start screen appears,
+    so the campus shows quickly after "Start the semester".

@@ -22,7 +22,7 @@ export function LocationSheet({ game }: { game: GameState }) {
         role="dialog"
         aria-label={location.name}
         onClick={(e) => e.stopPropagation()}
-        className="mx-auto flex max-h-[80%] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-t-2xl border-t border-line bg-panel px-4 pt-4 pb-6"
+        className="mx-auto flex max-h-[80%] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-t-2xl border-t border-line bg-panel px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">{location.name}</h2>

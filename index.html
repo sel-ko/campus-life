@@ -4,10 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#14202B" />
+    <meta name="description" content="Campus Life: survive one semester. Unofficial fan-made game." />
     <title>Campus Life</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+      /* Shown instantly, before any JavaScript arrives; React replaces it. */
+      html, body { margin: 0; background: #14202b; }
+      .splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; gap: 14px; color: #f2eee3; font: 600 16px system-ui, sans-serif; }
+      .splash b { font-size: 34px; font-weight: 800; }
+      .splash i { width: 44px; height: 44px; border-radius: 10px; background: #f5b83d;
+        animation: bob 1s ease-in-out infinite alternate; }
+      @keyframes bob { to { transform: translateY(-10px) rotate(8deg); } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="splash"><i></i><b>Campus Life</b><span>Loading your semester…</span></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

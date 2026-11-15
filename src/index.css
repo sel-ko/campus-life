@@ -23,4 +23,6 @@ body {
   color: var(--color-ink);
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  /* No pull-to-refresh or rubber-banding while dragging the map. */
+  overscroll-behavior: none;
 }

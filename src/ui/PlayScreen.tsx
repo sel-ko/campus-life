@@ -83,7 +83,7 @@ export function PlayScreen({ game }: { game: GameState }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto flex max-w-md flex-col gap-2 p-3">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto flex max-w-md flex-col gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {lastLog && (
           <p className="rounded-lg bg-night/80 px-3 py-2 text-sm">
             <span className="text-xs text-muted">

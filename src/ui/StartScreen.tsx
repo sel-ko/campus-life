@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { university } from '../content/university';
 import { BACKGROUNDS } from '../game/config';
 import { naira } from '../game/format';
@@ -18,6 +18,13 @@ export function StartScreen({ onLeaderboard }: { onLeaderboard: () => void }) {
   const [background, setBackground] = useState<BackgroundId>('average');
   const [homeId, setHomeId] = useState(HOMES[0]?.id ?? '');
   const [characterId, setCharacterId] = useState<PresetId>('m1');
+
+  // While the player fills in the form, quietly download the map code so the
+  // campus appears quickly after "Start the semester".
+  useEffect(() => {
+    const id = window.setTimeout(() => void import('../world/CampusScene').catch(() => undefined), 1500);
+    return () => window.clearTimeout(id);
+  }, []);
 
   const name = nickname.trim();
   const ready = name.length > 0 && departmentId !== '';

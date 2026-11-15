@@ -13,7 +13,7 @@ const METERS: Array<{ key: MeterKey; label: string; colour: string }> = [
 
 export function Hud({ game }: { game: GameState }) {
   return (
-    <header className="flex flex-col gap-2 border-b border-line bg-panel/95 px-4 py-3">
+    <header className="flex flex-col gap-2 border-b border-line bg-panel/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
       <div className="flex items-baseline justify-between">
         <p className="font-bold">
           Day {game.day}/{SEMESTER_DAYS} · {dayName(game.day)} · {currentSlot(game)}

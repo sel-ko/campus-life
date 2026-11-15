@@ -1,0 +1,12 @@
+# Cloudflare Pages response headers.
+# Built files have unique names, so phones can keep them for a year.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Always check for a new service worker and page.
+/sw.js
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
