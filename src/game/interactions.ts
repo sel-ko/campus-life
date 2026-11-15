@@ -48,6 +48,7 @@ import { clamp, log, produce } from './draft';
 import { addRel, applyEffects } from './effects';
 import { advance } from './engine';
 import { chooseEventMut, maybeEventMut } from './events';
+import { checkObjectivesMut } from './goals';
 import { naira } from './format';
 import { canEatProvision, eatProvisionMut, payLevyMut } from './hostel';
 import { canHustle, canSetUp, errandsMut, hustleMut, setUpMut, washPlatesMut } from './hustle';
@@ -548,6 +549,7 @@ export function performInteraction(state: GameState, placeId: string, interactio
     if (slots > 0 && i.kind !== 'wait') maybeEventMut(d, r, place.type, placeId);
     advance(d, r, slots);
     checkClearanceDone(d);
+    checkObjectivesMut(d);
   });
 }
 

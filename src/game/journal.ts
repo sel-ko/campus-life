@@ -3,6 +3,7 @@
 import { getPerson } from '../content/people';
 import { fieldPlace, mainBuka, medicalCentre, placeName } from '../content/places';
 import { attendance, canDoAssignment } from './academics';
+import { ELECTION_DAY, nextMilestone, upcomingElection } from './goals';
 import { clearanceSteps, officeName, officePlaceId } from './clearance';
 import { naira } from './format';
 import { canRegister, feesDueNow, registrationDeadline } from './money';
@@ -139,7 +140,16 @@ const peopleTasks: Producer = (d) =>
       group: 'people' as const,
     }));
 
-const PRODUCERS: Producer[] = [studyTasks, healthTasks, clearanceTasks, moneyTasks, peopleTasks];
+const goalTasks: Producer = (d) => {
+  const out: JournalTask[] = [];
+  const m = nextMilestone(d);
+  if (m) out.push({ id: `milestone:${m.id}`, text: `Ambition: ${m.label}`, group: 'goals' });
+  const e = upcomingElection(d);
+  if (e && d.clock.day <= ELECTION_DAY) out.push({ id: 'election', text: `Election on day ${ELECTION_DAY}: campaign at the Sports Complex and make friends`, placeId: fieldPlace().id, group: 'goals' });
+  return out;
+};
+
+const PRODUCERS: Producer[] = [goalTasks, studyTasks, healthTasks, clearanceTasks, moneyTasks, peopleTasks];
 
 export function journal(d: GameState): JournalTask[] {
   const tasks = PRODUCERS.flatMap((p) => p(d));

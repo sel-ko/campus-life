@@ -6,6 +6,7 @@ import { buildSemester, closeSlot, endOfSession, moveGstBatches, semesterResults
 import { chatDayMut, scriptMut, semesterChatMut, setupChatMut } from './chat';
 import { ALLOWANCE_DAYS } from './config';
 import { dueEventsMut } from './events';
+import { checkMilestonesMut, electionMut, finalMilestonesMut, newWeekMut } from './goals';
 import { log, produce } from './draft';
 import { addLateFeeIfDue, allowanceDay, landLateAllowance, sendFeeMoney, sessionFees, weeklyData } from './money';
 import { dayOutagesMut, oversleepMut, reallocateMut, roommateNightMut } from './hostel';
@@ -55,6 +56,8 @@ export function beginDay(d: GameState, r: Rng): void {
     weeklyData(d);
   }
   addLateFeeIfDue(d);
+  if (d.clock.day === 1 || d.clock.day === 8) newWeekMut(d, r);
+  electionMut(d, r);
   const moved = moveGstBatches(d, r);
   dayOutagesMut(d, r);
   oversleepMut(d, r);
@@ -73,7 +76,12 @@ export function endSemester(d: GameState, r: Rng): void {
   const before = d.academics.transcript.length;
   semesterResults(d, r);
   if (d.academics.transcript.length > before) scriptMut(d, r, 'results_out');
-  if (d.clock.semester === 2) endOfSession(d);
+  if (d.clock.semester === 2) {
+    const level = d.academics.level;
+    endOfSession(d);
+    checkMilestonesMut(d, level, d.academics.repeating);
+    if (d.phase === 'graduated') finalMilestonesMut(d);
+  }
 }
 
 /** Moves time on by one slot, running end-of-day and end-of-semester rules. */

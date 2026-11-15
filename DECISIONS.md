@@ -419,3 +419,18 @@ the code mentioned.
      photocopies, passports and receipts; two off-campus blocks are the IT
      placement and the law chambers; the other off-campus blocks are private
      lodges (not playable yet).
+105. **Milestones** are checked at the end of each session for the level just
+     finished (a repeated year waits for the next try) and at graduation for
+     the final one. Soft Life's "average stress under 45" is measured over
+     every slot played.
+106. **Elections** only run for the Student Union ambition: class rep in 200
+     level, departmental president in 300 level and Student Union president
+     in the final year, each on day 10 of the first semester. Votes =
+     friends (25+) × 6 + warmth with classmates + campaign effort + luck.
+     Campaigning happens at the Sports Complex (₦1,000 a time) and with
+     Comrade Tega.
+107. **Weekly objectives:** three different ones are drawn on days 1 and 8
+     from templates that fit the situation (clearance, lectures, hustles,
+     project, fees due, exam week). Count-based ones tick off as soon as they
+     are met; "save money", "stay calm" and "stay fed" are judged at the end
+     of the week. Each one done takes 5 off stress.
