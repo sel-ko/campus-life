@@ -234,3 +234,26 @@ the code mentioned.
 69. **The clock:** `year` counts sessions played, `day` is 1 to 14, `slot` is
     0 to 3 (Morning to Night), and `dayCount` never resets (used for
     deadlines and "come back tomorrow").
+70. **Programmes:** all 28 programmes from the brief, each with a three-letter
+    department prefix (MED, NSC, MLS, ANA, PIO, BCH, PHA, LAW, CHE, PEE, CVE,
+    EEE, MEE, CSC, MCB, ICH, PHY, ACC, BUS, BFN, ECO, ENG, MAC, POL, INR, SOC,
+    THA, GRP). Engineering shares GET courses. Science-based 100 level shares
+    BIO, CHM, PHY and MTH. Every list is marked draft.
+71. **300 level and above is generated** from each programme's list of
+    advanced titles (`src/game/curriculum.ts`): normally five 3-unit courses
+    and one 2-unit course. Special semesters:
+    - industrial training (SIWES): 300 level second semester for sciences
+      (including Anatomy, Physiology and Biochemistry); 400 level second
+      semester for engineering;
+    - clinical postings: Medicine, Nursing and Medical Laboratory Science
+      from 400 level, Pharmacy from 500 level;
+    - Law: moot court in 400 level first semester, chambers attachment in
+      400 level second semester;
+    - final year: a research seminar in the first semester and a final-year
+      project in the second, for everyone.
+72. **Pharmacy is 6 years** (the brief said CONFIRM 5 or 6).
+73. **Missing the cut-off** admits the player to a random course that is not
+    competitive, never the one they chose.
+74. **Entrance test:** 70 questions (general, science, maths, English,
+    geography), 10 drawn per game. **Matric numbers** are fictional:
+    `UNI/26/CSC/0421`.
