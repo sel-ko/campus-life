@@ -1,6 +1,6 @@
 // Watches the game store and turns changes into analytics events and the
 // anonymous sign-in. Kept outside the store so the store stays rule-free.
-import { finalResult } from '../game/legacy/engine';
+import { currentCgpa } from '../game/academics';
 import { useGameStore } from '../store/gameStore';
 import { track } from './analytics';
 import { ensureSignedIn } from './supabase';
@@ -10,24 +10,13 @@ export function startTracking(): () => void {
     const game = state.game;
     const before = prev.game;
     if (!game) return;
-
-    // A brand-new game (the store had none, or the player pressed Play again).
-    if (!before || game.player !== before.player) {
-      track('game_started', {
-        background: game.player.background,
-        department: game.player.departmentId,
-        character: game.player.characterId,
-      });
+    if (!before || game.player.matric !== before.player.matric) {
+      track('game_started', { background: game.player.background, programme: game.player.programmeId, ambition: game.player.ambition });
       void ensureSignedIn();
       return;
     }
-
-    if (game.day > before.day) track('day_completed', { day: before.day });
-
-    if (game.finished && !before.finished) {
-      const r = finalResult(game);
-      track('day_completed', { day: before.day });
-      track('semester_completed', { cgpa: r.cgpa, class: r.className, title: r.title, money: game.money });
-    }
+    if (!game.clearance.active && before.clearance.active) track('clearance_completed', { days: (game.clearance.endDay ?? 0) - game.clearance.startDay + 1 });
+    if (game.academics.transcript.length > before.academics.transcript.length) track('semester_completed', { level: game.academics.level, cgpa: currentCgpa(game) });
+    if (game.phase !== before.phase) track(game.phase === 'graduated' ? 'graduated' : 'withdrawn', { cgpa: currentCgpa(game), years: game.clock.year });
   });
 }

@@ -1,209 +1,190 @@
-// A thin Zustand wrapper around the engine. No game rules live here: each
-// method calls one engine function and stores the result. It also holds the
-// screen state (open sheets, camera mode, phone) and the player's chat replies.
+// A thin Zustand wrapper around the rules. No game rule lives here: each
+// method calls one function from src/game/ and stores the result. It also
+// holds screen state (what is open, where the 3D player is walking).
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getLocation, university } from '../content/university';
-import { currentSlot, doAction, resolveEvent, startGame } from '../game/legacy/engine';
-import type { GameState, PlayerSetup, Slot } from '../game/legacy/types';
+import { getPlace } from '../content/places';
+import { newGame } from '../game/engine';
+import {
+  answerChat,
+  chooseEvent,
+  dismissSummary,
+  markChatRead,
+  payFee,
+  performInteraction,
+  registerCourses,
+  setCharacter,
+  syncCampusWeek,
+  travel,
+} from '../game/interactions';
+import { loadSave } from '../game/save';
+import type { NewGameSetup } from '../game/state';
+import type { FeeId, GameState, TravelMode } from '../game/types';
+import { waitSlot } from '../game/engine';
 
 export type CameraMode = 'follow' | 'overview';
-export type PhoneApp =
-  | 'home'
-  | 'messages'
-  | 'calendar'
-  | 'wallet'
-  | 'updates'
-  | 'places'
-  | 'market'
-  | 'leaderboard'
-  | 'settings';
+export type PhoneApp = 'home' | 'school' | 'chat' | 'calendar' | 'wallet' | 'people' | 'places' | 'market' | 'leaderboard' | 'settings';
 
 interface GameStore {
-  /** The saved game, or null before the first start. */
   game: GameState | null;
-  /** Which building the player is standing at, or null when out walking. Saved. */
-  playerLocationId: string | null;
-  /** True once this semester's result is on the online leaderboard. Saved. */
-  resultSubmitted: boolean;
-  /** Lines the player sent in the department group chat. Saved. */
-  chatReplies: Array<{ day: number; slot: Slot; text: string }>;
-  /** How many classmate messages the player has seen. Saved. */
-  chatRead: number;
+  /** The old save could not be loaded: show a friendly note once. */
+  resetNotice: boolean;
 
   // ---- screen state, not saved ----
-  /** Where the player is walking to after tapping a building. */
-  travelTargetId: string | null;
-  /** True while that trip is a keke ride (instant) rather than a walk. */
+  /** The place whose inside screen is open. */
+  insidePlaceId: string | null;
+  /** A far place the player tapped: the keke / cab / walk menu is open. */
+  travelSheetId: string | null;
+  /** The 3D player is on the way here (walking, or riding = jump there). */
+  walkTargetId: string | null;
   riding: boolean;
-  /** Which building's sheet is open. */
-  selectedLocationId: string | null;
-  /** Close-up on the player (with joystick) or the whole campus. */
   cameraMode: CameraMode;
-  /** A door the player is standing near while walking with the joystick. */
-  nearbyLocationId: string | null;
-  /** Which phone screen is open, or null when the phone is away. */
+  /** A door the 3D player is standing near. */
+  nearbyPlaceId: string | null;
   phoneApp: PhoneApp | null;
   profileOpen: boolean;
+  journalOpen: boolean;
 
-  start: (setup: PlayerSetup) => void;
-  /** Opens a building's sheet straight away (list, Places app, Enter button). */
-  tapLocation: (locationId: string) => void;
-  /** 3D map: walk to a building; the sheet opens on arrival. */
-  travelTo: (locationId: string) => void;
-  /** Called by the 3D scene when the walk ends. */
+  start: (setup: NewGameSetup) => void;
+  /** A building was tapped on the map (or picked in a list). */
+  tapPlace: (placeId: string, nearby?: boolean) => void;
+  chooseTravel: (mode: TravelMode) => void;
+  closeTravelSheet: () => void;
+  /** Called by the 3D scene when the walk or ride ends. */
   arrive: () => void;
-  /** Ride a keke from a stop to another stop. */
-  rideTo: (stopId: string) => void;
-  /** Joystick took over: stop any walk to a tapped building. */
-  cancelTravel: () => void;
-  /** The player walked away from the building they were at. */
-  leaveLocation: () => void;
-  setNearby: (locationId: string | null) => void;
+  /** The joystick took over. */
+  cancelWalk: () => void;
+  enter: (placeId: string) => void;
+  leave: () => void;
+  setNearby: (placeId: string | null) => void;
   setCameraMode: (mode: CameraMode) => void;
-  closeSheet: () => void;
-  act: (actionId: string) => void;
-  chooseEvent: (choiceIndex: 0 | 1) => void;
+  perform: (interactionId: string) => void;
+  wait: () => void;
+  chooseEvent: (index: number) => void;
+  payFee: (id: FeeId) => void;
+  registerCourses: () => void;
+  answerChat: (threadId: string, messageId: number, index: number) => void;
+  markChatRead: (threadId: string) => void;
+  dismissSummary: () => void;
   openPhone: (app?: PhoneApp) => void;
   closePhone: () => void;
   setProfileOpen: (open: boolean) => void;
-  /** Cosmetic: change the character's look mid-semester. */
+  setJournalOpen: (open: boolean) => void;
   setCharacter: (characterId: string) => void;
-  sendReply: (text: string) => void;
-  markChatRead: (count: number) => void;
+  dismissResetNotice: () => void;
   reset: () => void;
-  markResultSubmitted: () => void;
 }
 
 const freshScreen = {
-  travelTargetId: null,
+  insidePlaceId: null,
+  travelSheetId: null,
+  walkTargetId: null,
   riding: false,
-  selectedLocationId: null,
-  nearbyLocationId: null,
+  nearbyPlaceId: null,
   phoneApp: null,
   profileOpen: false,
+  journalOpen: false,
 } as const;
+
+/** Every rule call goes through here: it also keeps the campus-wide week current. */
+function update(game: GameState, fn: (g: GameState) => GameState): GameState {
+  return fn(syncCampusWeek(game, Date.now()));
+}
 
 export const useGameStore = create<GameStore>()(
   persist(
-    (set, get) => ({
-      game: null,
-      playerLocationId: null,
-      resultSubmitted: false,
-      chatReplies: [],
-      chatRead: 0,
-      ...freshScreen,
-      cameraMode: 'follow',
-
-      start: (setup) =>
-        set({
-          game: startGame(setup),
-          playerLocationId: setup.homeId,
-          resultSubmitted: false,
-          chatReplies: [],
-          chatRead: 0,
-          ...freshScreen,
-          cameraMode: 'follow',
-        }),
-
-      tapLocation: (locationId) =>
-        set({ selectedLocationId: locationId, playerLocationId: locationId, travelTargetId: null, phoneApp: null }),
-
-      travelTo: (locationId) => {
-        const { playerLocationId, game } = get();
-        if (!game || game.pendingEventId) return;
-        if (locationId === playerLocationId) set({ selectedLocationId: locationId, travelTargetId: null });
-        else set({ travelTargetId: locationId, selectedLocationId: null, riding: false });
-      },
-
-      rideTo: (stopId) => {
-        if (!get().game) return;
-        set({ travelTargetId: stopId, selectedLocationId: null, riding: true });
-      },
-
-      arrive: () => {
-        const target = get().travelTargetId;
-        if (!target) return;
-        set({ playerLocationId: target, selectedLocationId: target, travelTargetId: null, riding: false });
-      },
-
-      cancelTravel: () => {
-        if (get().travelTargetId) set({ travelTargetId: null, riding: false });
-      },
-
-      leaveLocation: () => {
-        if (get().playerLocationId) set({ playerLocationId: null });
-      },
-
-      setNearby: (locationId) => {
-        if (get().nearbyLocationId !== locationId) set({ nearbyLocationId: locationId });
-      },
-
-      setCameraMode: (mode) => set({ cameraMode: mode }),
-
-      closeSheet: () => set({ selectedLocationId: null }),
-
-      act: (actionId) => {
+    (set, get) => {
+      const apply = (fn: (g: GameState) => GameState) => {
         const { game } = get();
-        if (!game) return;
-        // Close the sheet so the player picks the next place.
-        set({ game: doAction(game, actionId), selectedLocationId: null });
-      },
+        if (game) set({ game: update(game, fn) });
+      };
+      return {
+        game: null,
+        resetNotice: false,
+        ...freshScreen,
+        cameraMode: 'follow',
 
-      chooseEvent: (choiceIndex) => {
-        const { game } = get();
-        if (!game) return;
-        set({ game: resolveEvent(game, choiceIndex) });
-      },
+        start: (setup) => set({ game: syncCampusWeek(newGame(setup), Date.now()), ...freshScreen, cameraMode: 'follow', resetNotice: false }),
 
-      openPhone: (app = 'home') => set({ phoneApp: app, profileOpen: false }),
-      closePhone: () => set({ phoneApp: null }),
-      setProfileOpen: (open) => set({ profileOpen: open, phoneApp: open ? null : get().phoneApp }),
+        tapPlace: (placeId, nearby = false) => {
+          const { game } = get();
+          if (!game || game.pendingEvent) return;
+          if (nearby || game.location.placeId === placeId) get().enter(placeId);
+          else set({ travelSheetId: placeId, phoneApp: null });
+        },
 
-      setCharacter: (characterId) => {
-        const { game } = get();
-        if (!game) return;
-        set({ game: { ...game, player: { ...game.player, characterId } } });
-      },
+        chooseTravel: (mode) => {
+          const { game, travelSheetId } = get();
+          if (!game || !travelSheetId) return;
+          const next = update(game, (g) => travel(g, travelSheetId, mode));
+          if (next.location.placeId !== travelSheetId) return; // not allowed (e.g. no fare)
+          set({ game: next, travelSheetId: null, walkTargetId: travelSheetId, riding: mode !== 'walk', insidePlaceId: null });
+        },
 
-      sendReply: (text) => {
-        const { game, chatReplies } = get();
-        if (!game) return;
-        set({ chatReplies: [...chatReplies, { day: game.day, slot: currentSlot(game), text }] });
-      },
+        closeTravelSheet: () => set({ travelSheetId: null }),
 
-      markChatRead: (count) => {
-        if (count > get().chatRead) set({ chatRead: count });
-      },
+        arrive: () => {
+          const target = get().walkTargetId;
+          if (!target) return;
+          set({ walkTargetId: null, riding: false, insidePlaceId: getPlace(target)?.enterable ? target : null });
+        },
 
-      reset: () =>
-        set({ game: null, playerLocationId: null, chatReplies: [], chatRead: 0, ...freshScreen, cameraMode: 'follow' }),
+        cancelWalk: () => {
+          if (get().walkTargetId) set({ walkTargetId: null, riding: false });
+        },
 
-      markResultSubmitted: () => set({ resultSubmitted: true }),
-    }),
+        enter: (placeId) => {
+          const { game } = get();
+          if (!game) return;
+          // Walking in by joystick: moving inside a section is free; crossing costs a slot.
+          const moved = game.location.placeId === placeId ? game : update(game, (g) => travel(g, placeId, 'walk'));
+          set({ game: moved, insidePlaceId: placeId, travelSheetId: null, phoneApp: null, journalOpen: false });
+        },
+
+        leave: () => set({ insidePlaceId: null }),
+
+        setNearby: (placeId) => {
+          if (get().nearbyPlaceId !== placeId) set({ nearbyPlaceId: placeId });
+        },
+
+        setCameraMode: (mode) => set({ cameraMode: mode }),
+
+        perform: (interactionId) => {
+          const { insidePlaceId } = get();
+          if (insidePlaceId) apply((g) => performInteraction(g, insidePlaceId, interactionId));
+        },
+
+        wait: () => apply(waitSlot),
+        chooseEvent: (index) => apply((g) => chooseEvent(g, index)),
+        payFee: (id) => apply((g) => payFee(g, id)),
+        registerCourses: () => apply(registerCourses),
+        answerChat: (threadId, messageId, index) => apply((g) => answerChat(g, threadId, messageId, index)),
+        markChatRead: (threadId) => apply((g) => markChatRead(g, threadId)),
+        dismissSummary: () => apply(dismissSummary),
+        setCharacter: (characterId) => apply((g) => setCharacter(g, characterId)),
+
+        openPhone: (app = 'home') => set({ phoneApp: app, profileOpen: false, journalOpen: false }),
+        closePhone: () => set({ phoneApp: null }),
+        setProfileOpen: (open) => set({ profileOpen: open, phoneApp: open ? null : get().phoneApp, journalOpen: false }),
+        setJournalOpen: (open) => set({ journalOpen: open, phoneApp: null, profileOpen: false }),
+        dismissResetNotice: () => set({ resetNotice: false }),
+        reset: () => set({ game: null, ...freshScreen, cameraMode: 'follow' }),
+      };
+    },
     {
       name: 'campus-life-save',
-      version: 5,
-      partialize: (state) => ({
-        game: state.game,
-        playerLocationId: state.playerLocationId,
-        resultSubmitted: state.resultSubmitted,
-        chatReplies: state.chatReplies,
-        chatRead: state.chatRead,
-      }),
-      // Versions 3 and 4 moved the game onto the real campus map: saves that point at
-      // the old placeholder hostels move to the first real one. Anything older
-      // than version 2 starts fresh rather than crash.
-      migrate: (persisted, version) => {
-        const fresh = { game: null, playerLocationId: null, resultSubmitted: false, chatReplies: [], chatRead: 0 };
-        if (version < 2 || !persisted || typeof persisted !== 'object') return fresh;
-        const s = persisted as { game: GameState | null; playerLocationId: string | null };
-        if (s.game && !getLocation(s.game.player.homeId)) {
-          const home = university.locations.find((l) => l.type === 'hostel');
-          if (home) s.game = { ...s.game, player: { ...s.game.player, homeId: home.id } };
-        }
-        if (s.playerLocationId && !getLocation(s.playerLocationId)) s.playerLocationId = s.game?.player.homeId ?? null;
-        return s as never;
+      version: 6,
+      partialize: (state) => ({ game: state.game }),
+      // Saves from the one-semester game cannot be carried over: start fresh with a note.
+      migrate: (persisted) => {
+        const old = (persisted as { game?: unknown } | null)?.game;
+        const { game, wasReset } = loadSave(old);
+        return { game, resetNotice: wasReset } as never;
+      },
+      merge: (persisted, current) => {
+        const p = persisted as { game?: unknown; resetNotice?: boolean } | undefined;
+        const { game, wasReset } = loadSave(p?.game);
+        return { ...current, game, resetNotice: !!p?.resetNotice || wasReset };
       },
     },
   ),

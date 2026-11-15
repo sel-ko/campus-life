@@ -2,55 +2,34 @@
 // next step, search, four main apps); swipe for every app. Apps open full
 // screen inside the phone with a back button.
 import { useState, type ReactElement } from 'react';
+import { PLACES } from '../../content/places';
 import { university } from '../../content/university';
-import { SEMESTER_DAYS } from '../../game/legacy/config';
-import { currentSlot } from '../../game/legacy/engine';
-import { nextHint } from '../../game/legacy/hints';
-import type { GameState, LocationType } from '../../game/legacy/types';
+import { totalUnread } from '../../game/chat';
+import { journal } from '../../game/journal';
+import { dayName, slotName } from '../../game/time';
+import type { GameState } from '../../game/types';
 import { onlineConfigured } from '../../online/supabase';
 import { useGameStore, type PhoneApp } from '../../store/gameStore';
-import { FULL_DAY_NAMES, SLOT_CLOCK } from '../clock';
-import {
-  BackIcon,
-  BellIcon,
-  CalendarIcon,
-  ChatIcon,
-  CloseIcon,
-  MoonIcon,
-  PinIcon,
-  SlidersIcon,
-  StoreIcon,
-  SunIcon,
-  TrophyIcon,
-  WalletIcon,
-} from '../icons';
-import { useChat } from '../useChat';
-import {
-  CalendarApp,
-  LeaderboardApp,
-  MarketApp,
-  MessagesApp,
-  PlacesApp,
-  SettingsApp,
-  UpdatesApp,
-  WalletApp,
-} from './PhoneApps';
+import { FULL_DAY_NAMES, useNow } from '../clock';
+import { BackIcon, BellIcon, CalendarIcon, ChatIcon, CloseIcon, MoonIcon, PinIcon, SlidersIcon, StoreIcon, SunIcon, TrophyIcon, UserIcon, WalletIcon } from '../icons';
+import { CalendarApp, ChatApp, LeaderboardApp, MarketApp, PeopleApp, PlacesApp, SchoolApp, SettingsApp, WalletApp } from './PhoneApps';
 
 type AppId = Exclude<PhoneApp, 'home'>;
 type IconC = (p: { size?: number }) => ReactElement;
 
 /** Each app: a pastel tile with a coloured glyph. */
 const APPS: Array<{ id: AppId; label: string; Icon: IconC; tile: string; ink: string; online?: boolean }> = [
-  { id: 'messages', label: 'Messages', Icon: ChatIcon, tile: '#E6DCFF', ink: '#5B3FD1' },
+  { id: 'school', label: 'Student Portal', Icon: BellIcon, tile: '#D7F0E2', ink: '#1E7A4C' },
+  { id: 'chat', label: 'Chats', Icon: ChatIcon, tile: '#E6DCFF', ink: '#5B3FD1' },
   { id: 'calendar', label: 'Calendar', Icon: CalendarIcon, tile: '#FFE1DA', ink: '#C2462E' },
   { id: 'wallet', label: 'Wallet', Icon: WalletIcon, tile: '#FFF1C9', ink: '#B7790B' },
+  { id: 'people', label: 'Contacts', Icon: UserIcon, tile: '#FDE2EF', ink: '#B23A79' },
   { id: 'places', label: 'Places', Icon: PinIcon, tile: '#D9ECFF', ink: '#2F6FB7' },
-  { id: 'updates', label: 'Updates', Icon: BellIcon, tile: '#EDE3FF', ink: '#6A4C93' },
   { id: 'market', label: 'Market', Icon: StoreIcon, tile: '#FFE6D1', ink: '#C85E14', online: true },
   { id: 'leaderboard', label: 'Ranks', Icon: TrophyIcon, tile: '#FFF0C2', ink: '#9A6F0C', online: true },
   { id: 'settings', label: 'Settings', Icon: SlidersIcon, tile: '#E5E9EE', ink: '#3E4752' },
 ];
-const DOCK: AppId[] = ['messages', 'calendar', 'wallet', 'places'];
+const DOCK: AppId[] = ['school', 'chat', 'wallet', 'places'];
 
 function AppTile({ app, badge, onOpen }: { app: (typeof APPS)[number]; badge?: number; onOpen: () => void }) {
   const { Icon } = app;
@@ -82,19 +61,20 @@ function Skyline() {
   );
 }
 
-function HomeScreen({ game, onGo, onPickPlace }: { game: GameState; onGo: (type: LocationType) => void; onPickPlace: (id: string) => void }) {
+function HomeScreen({ game, onPickPlace }: { game: GameState; onPickPlace: (id: string) => void }) {
   const openPhone = useGameStore((s) => s.openPhone);
   const closePhone = useGameStore((s) => s.closePhone);
-  const { unread } = useChat(game);
+  const unread = totalUnread(game);
+  const now = useNow();
+  const setJournalOpen = useGameStore((s) => s.setJournalOpen);
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState('');
-  const slot = currentSlot(game);
-  const clock = SLOT_CLOCK[slot];
-  const hint = nextHint(game);
+  const slot = slotName(game.clock);
+  const task = journal(game)[0];
   const apps = APPS.filter((a) => !a.online || onlineConfigured());
   const q = query.trim().toLowerCase();
   const appHits = q ? apps.filter((a) => a.label.toLowerCase().includes(q)) : [];
-  const placeHits = q ? university.locations.filter((l) => l.name.toLowerCase().includes(q)) : [];
+  const placeHits = q ? PLACES.filter((l) => l.enterable && l.name.toLowerCase().includes(q)) : [];
 
   return (
     <div className="relative flex h-full flex-col">
@@ -106,13 +86,13 @@ function HomeScreen({ game, onGo, onPickPlace }: { game: GameState; onGo: (type:
         <section className="flex w-full shrink-0 snap-start flex-col gap-4 overflow-y-auto px-5 pt-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-7xl leading-none font-extrabold tracking-tight">{clock.time}</p>
+              <p className="text-7xl leading-none font-extrabold tracking-tight">{now.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' })}</p>
               <p className="mt-2 text-sm text-white/85">
-                {FULL_DAY_NAMES[(game.day - 1) % 7]}, Day {game.day} of {SEMESTER_DAYS} · {university.shortName}
+                {FULL_DAY_NAMES[(now.getDay() + 6) % 7]} · in game: {dayName(game.clock.day)}, day {game.clock.day} of 14 · {university.shortName}
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => openPhone('updates')} aria-label="Updates" className="grid size-11 place-items-center rounded-full bg-black/35">
+              <button onClick={() => setJournalOpen(true)} aria-label="Journal" className="grid size-11 place-items-center rounded-full bg-black/35">
                 <BellIcon size={20} />
               </button>
               <button onClick={closePhone} aria-label="Put the phone away" className="grid size-11 place-items-center rounded-full bg-black/35">
@@ -123,10 +103,10 @@ function HomeScreen({ game, onGo, onPickPlace }: { game: GameState; onGo: (type:
 
           <div className="flex flex-wrap gap-2">
             <span className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-sm font-medium">
-              {slot === 'Night' ? <MoonIcon size={16} /> : <SunIcon size={16} />} {slot} {clock.ampm === 'AM' ? 'class time' : ''}
+              {slot === 'Night' ? <MoonIcon size={16} /> : <SunIcon size={16} />} {slot}
             </span>
-            <button onClick={() => openPhone('messages')} className="flex h-9 items-center gap-1.5 rounded-full bg-black/35 px-3 text-sm font-medium">
-              <ChatIcon size={16} /> {unread ? `${unread} new in class group` : 'Class group'}
+            <button onClick={() => openPhone('chat')} className="flex h-9 items-center gap-1.5 rounded-full bg-black/35 px-3 text-sm font-medium">
+              <ChatIcon size={16} /> {unread ? `${unread} new messages` : 'Chats'}
             </button>
           </div>
 
@@ -136,11 +116,11 @@ function HomeScreen({ game, onGo, onPickPlace }: { game: GameState; onGo: (type:
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold tracking-wide text-sun uppercase">Your next step</p>
-              <p className="font-bold">{hint.title}</p>
-              <p className="text-sm text-white/75">{hint.text}</p>
+              <p className="font-bold">{task ? task.text : 'Nothing urgent'}</p>
+              <p className="text-sm text-white/75">{task ? 'From your journal' : 'Read, rest, or make some money.'}</p>
             </div>
-            {hint.goTo && (
-              <button onClick={() => onGo(hint.goTo!)} className="shrink-0 rounded-full bg-[#CDB8FF] px-3.5 py-2 text-sm font-semibold text-[#2C1F66]">
+            {task?.placeId && (
+              <button onClick={() => onPickPlace(task.placeId!)} className="shrink-0 rounded-full bg-[#CDB8FF] px-3.5 py-2 text-sm font-semibold text-[#2C1F66]">
                 Go
               </button>
             )}
@@ -185,7 +165,7 @@ function HomeScreen({ game, onGo, onPickPlace }: { game: GameState; onGo: (type:
             <div className="grid grid-cols-4 gap-2 pb-24">
               {DOCK.map((id) => {
                 const app = APPS.find((a) => a.id === id)!;
-                return <AppTile key={id} app={app} badge={id === 'messages' ? unread : 0} onOpen={() => openPhone(id)} />;
+                return <AppTile key={id} app={app} badge={id === 'chat' ? unread : 0} onOpen={() => openPhone(id)} />;
               })}
             </div>
           )}
@@ -194,7 +174,7 @@ function HomeScreen({ game, onGo, onPickPlace }: { game: GameState; onGo: (type:
         {/* Page 2: every app */}
         <section className="grid w-full shrink-0 snap-start auto-rows-min grid-cols-4 content-start gap-x-2 gap-y-5 px-5 pt-8">
           {apps.map((app) => (
-            <AppTile key={app.id} app={app} badge={app.id === 'messages' ? unread : 0} onOpen={() => openPhone(app.id)} />
+            <AppTile key={app.id} app={app} badge={app.id === 'chat' ? unread : 0} onOpen={() => openPhone(app.id)} />
           ))}
         </section>
       </div>
@@ -215,22 +195,17 @@ export function Phone({ game, onPickPlace }: { game: GameState; onPickPlace: (id
   const closePhone = useGameStore((s) => s.closePhone);
   if (!app) return null;
 
-  /** "Go" on the next-step card: home for rest, otherwise the first place of that kind. */
-  function goToType(type: LocationType) {
-    const target = type === 'hostel' ? game.player.homeId : university.locations.find((l) => l.type === type)?.id;
-    if (target) onPickPlace(target);
-  }
-
   const current = APPS.find((a) => a.id === app);
   const screens: Record<AppId, ReactElement> = {
-    messages: <MessagesApp game={game} />,
+    school: <SchoolApp game={game} />,
+    chat: <ChatApp game={game} />,
     calendar: <CalendarApp game={game} />,
     wallet: <WalletApp game={game} />,
-    updates: <UpdatesApp game={game} />,
+    people: <PeopleApp game={game} />,
     places: <PlacesApp game={game} onPick={onPickPlace} />,
     market: <MarketApp game={game} />,
     leaderboard: <LeaderboardApp game={game} />,
-    settings: <SettingsApp />,
+    settings: <SettingsApp game={game} />,
   };
 
   return (
@@ -249,7 +224,7 @@ export function Phone({ game, onPickPlace }: { game: GameState; onPickPlace: (id
 
         {app === 'home' ? (
           <div className="min-h-0 flex-1">
-            <HomeScreen game={game} onGo={goToType} onPickPlace={onPickPlace} />
+            <HomeScreen game={game} onPickPlace={onPickPlace} />
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col bg-[#14202B]/85">
@@ -262,7 +237,7 @@ export function Phone({ game, onPickPlace }: { game: GameState; onPickPlace: (id
                 <CloseIcon size={20} />
               </button>
             </div>
-            <div className={`min-h-0 flex-1 px-5 ${app === 'messages' ? 'overflow-hidden pb-2' : 'overflow-y-auto pb-4'}`}>{screens[app]}</div>
+            <div className={`min-h-0 flex-1 px-5 ${app === 'chat' ? 'overflow-hidden pb-2' : 'overflow-y-auto pb-4'}`}>{screens[app]}</div>
           </div>
         )}
 

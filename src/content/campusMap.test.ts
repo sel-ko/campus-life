@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ACTIONS } from '../game/legacy/actions';
-import { canDoAction, doAction, startGame } from '../game/legacy/engine';
 import { findPath, isBlocked, nearestDoor, nearestNode, roadGraph } from '../world/campus/navigation';
-import { buildings, campusPlaces, sections } from './campusMap';
+import { buildings, sections } from './campusMap';
 import raw from './campus-layout.json';
-import { placeActions } from './placeHelpers';
-import { university } from './university';
+import { BUILDING_ROLES } from './campus-overrides';
+import { PLACES, freshersHall, hostels } from './places';
 
 describe('the planner layout', () => {
   it('loads every section and building you drew', () => {
@@ -13,18 +11,20 @@ describe('the planner layout', () => {
     expect(buildings).toHaveLength(raw.items.length);
   });
 
-  it('gives every place a unique name', () => {
-    const names = campusPlaces.map((p) => p.name);
+  it('gives every building except gardens a role and a unique name', () => {
+    const named = raw.items.filter((i) => i.kind !== 'trees');
+    for (const i of named) expect(BUILDING_ROLES[i.id], i.id).toBeDefined();
+    const names = PLACES.map((p) => p.name);
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('offers every action in the game somewhere', () => {
-    const offered = new Set(campusPlaces.flatMap((p) => placeActions(p).map((a) => a.id)));
-    for (const a of ACTIONS) expect(offered.has(a.id), a.id).toBe(true);
+  it('renames the sections', () => {
+    expect(sections.map((s) => s.name).sort()).toEqual(['2nd Campus', 'Campus Hostel', 'First Campus', 'Off-campus']);
   });
 
-  it('has apartments to live in', () => {
-    expect(university.locations.filter((l) => l.type === 'hostel').length).toBeGreaterThan(0);
+  it('has playable hostels', () => {
+    expect(hostels().length).toBeGreaterThan(5);
+    expect(freshersHall().hostel).toBe(true);
   });
 });
 
@@ -46,19 +46,13 @@ describe('buildings', () => {
   it('breaks long apartment plots into several blocks of different heights', () => {
     const big = buildings.filter((b) => b.kind === 'apartment' && b.blocks.length > 1);
     expect(big.length).toBeGreaterThan(0);
-    const heights = new Set(big.flatMap((b) => b.blocks.map((k) => k.floors)));
-    expect(heights.size).toBeGreaterThan(1);
-  });
-
-  it('varies floors where the planner default was left alone', () => {
-    const classFloors = new Set(buildings.filter((b) => b.kind === 'apartment').flatMap((b) => b.blocks.map((k) => k.floors)));
-    expect(classFloors.size).toBeGreaterThan(2);
+    expect(new Set(big.flatMap((b) => b.blocks.map((k) => k.floors))).size).toBeGreaterThan(1);
   });
 });
 
 describe('getting around', () => {
   it('lets the player stand at every door, and finds it', () => {
-    for (const p of campusPlaces) {
+    for (const p of PLACES) {
       expect(isBlocked(p.position[0], p.position[1]), p.id).toBe(false);
       expect(nearestDoor(p.position[0], p.position[1], 1)).toBe(p.id);
     }
@@ -71,27 +65,12 @@ describe('getting around', () => {
     expect(seen.size).toBe(roadGraph.length);
   });
 
-  it('routes from a home to every place, ending at its door', () => {
-    const home = campusPlaces.find((p) => p.type === 'hostel')!;
-    for (const p of campusPlaces) {
+  it('routes from a hostel to every place, ending at its door', () => {
+    const home = freshersHall();
+    for (const p of PLACES) {
       const path = findPath(home.position, p.position);
       expect(path[path.length - 1], p.id).toEqual(p.position);
       expect(nearestNode(p.position), p.id).toBeGreaterThanOrEqual(0);
     }
-  });
-});
-
-describe('a whole semester on this map', () => {
-  it('plays to the end using only these places', () => {
-    const home = university.locations.find((l) => l.type === 'hostel')!;
-    let s = startGame({ nickname: 'T', departmentId: 'law', background: 'average', characterId: 'm1', homeId: home.id });
-    let moves = 0;
-    for (let i = 0; i < 300 && !s.finished; i++) {
-      const options = campusPlaces.flatMap((p) => placeActions(p).filter((a) => canDoAction(s, a).ok));
-      expect(options.length, `day ${s.day} slot ${s.slotIndex}`).toBeGreaterThan(0);
-      s = doAction(s, options[moves % options.length]!.id, () => 0.99);
-      moves++;
-    }
-    expect(s.finished).toBe(true);
   });
 });

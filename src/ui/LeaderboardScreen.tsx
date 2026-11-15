@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getDepartment, university } from '../content/university';
+import { university } from '../content/university';
 import { fetchLeaderboard, type LeaderboardRow } from '../online/supabase';
 
 type Tab = 'department' | 'school';
@@ -26,7 +26,7 @@ export function LeaderboardScreen({
     };
   }, [tab, departmentId]);
 
-  const deptName = departmentId ? (getDepartment(departmentId)?.name ?? departmentId) : '';
+  const deptName = departmentId ?? '';
 
   return (
     <main className={embedded ? 'flex flex-col gap-4' : 'mx-auto flex min-h-full max-w-md flex-col gap-4 px-4 py-6'}>
@@ -73,7 +73,7 @@ export function LeaderboardScreen({
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate font-semibold">{r.nickname}</span>
                 <span className="truncate text-xs text-muted">
-                  {tab === 'school' ? `${getDepartment(r.department)?.name ?? r.department} · ` : ''}
+                  {tab === 'school' ? `${r.department} · ` : ''}
                   {r.title}
                 </span>
               </span>

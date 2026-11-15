@@ -10,8 +10,9 @@
 import type { ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-import { buildings, isRoad, placeByBuilding, type Block, type MapBuilding, type PlannerKind, type Rect } from '../../content/campusMap';
-import { placeIsOpen } from '../../content/placeHelpers';
+import { getPlace, PLACES } from '../../content/places';
+import { placeHasSomethingNow } from '../../game/interactions';
+import { buildings, isRoad, type Block, type MapBuilding, type PlannerKind, type Rect } from '../../content/campusMap';
 import { useGameStore } from '../../store/gameStore';
 import { gesture } from '../shared';
 
@@ -307,7 +308,7 @@ function buildBlock(wallAcc: Record<WindowStyle, Acc>, plain: Acc, b: MapBuildin
     const dw = Math.min(2.4, span * 0.3) / span;
     front(0.5 - dw / 2, 0.5 + dw / 2, 0.25, PLINTH, PLINTH + 2.5, DOOR);
     front(0.5 - dw, 0.5 + dw, 1.2, 0, PLINTH, CONCRETE);
-    if (placeByBuilding.get(b.id)?.label) front(0.5 - 0.18, 0.5 + 0.18, 0.2, PLINTH + 2.9, PLINTH + 3.8, trim, 0.25);
+    if (getPlace(b.id)?.label) front(0.5 - 0.18, 0.5 + 0.18, 0.2, PLINTH + 2.9, PLINTH + 3.8, trim, 0.25);
   }
 
   switch (b.kind) {
@@ -654,13 +655,13 @@ function applyDimming(geometry: THREE.BufferGeometry, ranges: Range[], base: Flo
 export function CampusBuildings() {
   const built = useMemo(campusGeometry, []);
   const game = useGameStore((s) => s.game);
-  const travelTo = useGameStore((s) => s.travelTo);
+  const tapPlace = useGameStore((s) => s.tapPlace);
 
   // Game places with nothing open this slot look dimmed.
   const dimmed = useMemo(() => {
     const set = new Set<string>();
     if (!game) return set;
-    for (const [id, place] of placeByBuilding) if (place.actionTypes.length && !placeIsOpen(game, place)) set.add(id);
+    for (const place of PLACES) if (place.enterable && !placeHasSomethingNow(game, place.id)) set.add(place.buildingId);
     return set;
   }, [game]);
 
@@ -672,10 +673,11 @@ export function CampusBuildings() {
   const onClick = (ranges: Range[]) => (e: ThreeEvent<MouseEvent>) => {
     if (gesture.moved || e.delta > 10 || e.faceIndex == null) return;
     const id = buildingAt(ranges, e.faceIndex);
-    const place = id ? placeByBuilding.get(id) : undefined;
+    const place = id ? getPlace(id) : undefined;
     if (!place) return; // gardens: not tappable
     e.stopPropagation();
-    travelTo(place.id);
+    // At its door already: go in. Otherwise the keke / cab / walk menu opens.
+    tapPlace(place.id, useGameStore.getState().nearbyPlaceId === place.id);
   };
 
   return (

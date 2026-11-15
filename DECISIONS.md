@@ -388,3 +388,34 @@ the code mentioned.
     roommates, hustles, course kinds, relationships...). Cards already seen
     are less likely. The morning after a theft, a confrontation card comes
     up.
+100. **The screens now use only the interaction API.** Tapping a building
+     you are not standing at opens a bottom menu: keke (₦150, not at night),
+     cab (₦700) or walk (free inside a section, a whole slot across
+     sections). Inside, a 3D room shows a piece of furniture for each target
+     (seat, lectern, desks, counter, beds, locker, stove, shelves, benches)
+     with a bouncing marker on anything usable now; tapping it or a person
+     filters the list underneath. "List only" turns the 3D room off.
+101. **Real time:** the clock on the map and the phone, and the sky colour,
+     follow the player's real local time. The game's own slots still move
+     with actions (a semester would otherwise take 14 real days); the
+     current game day and slot are shown next to the clock.
+102. **The phone** has the Student Portal (a pretend login with your matric
+     number; fees, course registration, a downloadable course form PNG,
+     timetable with exams, results), Chats, Calendar, Wallet, Contacts,
+     Places, Market (real vendors, online), Ranks and Settings.
+103. **The leaderboard** now groups players by programme name, and results
+     are posted from the semester and graduation screens by button.
+104. **Building roles (all placeholders):** Senate Building = Admissions and
+     Registry; Students' Services Building = Bursary, Student Affairs, ICT
+     Unit; "Law, Arts and Business Offices" and "Engineering and Sciences
+     Offices" (2nd Campus) and "Health Sciences and Pharmacy Offices" (First
+     Campus) = College Office and Head of Department for those colleges;
+     University Medical Centre = a First Campus classroom block drawn as a
+     clinic; general-course halls = Main Auditorium (2nd Campus) and
+     1000-Seater Hall (First Campus); classroom blocks assigned to colleges
+     by campus; all Campus Hostel blocks are playable halls (Freshers' Hall
+     for new students); Mama Blessing's Buka, the market, kiosks and the
+     canteen are restaurants; the Business Centre and print kiosks sell
+     photocopies, passports and receipts; two off-campus blocks are the IT
+     placement and the law chambers; the other off-campus blocks are private
+     lodges (not playable yet).

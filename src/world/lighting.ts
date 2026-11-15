@@ -1,5 +1,5 @@
 // How each time of day looks. Pure data; tune freely.
-import type { Slot } from '../game/legacy/types';
+import type { Slot } from '../game/types';
 
 export interface SlotLook {
   sky: string;

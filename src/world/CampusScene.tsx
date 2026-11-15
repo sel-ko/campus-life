@@ -3,8 +3,9 @@
 // place X"; it holds no game rules.
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
-import { currentSlot } from '../game/legacy/engine';
 import { useGameStore } from '../store/gameStore';
+import { realSlot, useNow } from '../ui/clock';
+import { SLOTS } from '../game/types';
 import { useSettings } from '../store/settingsStore';
 import { CampusBuildings, setCampusGlow } from './campus/CampusBuildings';
 import { CampusGround } from './campus/CampusGround';
@@ -18,7 +19,9 @@ import { Player } from './Player';
 import { playerWorld } from './shared';
 
 export default function CampusScene({ paused }: { paused: boolean }) {
-  const slot = useGameStore((s) => (s.game ? currentSlot(s.game) : 'Morning'));
+  // The sky follows the player's real local time.
+  const now = useNow(60000);
+  const slot = SLOTS[realSlot(now)]!;
   const look = SLOT_LOOKS[slot];
   const characterId = useGameStore((s) => s.game?.player.characterId ?? 'm1');
   const look3d = useMemo(() => presetLook(characterId), [characterId]);

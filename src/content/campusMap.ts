@@ -4,7 +4,6 @@
 //
 // Units: metres. One planner square is 10 m. The map is centred on 0, 0,
 // with x running east and z running south (north is up on the planner).
-import type { LocationType } from '../game/legacy/types';
 import raw from './campus-layout.json';
 import { BUILDING_ROLES, SECTION_NAMES } from './campus-overrides';
 
@@ -374,65 +373,4 @@ export const buildings: MapBuilding[] = (() => {
 /** The map's full extent in metres. */
 export const mapBounds: Rect = { x0: -OX, z0: -OZ, x1: OX, z1: OZ };
 
-// ---------- game places ----------
-
-export interface CampusPlace {
-  id: string;
-  name: string;
-  type: LocationType;
-  /** Which action lists this place offers; empty = nothing to do yet. */
-  actionTypes: LocationType[];
-  siteId: string;
-  /** Where people stand to go in. */
-  position: Pt;
-  buildingId: string;
-  /** Draw a floating name label. */
-  label: boolean;
-  /** Shown in the sheet when there is nothing to do. */
-  note?: string;
-}
-
-const NOTHING = 'Nothing to do here right now.';
-
-const PLACE_KINDS: Partial<Record<PlannerKind, { type: LocationType; actions: LocationType[]; note?: string }>> = {
-  classroom: { type: 'lecture', actions: ['lecture', 'faculty'] },
-  lecture: { type: 'lecture', actions: ['lecture'] },
-  library: { type: 'library', actions: ['library'] },
-  faculty: { type: 'faculty', actions: ['faculty'] },
-  lab: { type: 'lab', actions: ['lecture'] },
-  apartment: { type: 'hostel', actions: ['hostel'] },
-  business: { type: 'business', actions: ['business'] },
-  market: { type: 'market', actions: ['cafeteria'] },
-  buka: { type: 'cafeteria', actions: ['cafeteria'] },
-  field: { type: 'field', actions: ['field'] },
-  admin: { type: 'admin', actions: [], note: NOTHING },
-  clinic: { type: 'clinic', actions: [], note: NOTHING },
-  busstop: { type: 'busstop', actions: [], note: 'Ride a keke to another stop.' },
-  gate: { type: 'gate', actions: [], note: NOTHING },
-};
-
-/** Kinds that always get a floating name; others only when you named them yourself. */
-const ALWAYS_LABEL = new Set<PlannerKind>(['library', 'lecture', 'faculty', 'admin', 'clinic', 'market', 'buka', 'field', 'gate', 'busstop']);
-
-export const campusPlaces: CampusPlace[] = buildings.flatMap((b) => {
-  const k = PLACE_KINDS[b.kind];
-  if (!k) return [];
-  const raw = layout.items.find((i) => i.id === b.id)!;
-  const named = !GENERIC_NAMES[raw.name];
-  return [
-    {
-      id: b.id,
-      name: b.name,
-      type: k.type,
-      actionTypes: k.actions,
-      siteId: b.sectionId,
-      position: b.door,
-      buildingId: b.id,
-      label: ALWAYS_LABEL.has(b.kind) || named,
-      note: k.note,
-    },
-  ];
-});
-
-export const placeByBuilding = new Map(campusPlaces.map((p) => [p.buildingId, p]));
 export const buildingById = new Map(buildings.map((b) => [b.id, b]));

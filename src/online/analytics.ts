@@ -9,7 +9,10 @@ export type AnalyticsEvent =
   | 'share_tapped'
   | 'vendor_viewed'
   | 'vendor_order_tapped'
-  | 'advertise_tapped';
+  | 'advertise_tapped'
+  | 'clearance_completed'
+  | 'graduated'
+  | 'withdrawn';
 
 const KEY = import.meta.env.VITE_POSTHOG_KEY;
 const HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com';

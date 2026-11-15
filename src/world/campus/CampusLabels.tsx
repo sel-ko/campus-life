@@ -5,8 +5,9 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import type * as THREE from 'three';
 import { cameraState } from '../shared';
-import { buildingById, campusPlaces, sections } from '../../content/campusMap';
-import { placeIsOpen } from '../../content/placeHelpers';
+import { buildingById, sections } from '../../content/campusMap';
+import { PLACES } from '../../content/places';
+import { placeHasSomethingNow } from '../../game/interactions';
 import { useGameStore } from '../../store/gameStore';
 import { Label } from '../Label';
 import { campusGeometry } from './CampusBuildings';
@@ -14,7 +15,7 @@ import { campusGeometry } from './CampusBuildings';
 export function CampusLabels() {
   const game = useGameStore((s) => s.game);
   const { heights } = useMemo(campusGeometry, []);
-  const labelled = useMemo(() => campusPlaces.filter((p) => p.label), []);
+  const labelled = useMemo(() => PLACES.filter((p) => p.label), []);
   // Building names only once zoomed in a little; zoomed right out they would
   // cover the map. Section names always show.
   const names = useRef<THREE.Group>(null);
@@ -31,7 +32,7 @@ export function CampusLabels() {
         const b = buildingById.get(p.buildingId)!;
         const x = (b.plot.x0 + b.plot.x1) / 2;
         const z = (b.plot.z0 + b.plot.z1) / 2;
-        const dimmed = !!game && p.actionTypes.length > 0 && !placeIsOpen(game, p);
+        const dimmed = !!game && p.enterable && !placeHasSomethingNow(game, p.id);
         return <Label key={p.id} text={p.name} position={[x, (heights.get(b.id) ?? 4) + 3, z]} dimmed={dimmed} />;
       })}
       </group>

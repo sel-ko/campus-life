@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { drawShareCard, shareMessage, type ShareCardData } from './shareCard';
+import { drawShareCard, type ShareCardData } from './shareCard';
 import { whatsappLink } from './site';
 
 // Full-screen sheet with the results card, "Save image" and WhatsApp share.
@@ -24,14 +24,14 @@ export function ShareSheet({ data, onClose }: { data: ShareCardData; onClose: ()
     <div className="fixed inset-0 z-40 flex flex-col bg-night">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Share my result</h2>
+          <h2 className="text-xl font-bold">Share</h2>
           <button onClick={onClose} className="min-h-11 min-w-11 text-2xl text-muted" aria-label="Close">
             ×
           </button>
         </div>
 
         {imageUrl ? (
-          <img src={imageUrl} alt="Your results card" className="w-full rounded-xl border border-line" />
+          <img src={imageUrl} alt="Your share card" className="w-full rounded-xl border border-line" />
         ) : (
           <div className="flex aspect-[4/5] items-center justify-center rounded-xl border border-line text-muted">
             Drawing your card…
@@ -48,7 +48,7 @@ export function ShareSheet({ data, onClose }: { data: ShareCardData; onClose: ()
             Save image
           </a>
           <a
-            href={whatsappLink(shareMessage(data))}
+            href={whatsappLink(data.message)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex min-h-12 items-center justify-center rounded-lg bg-[#25D366] font-bold text-night"

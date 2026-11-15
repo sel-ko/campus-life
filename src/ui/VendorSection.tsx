@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getLocation, university, type CampusLocation } from '../content/university';
-import { naira } from '../game/legacy/format';
+import { placeName, type PlaceDef } from '../content/places';
+import { university } from '../content/university';
+import { naira } from '../game/format';
 import { track } from '../online/analytics';
 import { fetchVendors, onlineConfigured, type Vendor } from '../online/supabase';
 import { GAME_NAME, whatsappLink } from './site';
@@ -9,11 +10,11 @@ import { GAME_NAME, whatsappLink } from './site';
 const STALLS_PER_LOCATION = 2;
 
 function orderMessage(vendor: Vendor, homeId: string): string {
-  const home = getLocation(homeId)?.name ?? 'campus';
+  const home = placeName(homeId);
   return `Hello ${vendor.name}! I found your stall in ${GAME_NAME}. I'd like to order. I stay at ${home}.`;
 }
 
-function advertiseMessage(location: CampusLocation): string {
+function advertiseMessage(location: PlaceDef): string {
   return `Hello! I'd like to advertise my business at ${location.name} in ${GAME_NAME} (${university.shortName}). How much is a stall?`;
 }
 
@@ -49,7 +50,7 @@ export function VendorCard({ vendor, homeId }: { vendor: Vendor; homeId: string 
 }
 
 /** "Real vendors here": shown only when the vendor list loaded. */
-export function VendorSection({ location, homeId }: { location: CampusLocation; homeId: string }) {
+export function VendorSection({ location, homeId }: { location: PlaceDef; homeId: string }) {
   const [vendors, setVendors] = useState<Vendor[] | null>(null);
 
   useEffect(() => {

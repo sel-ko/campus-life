@@ -1,14 +1,16 @@
-import { lazy, Suspense, useState } from 'react';
-import type { GameState } from '../game/legacy/types';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { ErrorBoundary } from './ErrorBoundary';
 import { EventCard } from './EventCard';
+import { Hud } from './Hud';
+import { InsideScreen } from './InsideScreen';
+import { JournalSheet } from './JournalSheet';
 import { FloatingJoystick, useJoystickHandlers } from './Joystick';
-import { LocationList } from './LocationList';
-import { LocationSheet } from './LocationSheet';
-import { MapChrome } from './MapChrome';
 import { Phone } from './phone/Phone';
+import { PlacesApp } from './phone/PhoneApps';
 import { ProfileSheet } from './ProfileSheet';
+import { TravelSheet } from './TravelSheet';
 import { usePageVisible } from './usePageVisible';
 import { hasWebGL } from './webgl';
 
@@ -24,35 +26,34 @@ function MapLoading() {
 }
 
 // Full-screen play: the 3D campus (or a plain list on phones without WebGL)
-// with floating glass controls on top. Everything else opens over it.
+// with floating controls; buildings open the inside screen.
 export function PlayScreen({ game }: { game: GameState }) {
   const visible = usePageVisible();
   const [mapFailed, setMapFailed] = useState(false);
   const showMap = hasWebGL() && !mapFailed;
-
-  const sheetOpen = useGameStore((s) => s.selectedLocationId !== null);
+  const inside = useGameStore((s) => s.insidePlaceId !== null);
   const phoneOpen = useGameStore((s) => s.phoneApp !== null);
   const profileOpen = useGameStore((s) => s.profileOpen);
-  const travelTo = useGameStore((s) => s.travelTo);
-  const tapLocation = useGameStore((s) => s.tapLocation);
+  const journalOpen = useGameStore((s) => s.journalOpen);
+  const travelOpen = useGameStore((s) => s.travelSheetId !== null);
+  const walkTarget = useGameStore((s) => s.walkTargetId);
+  const arrive = useGameStore((s) => s.arrive);
+  const tapPlace = useGameStore((s) => s.tapPlace);
   const closePhone = useGameStore((s) => s.closePhone);
   const cameraMode = useGameStore((s) => s.cameraMode);
 
-  // Drawing stops while the tab is hidden or anything covers the map.
-  const paused = !visible || sheetOpen || phoneOpen || profileOpen || game.pendingEventId !== null;
+  // Without the 3D map there is no walk to watch: arrive straight away.
+  useEffect(() => {
+    if (!showMap && walkTarget) arrive();
+  }, [showMap, walkTarget, arrive]);
 
-  // In the close-up view, touching and dragging the map brings up the joystick.
-  const joystickHandlers = useJoystickHandlers(showMap && cameraMode === 'follow' && !paused);
+  const covered = inside || phoneOpen || profileOpen || journalOpen || game.pendingEvent !== null || game.summaries.length > 0;
+  const paused = !visible || covered;
+  const joystickHandlers = useJoystickHandlers(showMap && cameraMode === 'follow' && !paused && !travelOpen);
 
-  // From the phone's Places app: walk there on the map, or open it directly.
   function pickPlace(id: string) {
-    if (showMap) {
-      closePhone();
-      travelTo(id);
-    } else {
-      closePhone();
-      tapLocation(id);
-    }
+    closePhone();
+    tapPlace(id);
   }
 
   return (
@@ -68,18 +69,19 @@ export function PlayScreen({ game }: { game: GameState }) {
       ) : (
         <div className="absolute inset-0 overflow-y-auto px-4 pt-28 pb-32">
           <div className="mx-auto max-w-md">
-            <LocationList game={game} />
+            <PlacesApp game={game} onPick={pickPlace} />
           </div>
         </div>
       )}
 
-      <MapChrome game={game} showMap={showMap} />
+      <Hud game={game} showMap={showMap} />
       <FloatingJoystick />
-
-      <LocationSheet game={game} />
-      <EventCard game={game} />
+      <TravelSheet game={game} />
+      <InsideScreen game={game} />
+      <JournalSheet game={game} />
       <ProfileSheet game={game} />
       <Phone game={game} onPickPlace={pickPlace} />
+      <EventCard game={game} />
     </div>
   );
 }

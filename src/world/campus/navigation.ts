@@ -1,7 +1,8 @@
 // Getting around the campus: the road squares from the planner form the
 // walking network; buildings block the joystick; doors are found by distance.
 // Pure TypeScript, no three.js. Units are metres.
-import { buildings, campusPlaces, cellCentre, mapBounds, roadCells, sectionAt, type Pt, type Rect } from '../../content/campusMap';
+import { PLACES } from '../../content/places';
+import { buildings, cellCentre, mapBounds, roadCells, sectionAt, type Pt, type Rect } from '../../content/campusMap';
 
 // ---------- road network ----------
 
@@ -181,7 +182,7 @@ export function isBlocked(x: number, z: number): boolean {
 export function nearestDoor(x: number, z: number, range: number): string | null {
   let best: string | null = null;
   let bestD = range;
-  for (const p of campusPlaces) {
+  for (const p of PLACES) {
     const d = Math.hypot(p.position[0] - x, p.position[1] - z);
     if (d < bestD) {
       bestD = d;

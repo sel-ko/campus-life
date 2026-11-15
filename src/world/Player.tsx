@@ -6,7 +6,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import * as THREE from 'three';
-import { getLocation, university } from '../content/university';
+import { freshersHall, getPlace } from '../content/places';
 import { useGameStore } from '../store/gameStore';
 import type { Pt } from '../content/campusMap';
 import { findPath, isBlocked, nearestDoor, campusBounds } from './campus/navigation';
@@ -39,11 +39,8 @@ export function Blob({ scale = 1 }: { scale?: number }) {
 }
 
 function startPoint(): THREE.Vector3 {
-  const { playerLocationId, game } = useGameStore.getState();
-  const loc =
-    (playerLocationId ? getLocation(playerLocationId) : undefined) ??
-    (game ? getLocation(game.player.homeId) : undefined) ??
-    university.locations.find((l) => l.type === 'hostel');
+  const { game } = useGameStore.getState();
+  const loc = (game ? getPlace(game.location.placeId) : undefined) ?? freshersHall();
   const [x, z] = loc ? loc.position : [0, 0];
   return new THREE.Vector3(x, 0, z);
 }
@@ -80,9 +77,9 @@ export function Player({ look }: { look: CharacterLook }) {
     let moving = false;
 
     const stick = Math.hypot(joystick.x, joystick.y);
-    if (joystick.active && stick > 0.12 && store.cameraMode === 'follow' && !store.selectedLocationId) {
+    if (joystick.active && stick > 0.12 && store.cameraMode === 'follow' && !store.insidePlaceId && !store.travelSheetId) {
       // ---- free walking with the joystick ----
-      store.cancelTravel();
+      store.cancelWalk();
       route.current = null;
       const speed = WALK_SPEED * Math.min(stick, 1) * dt;
       const dx = (joystick.x / stick) * speed;
@@ -98,11 +95,11 @@ export function Player({ look }: { look: CharacterLook }) {
       g.rotation.y = Math.atan2(dx, dz);
       travelled.current += speed;
       moving = true;
-    } else if (store.travelTargetId) {
+    } else if (store.walkTargetId) {
       // ---- walking to a tapped place along the roads (or riding a keke) ----
-      const target = getLocation(store.travelTargetId);
+      const target = getPlace(store.walkTargetId);
       if (!target) {
-        store.cancelTravel();
+        store.cancelWalk();
       } else if (store.riding) {
         // A keke ride: arrive straight away; the camera glides over.
         p.set(target.position[0], 0, target.position[1]);
@@ -142,9 +139,8 @@ export function Player({ look }: { look: CharacterLook }) {
         }
       }
     } else {
+      // Standing still: keep facing the way you were going.
       route.current = null;
-      // Standing still: turn to face the camera.
-      g.rotation.y += (0 - g.rotation.y) * Math.min(1, dt * 6);
     }
 
     body.current.position.y = moving ? Math.abs(Math.sin(travelled.current * 1.6)) * HOP : 0;
@@ -152,9 +148,7 @@ export function Player({ look }: { look: CharacterLook }) {
     playerWorld.moving = moving;
 
     // Which door is the player at? Walking away from a building clears "at".
-    const near = nearestDoor(p.x, p.z, DOOR_RANGE);
-    store.setNearby(near);
-    if (!near && moving) store.leaveLocation();
+    store.setNearby(nearestDoor(p.x, p.z, DOOR_RANGE));
 
     g.position.copy(p);
     playerWorld.pos.copy(p);
