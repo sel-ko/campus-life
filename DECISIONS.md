@@ -279,3 +279,26 @@ the code mentioned.
 80. **Campus-wide events:** the real ISO week ("2026-W46") is hashed with a
     fixed seed to pick one of ten campus weeks (power rationing, fuel
     scarcity, portal "upgrade"...). Everyone gets the same one that week.
+81. **Clearance offices and documents (CONFIRM):** Admissions (passport +
+    photocopy), Registry (2 photocopies), Bursary (printed acceptance receipt,
+    and the acceptance fee must show paid), Student Affairs (passport), ICT
+    Unit (photocopy), College Office (photocopy + passport), Head of
+    Department (photocopy; College Office first), Medical Centre on First
+    Campus (passport + ₦3,000 test fee). Documents are bought at a business
+    centre and used up when an office signs.
+82. **Visit outcomes:** offices open Morning and Afternoon on weekdays;
+    evening visits are usually "closed for the day"; weekends always.
+    Otherwise: missing documents and unmet prerequisites come first, then
+    luck: signed 50% (+ for mornings and a good relationship with the
+    officer, − for a long queue), not on seat 15% (+ afternoons), come back
+    tomorrow 12% (+ Fridays), "get X's signature first" 7%, "one more
+    photocopy" 6% (a spare saves you), closed early 4%. Queues are the same
+    for every player at the same time and are long in clearance week.
+83. **Clearance is complete** when the form is signed, school fees (first
+    instalment), dues and hostel fee are paid, the hostel allocation is
+    collected at Student Affairs and the player has registered at the
+    University Library. "Money spent" on the clearance share card is
+    everything spent from the start of the game until clearance ends.
+84. **Before allocation** freshers sleep on a transit bunk in Freshers' Hall
+    (worse sleep). Allocation picks a hall in Campus Hostel and three
+    roommates.

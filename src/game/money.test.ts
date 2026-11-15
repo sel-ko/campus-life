@@ -1,23 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { BACKGROUNDS, FEES } from './config';
-import { newGame, passSlots } from './engine';
+import { passSlots } from './engine';
 import { canRegister, examFeeBlock, getFee, portalPay, portalPayMut, portalRegister, resolveDebitMut, sessionFees } from './money';
 import { Rng } from './rng';
+import { testGame } from './testkit';
 import type { GameState } from './types';
-
-export function testGame(over: Partial<{ programmeId: string; background: 'broke' | 'average' | 'comfortable'; seed: number }> = {}): GameState {
-  return newGame({
-    name: 'Ada',
-    characterId: 'f1',
-    background: over.background ?? 'average',
-    choiceId: over.programmeId ?? 'computer_science',
-    programmeId: over.programmeId ?? 'computer_science',
-    admissionScore: 8,
-    ambition: 'first_class',
-    seed: over.seed ?? 42,
-    startYear: 2026,
-  });
-}
 
 /** Finds a generator position that makes the next portal payment end a given way. */
 function rngFor(game: GameState, outcome: 'ok' | 'down' | 'unrecorded'): number {
