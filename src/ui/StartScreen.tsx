@@ -6,12 +6,14 @@ import type { BackgroundId } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 
 const BACKGROUND_IDS: BackgroundId[] = ['broke', 'average', 'comfortable'];
+const HOMES = university.locations.filter((l) => l.type === 'hostel');
 
 export function StartScreen() {
   const start = useGameStore((s) => s.start);
   const [nickname, setNickname] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [background, setBackground] = useState<BackgroundId>('average');
+  const [homeId, setHomeId] = useState(HOMES[0]?.id ?? '');
 
   const name = nickname.trim();
   const ready = name.length > 0 && departmentId !== '';
@@ -20,7 +22,7 @@ export function StartScreen() {
     e.preventDefault();
     if (!ready) return;
     // Character picker arrives in Phase 4; m1 until then.
-    start({ nickname: name, departmentId, background, characterId: 'm1' });
+    start({ nickname: name, departmentId, background, characterId: 'm1', homeId });
   }
 
   return (
@@ -58,6 +60,21 @@ export function StartScreen() {
             {university.departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-2">
+          <span className="font-semibold">Where do you stay?</span>
+          <select
+            value={homeId}
+            onChange={(e) => setHomeId(e.target.value)}
+            className="min-h-11 rounded-lg border border-line bg-panel px-3 text-ink"
+          >
+            {HOMES.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.name}
               </option>
             ))}
           </select>

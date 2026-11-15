@@ -63,6 +63,8 @@ export interface PlayerSetup {
   departmentId: string;
   background: BackgroundId;
   characterId: string;
+  /** Id of the place the player stays (a hostel-type location). */
+  homeId: string;
 }
 
 export interface LogEntry {

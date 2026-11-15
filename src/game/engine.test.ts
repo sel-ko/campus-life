@@ -27,6 +27,7 @@ const setup: PlayerSetup = {
   departmentId: 'csc',
   background: 'broke',
   characterId: 'm1',
+  homeId: 'male-estate',
 };
 
 /** A fresh game with some fields overridden. */

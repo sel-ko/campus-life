@@ -10,7 +10,8 @@ export interface CampusSite {
   name: string;
   /** What students call it. */
   shortName: string;
-  /** Centre of this site's area on the map, used to group buildings. */
+  /** The open hub of this site on the map. Roads meet here, so keep it clear
+   *  of buildings. */
   centre: [x: number, z: number];
 }
 
@@ -63,26 +64,26 @@ export const university: UniversityContent = {
   // clusters joined by roads: Crown Estate to the west, PS to the north-east,
   // TS to the south-east.
   sites: [
-    { id: 'ps', name: 'Permanent Site', shortName: 'PS', centre: [14, -14] },
-    { id: 'ts', name: 'Temporary Site', shortName: 'TS', centre: [14, 14] },
-    { id: 'crown', name: 'Crown Estate', shortName: 'Crown Estate', centre: [-18, 0] },
+    { id: 'ps', name: 'Permanent Site', shortName: 'PS', centre: [12, -14] },
+    { id: 'ts', name: 'Temporary Site', shortName: 'TS', centre: [12, 14] },
+    { id: 'crown', name: 'Crown Estate', shortName: 'Crown Estate', centre: [-16, 0] },
   ],
 
   // TODO: real building names, and which site the library, field and gate are at.
   locations: [
     // Permanent Site: arts, business, ICT and law
-    { id: 'ps-lt', name: 'PS Lecture Theatre', type: 'lecture', siteId: 'ps', position: [8, -18] }, // TODO
-    { id: 'library', name: 'Library', type: 'library', siteId: 'ps', position: [20, -20] }, // TODO
-    { id: 'business', name: 'Business Centre', type: 'business', siteId: 'ps', position: [14, -8] }, // TODO
+    { id: 'ps-lt', name: 'PS Lecture Theatre', type: 'lecture', siteId: 'ps', position: [4, -22] }, // TODO
+    { id: 'library', name: 'Library', type: 'library', siteId: 'ps', position: [20, -22] }, // TODO
+    { id: 'business', name: 'Business Centre', type: 'business', siteId: 'ps', position: [20, -8] }, // TODO
     // Temporary Site: sciences
-    { id: 'ts-lt', name: 'TS Lecture Hall', type: 'lecture', siteId: 'ts', position: [8, 12] }, // TODO
-    { id: 'faculty', name: 'Faculty Block', type: 'faculty', siteId: 'ts', position: [20, 18] }, // TODO
+    { id: 'ts-lt', name: 'TS Lecture Hall', type: 'lecture', siteId: 'ts', position: [4, 20] }, // TODO
+    { id: 'faculty', name: 'Faculty Block', type: 'faculty', siteId: 'ts', position: [20, 22] }, // TODO
     { id: 'field', name: 'Sports Field', type: 'field', siteId: 'ts', position: [24, 6] }, // TODO
     // Crown Estate: where everybody lives
-    { id: 'male-estate', name: 'Male Students Estate', type: 'hostel', siteId: 'crown', position: [-24, -8] }, // TODO
-    { id: 'female-estate', name: 'Female Students Estate', type: 'hostel', siteId: 'crown', position: [-24, 8] }, // TODO
-    { id: 'buka', name: 'Estate Buka', type: 'cafeteria', siteId: 'crown', position: [-12, 0] }, // TODO
-    { id: 'gate', name: 'Main Gate', type: 'gate', siteId: 'crown', position: [-6, 24] }, // TODO
+    { id: 'male-estate', name: 'Male Students Estate', type: 'hostel', siteId: 'crown', position: [-26, -8] }, // TODO
+    { id: 'female-estate', name: 'Female Students Estate', type: 'hostel', siteId: 'crown', position: [-26, 8] }, // TODO
+    { id: 'buka', name: 'Estate Buka', type: 'cafeteria', siteId: 'crown', position: [-14, -10] }, // TODO
+    { id: 'gate', name: 'Main Gate', type: 'gate', siteId: 'crown', position: [-14, 24] }, // TODO
   ],
 
   // TODO: real departments. PS holds arts, business, ICT and law;

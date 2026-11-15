@@ -1,0 +1,58 @@
+// The 3D campus. Loaded lazily (its own download) after the start screen.
+// It reads the store and sends "walk to building X"; it holds no game rules.
+import { Canvas } from '@react-three/fiber';
+import { useEffect, useMemo } from 'react';
+import { getLocation } from '../content/university';
+import { currentSlot } from '../game/engine';
+import { useGameStore } from '../store/gameStore';
+import { Buildings } from './Buildings';
+import { CameraRig } from './CameraRig';
+import { Ground } from './Ground';
+import { doorPoint } from './layout';
+import { SLOT_LOOKS } from './lighting';
+import { Player, PlayerMarker } from './Player';
+import { Props } from './Props';
+import { setWindowGlow } from './three-utils';
+import { Trees } from './Trees';
+
+export default function CampusScene({ paused }: { paused: boolean }) {
+  const slot = useGameStore((s) => (s.game ? currentSlot(s.game) : 'Morning'));
+  const look = SLOT_LOOKS[slot];
+
+  useEffect(() => setWindowGlow(look.glow), [look]);
+
+  // Start the camera over the player.
+  const start = useMemo<[number, number]>(() => {
+    const id = useGameStore.getState().playerLocationId;
+    const loc = id ? getLocation(id) : undefined;
+    return loc ? doorPoint(loc) : [0, 0];
+  }, []);
+
+  return (
+    <Canvas
+      dpr={[1, 1.5]}
+      frameloop={paused ? 'never' : 'always'}
+      camera={{ fov: 45, near: 1, far: 320, position: [0, 40, 40] }}
+      gl={{ antialias: true, powerPreference: 'default' }}
+      style={{ touchAction: 'none' }}
+      onCreated={({ gl }) => {
+        // Development only: lets you check draw calls in the console with
+        // __gl.info.render.calls
+        if (import.meta.env.DEV) (window as unknown as { __gl: unknown }).__gl = gl;
+      }}
+    >
+      <color attach="background" args={[look.sky]} />
+      <fog attach="fog" args={[look.sky, 140, 260]} />
+      <hemisphereLight args={[look.hemiSky, look.hemiGround, look.hemiIntensity]} />
+      <directionalLight position={look.sunPos} color={look.sunColor} intensity={look.sunIntensity} />
+      <CameraRig start={start} />
+      <Ground grass={look.grass} />
+      <Trees />
+      <Props />
+      <Buildings />
+      <Player>
+        <PlayerMarker />
+      </Player>
+    </Canvas>
+  );
+}
