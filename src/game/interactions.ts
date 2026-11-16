@@ -45,6 +45,7 @@ import {
 import { answerMut, markReadMut } from './chat';
 import { BANK_LOAN, DRIVE_FUEL, FARES, HOSPITAL_TREATMENT, ORIENTATION_DAYS, TOWN_TRIP } from './config';
 import { clamp, log, produce } from './draft';
+import { storyRewardsMut } from './story';
 import { addRel, applyEffects } from './effects';
 import { advance } from './engine';
 import { chooseEventMut, maybeEventMut } from './events';
@@ -52,13 +53,13 @@ import { checkObjectivesMut } from './goals';
 import { naira } from './format';
 import { canEatProvision, eatProvisionMut, payLevyMut } from './hostel';
 import { canHustle, canSetUp, errandsMut, hustleMut, setUpMut, washPlatesMut } from './hustle';
-import { feePaid, portalPayMut, portalRegisterMut, resolveDebitMut, spend } from './money';
-import { eatMut, napMut, sleepMut, TREATMENT, treatMut } from './needs';
+import { clearanceFormDone, feePaid, portalPayMut, portalRegisterMut, resolveDebitMut, spend } from './money';
+import { batheMut, canBathe, eatMut, napMut, sleepMut, toiletMut, TREATMENT, treatMut } from './needs';
 import { canTalk, doFavourMut, favoursFor, talkMut } from './people';
 import { isWeekend, slotName, stamp } from './time';
 import type { FeeId, GameState, OfficeId, PlaceType, TravelMode } from './types';
 
-export type TargetType = 'seat' | 'lecturer' | 'desk' | 'counter' | 'bed' | 'locker' | 'shelf' | 'bench' | 'stove' | 'board' | 'door' | 'person';
+export type TargetType = 'seat' | 'lecturer' | 'desk' | 'counter' | 'bed' | 'locker' | 'shelf' | 'bench' | 'stove' | 'board' | 'door' | 'shower' | 'toilet' | 'person';
 
 export type InteractionKind =
   | 'attend'
@@ -98,6 +99,8 @@ export type InteractionKind =
   | 'movie'
   | 'owambe'
   | 'bank_loan'
+  | 'bath'
+  | 'toilet'
   | 'wait';
 
 export interface Interaction {
@@ -110,7 +113,64 @@ export interface Interaction {
   available: boolean;
   reason?: string;
   cost?: { money?: number; slots?: number };
+  /** Short chips for what it does to you ('+Energy', '-Hunger'...). */
+  effects?: string[];
 }
+
+/** What each kind of action does, shown as chips on the action cards. */
+const EFFECTS: Partial<Record<InteractionKind, string[]>> = {
+  attend: ['+Knowledge', '-Energy'],
+  test: ['+Marks', '-Energy', '+Stress'],
+  exam: ['+Grade', '-Energy', '+Stress'],
+  orientation: ['+Know-how', '+Friends'],
+  read: ['+Knowledge', '-Energy'],
+  assignment: ['+Marks', '-Energy'],
+  handout: ['+Knowledge'],
+  project: ['+Project', '-Energy'],
+  supervisor: ['+Approval'],
+  plead: ['+Attendance?'],
+  office: ['+Signature'],
+  debit: ['+Fees fixed'],
+  issue: ['+Grade fixed'],
+  allocation: ['+Bed space'],
+  library: ['+Library card'],
+  eat: ['-Hunger', '+Energy'],
+  buy: ['+Item'],
+  wash_plates: ['+₦500', '-Hunger', '-Hygiene'],
+  errands: ['+₦400', '-Energy'],
+  sleep: ['+Energy', '-Stress'],
+  nap: ['+Energy'],
+  cook: ['-Hunger'],
+  levy: ['+Peace'],
+  hustle: ['+Money', '-Energy'],
+  setup: ['+Hustle'],
+  treat: ['+Health'],
+  talk: ['+Friendship'],
+  favour: ['+Friendship'],
+  hangout: ['-Stress', '+Friends'],
+  exercise: ['+Health', '-Stress', '-Hygiene'],
+  campaign: ['+Votes', '-Energy'],
+  party: ['-Stress', '+Fame', '-Energy', '-Hygiene'],
+  vip: ['+Fame', '-Stress'],
+  chill: ['-Stress', '+Friends'],
+  movie: ['-Stress'],
+  owambe: ['-Hunger', '-Stress', '+Friends'],
+  bank_loan: ['+₦20,000', 'Debt'],
+  bath: ['+Hygiene', '-Stress'],
+  toilet: ['-Bladder'],
+  wait: [],
+};
+
+/** Some actions leave you sweaty. */
+const HYGIENE_COST: Partial<Record<InteractionKind, number>> = { exercise: 25, party: 25, wash_plates: 15, hustle: 8, errands: 10, owambe: 15, campaign: 10 };
+
+/** Nothing fun before you are a proper student: clearance first. */
+export function stillClearing(d: GameState): boolean {
+  return d.clearance.active && !clearanceFormDone(d);
+}
+
+/** Places with a public toilet. */
+const TOILET_PLACES: PlaceType[] = ['lecture_hall', 'library', 'admin_office', 'restaurant', 'clinic', 'nightlife', 'workplace', 'field'];
 
 export interface Occupant {
   personId: string;
@@ -207,9 +267,20 @@ export function getOccupants(d: GameState, placeId: string): Occupant[] {
   if (place.type === 'restaurant' && slot === 1) add('dami', { type: 'bench' });
   if (place.hustles?.includes('typing') && slot <= 1) add('kelz', { type: 'counter' });
   if (isOwnRoom(d, placeId)) {
+    // Roommates live their own lives: asleep, reading at their desk, cooking.
     d.room.roommates.forEach((id, i) => {
-      const crawler = getPerson(id)?.traits?.includes('night_crawler');
-      if (slot === 0 || (slot === 3 && !crawler) || (slot === 2 && i % 2 === 0)) add(id, { type: 'bed', id: `bed-${i + 2}` });
+      const traits = getPerson(id)?.traits ?? [];
+      const bed = { type: 'bed' as const, id: `bed-${i + 2}` };
+      const desk = { type: 'desk' as const, id: `desk-${i + 2}` };
+      if (slot === 3) {
+        if (!traits.includes('night_crawler')) add(id, bed);
+      } else if (slot === 0) {
+        add(id, i === 1 || traits.includes('reader') ? desk : bed);
+      } else if (slot === 1) {
+        if (i === 2 || traits.includes('reader')) add(id, desk);
+      } else if (i === 0) add(id, { type: 'stove', id: 'stove' });
+      else if (i === 1 || traits.includes('reader')) add(id, desk);
+      else add(id, bed);
     });
   }
   return out;
@@ -366,6 +437,9 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
   // Your room.
   if (place.type === 'hostel_room') {
     if (isOwnRoom(d, placeId)) {
+      const bath = canBathe(d);
+      add({ id: 'bath', kind: 'bath', label: d.room.water ? 'Take a bucket bath' : 'Bathe with sachet water', detail: `Hygiene ${Math.round(d.needs.hygiene)}%`, target: { type: 'shower' }, ...(d.needs.hygiene >= 95 ? no('You are already fresh') : ok(bath)) });
+      add({ id: 'toilet', kind: 'toilet', label: 'Use the toilet', target: { type: 'toilet' }, ...(d.needs.bladder < 10 ? no('You do not need to go') : yes) });
       add({ id: 'sleep', kind: 'sleep', label: 'Sleep till morning', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...(slot === 3 ? yes : no('Sleep is for the night; take a nap')) });
       add({ id: 'nap', kind: 'nap', label: 'Take a nap', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...(slot === 3 ? no('It is night: sleep properly') : yes) });
       for (const [item, count] of Object.entries(d.inventory)) {
@@ -440,7 +514,16 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
     }
   }
 
+  if (TOILET_PLACES.includes(place.type)) {
+    const paid = place.sectionId === 'town' ? 50 : 0;
+    add({ id: 'toilet', kind: 'toilet', label: paid ? 'Use the toilet (₦50)' : 'Use the public toilet', target: { type: 'toilet' }, ...(paid ? { cost: { money: paid } } : {}), ...(d.needs.bladder < 10 ? no('You do not need to go') : d.money < paid ? no('You need ₦50') : yes) });
+  }
+
   add({ id: 'wait', kind: 'wait', label: `Wait here (let the ${slotName(d.clock).toLowerCase()} pass)`, target: { type: 'bench' }, cost: SLOT, ...yes });
+  if (place.type === 'nightlife' && stillClearing(d)) {
+    for (const i of list) if (i.kind !== 'wait' && i.kind !== 'toilet' && i.kind !== 'talk') Object.assign(i, no('Finish your clearance first. You are not even a student yet'));
+  }
+  for (const i of list) i.effects ??= EFFECTS[i.kind];
   return list;
 }
 
@@ -630,6 +713,13 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
     case 'favour':
       doFavourMut(d, r, arg, i.id.split(':').slice(2).join(':') || arg2);
       break;
+    case 'bath':
+      batheMut(d);
+      break;
+    case 'toilet':
+      if (i.cost?.money) spend(d, i.cost.money);
+      toiletMut(d);
+      break;
     case 'wait':
       log(d, `You waited while the ${slotName(d.clock).toLowerCase()} passed.`);
       break;
@@ -645,11 +735,16 @@ export function performMut(d: GameState, r: import('./rng').Rng, placeId: string
   if (!place || !i || !i.available || d.pendingEvent) return false;
   d.location = { placeId, sectionId: place.sectionId };
   doInteraction(d, r, i, place);
+  const sweat = HYGIENE_COST[i.kind];
+  if (sweat) d.needs.hygiene = clamp(d.needs.hygiene - sweat);
+  if (i.kind === 'bath') d.flags.bathed = d.clock.dayCount;
+  if (i.kind === 'party' || i.kind === 'vip' || i.kind === 'owambe') d.flags.party_night = d.clock.dayCount;
   const slots = i.cost?.slots ?? 0;
   if (slots > 0 && i.kind !== 'wait') maybeEventMut(d, r, place.type, placeId);
   advance(d, r, slots);
   checkClearanceDone(d);
   checkObjectivesMut(d);
+  storyRewardsMut(d);
   return true;
 }
 
@@ -684,6 +779,13 @@ export function travelOptions(d: GameState, toPlaceId: string): TravelOption[] {
   if (!to) return [];
   const across = to.sectionId !== d.location.sectionId;
   const far = townTrip(d, to);
+  if (far && to.sectionId === 'town' && stillClearing(d)) {
+    const reason = 'Town can wait: finish your clearance first';
+    return [
+      { mode: 'keke', label: 'Take a keke', detail: 'The long road to town', cost: {}, ...no(reason) },
+      { mode: 'walk', label: 'Walk there', detail: 'The long road to town', cost: {}, ...no(reason) },
+    ];
+  }
   const walkSlots = far ? TOWN_TRIP.walkSlots : 1;
   const walk: TravelOption = across
     ? { mode: 'walk', label: 'Walk there', detail: far ? 'Free, but the long road takes two slots' : 'Free, but it takes the whole slot', cost: { slots: walkSlots }, available: true }
@@ -759,12 +861,14 @@ export function payFee(state: GameState, id: FeeId): GameState {
   return produce(state, (d, r) => {
     portalPayMut(d, r, id);
     checkClearanceDone(d);
+    storyRewardsMut(d);
   });
 }
 
 export function registerCourses(state: GameState): GameState {
   return produce(state, (d, r) => {
     portalRegisterMut(d, r);
+    storyRewardsMut(d);
   });
 }
 

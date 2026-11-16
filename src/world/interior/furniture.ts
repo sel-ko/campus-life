@@ -75,8 +75,9 @@ export function cookingCorner(p: Parts, at: At) {
   blk(p, at, 0.5, 0.12, 0.5, '#3C3F45', 0, 0.75, -0.1, 0.03);
   cyl(p, at, 0.17, 0.2, '#B8BEC6', 0, 0.87, -0.1);
   blk(p, at, 0.3, 0.06, 0.3, '#9AA3AD', 0, 0.75, 0.3, 0.02);
-  cyl(p, at, 0.2, 0.4, '#2F7FC1', 0.1, 0, 0.75); // bucket
-  cyl(p, at, 0.17, 0.02, '#8FD3F4', 0.1, 0.38, 0.75); // water in it
+  cyl(p, at, 0.2, 0.4, '#2F7FC1', 0.62, 0, 0); // bucket of water beside it
+  cyl(p, at, 0.17, 0.02, '#8FD3F4', 0.62, 0.38, 0);
+  blk(p, at, 0.22, 0.3, 0.16, '#F2C230', -0.2, 0.75, 0.25, 0.03); // a tin of Milo
 }
 
 /** A rug in the middle of the room. */
@@ -227,6 +228,86 @@ export function danceFloor(p: Parts, at: At, w: number, d: number) {
 export function screenWall(p: Parts, at: At, w: number) {
   blk(p, at, w, 2.6, 0.08, '#E7F1FA', 0, 0.6, 0, 0);
   blk(p, at, w + 0.3, 0.2, 0.12, '#B0182E', 0, 3.2, 0, 0);
+}
+
+// ---------- bathroom and room details ----------
+
+/** A low wall (cut-away height, so the camera can see over it). */
+export function partition(p: Parts, at: At, length: number, colour: string, h = 1.25) {
+  blk(p, at, length, h, 0.12, colour, 0, 0, 0, 0.02);
+  blk(p, at, length + 0.02, 0.06, 0.16, shade(colour, 0.8), 0, h, 0, 0.01);
+}
+
+/** Small square tiles for a bathroom floor. */
+export function tiles(p: Parts, at: At, w: number, d: number, a = '#DDE8EE', b = '#B9CCD8') {
+  const n = Math.max(1, Math.round(w / 0.5));
+  const m = Math.max(1, Math.round(d / 0.5));
+  for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) blk(p, at, w / n - 0.03, 0.02, d / m - 0.03, (i + j) % 2 ? a : b, -w / 2 + (i + 0.5) * (w / n), 0.008, -d / 2 + (j + 0.5) * (d / m), 0);
+}
+
+/** Water closet with a cistern and a seat. */
+export function toilet(p: Parts, at: At) {
+  blk(p, at, 0.42, 0.38, 0.55, '#F7F9FA', 0, 0, 0.05, 0.12);
+  blk(p, at, 0.44, 0.05, 0.5, '#E3E9ED', 0, 0.38, 0.07, 0.04);
+  blk(p, at, 0.5, 0.45, 0.2, '#F7F9FA', 0, 0.35, -0.28, 0.05);
+  blk(p, at, 0.08, 0.04, 0.05, '#B8BEC6', 0.15, 0.8, -0.28, 0.01);
+}
+
+/** Bucket-bath corner: a tap on the wall, a drain, a big bucket and a small bowl. */
+export function showerCorner(p: Parts, at: At) {
+  blk(p, at, 0.06, 0.06, 0.25, '#B8BEC6', 0, 1.0, -0.1, 0.01); // tap pipe
+  blk(p, at, 0.05, 0.12, 0.05, '#B8BEC6', 0, 0.9, 0.02, 0.01);
+  blk(p, at, 0.35, 0.18, 0.08, '#B8BEC6', 0, 1.85, -0.18, 0.02); // shower head
+  cyl(p, at, 0.06, 0.01, '#5D6F7C', 0, 0.02, 0.35); // drain
+  cyl(p, at, 0.24, 0.5, '#2F7FC1', 0.45, 0, 0.1); // bucket
+  cyl(p, at, 0.21, 0.02, '#8FD3F4', 0.45, 0.47, 0.1);
+  cyl(p, at, 0.1, 0.1, '#F2C230', 0.45, 0.5, 0.1); // bowl floating in it
+  blk(p, at, 0.5, 0.06, 0.06, '#8B5E3C', -0.4, 1.4, -0.12, 0.01); // towel rail
+  blk(p, at, 0.4, 0.55, 0.03, '#E8742A', -0.4, 0.88, -0.09, 0.02); // towel
+}
+
+/** Bathroom sink with a mirror. */
+export function sink(p: Parts, at: At) {
+  blk(p, at, 0.55, 0.12, 0.4, '#F7F9FA', 0, 0.78, 0, 0.05);
+  blk(p, at, 0.1, 0.78, 0.1, '#E3E9ED', 0, 0, -0.05, 0.02);
+  blk(p, at, 0.5, 0.65, 0.03, '#CFE8F4', 0, 1.1, -0.18, 0.01);
+}
+
+/** Cork board with the timetable pinned on it. */
+export function timetableBoard(p: Parts, at: At) {
+  blk(p, at, 1.3, 0.85, 0.04, '#B98A55', 0, 1.25, 0, 0.01);
+  const colours = ['#F2C230', '#8FD3F4', '#F29BC1', '#B4FF3E', '#F4EFE6'];
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 5; c++) if ((r * 5 + c) % 3 !== 1) blk(p, at, 0.2, 0.15, 0.02, colours[(r + c) % colours.length]!, -0.5 + c * 0.25, 1.33 + r * 0.17, 0.025, 0);
+}
+
+/** A door in its frame (flat against a wall). */
+export function door(p: Parts, at: At, colour: string, sign?: string) {
+  blk(p, at, 1.0, 2.1, 0.06, shade(colour, 0.7), 0, 0, 0, 0.01);
+  blk(p, at, 0.86, 2.0, 0.08, colour, 0, 0, 0.01, 0.02);
+  blk(p, at, 0.06, 0.06, 0.06, '#D9C27A', 0.3, 1.0, 0.07, 0.01);
+  if (sign) blk(p, at, 0.4, 0.25, 0.03, sign, 0, 1.55, 0.06, 0.01);
+}
+
+/** Cooler of food and a crate of drinks. */
+export function cooler(p: Parts, at: At, colour = '#D9482B') {
+  blk(p, at, 0.6, 0.45, 0.42, colour, 0, 0, 0, 0.1);
+  blk(p, at, 0.62, 0.08, 0.44, '#F4EFE6', 0, 0.45, 0, 0.04);
+}
+
+/** Phone charging extension box with a blinking light. */
+export function extension(p: Parts, at: At) {
+  blk(p, at, 0.35, 0.06, 0.12, '#F4EFE6', 0, 0.01, 0, 0.02);
+  blk(p, at, 0.04, 0.02, 0.04, '#D9482B', 0.12, 0.07, 0, 0);
+}
+
+/** Wall clock. */
+export function wallClock(p: Parts, at: At) {
+  cylinderOnWall(p, at, 0.22, '#F4EFE6', 2.2);
+}
+
+function cylinderOnWall(p: Parts, at: At, r: number, colour: string, y: number) {
+  blk(p, at, r * 2, r * 2, 0.05, colour, 0, y, 0, r * 0.9);
+  blk(p, at, 0.03, r * 0.8, 0.02, '#1B1E22', 0, y + r * 0.6, 0.03, 0);
 }
 
 export function shade(hex: string, f: number): string {

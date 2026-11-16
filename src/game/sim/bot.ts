@@ -89,6 +89,9 @@ function quickActions(c: Ctx): void {
     for (const f of d.finance.fees) if (canPay(d, f.id).ok) portalPayMut(d, c.r, f.id);
   }
   if (canRegister(d).ok) portalRegisterMut(d, c.r);
+  // Toilet wherever there is one (quick); a bath whenever at home.
+  if (d.needs.bladder >= 55) performMut(d, c.r, d.location.placeId, 'toilet');
+  if (d.location.placeId === d.room.placeId && d.needs.hygiene < 60 && (c.s !== 'random' || c.b.chance(0.6))) performMut(d, c.r, d.room.placeId, 'bath');
   // Eat when hungry.
   if (d.needs.hunger >= 50) {
     const own = d.location.placeId === d.room.placeId;

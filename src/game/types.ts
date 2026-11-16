@@ -70,6 +70,10 @@ export interface Clock {
 /** 0 to 100 each. Hunger: 0 is full, 100 is starving. Health is hidden. */
 export interface Needs {
   energy: number;
+  /** 100 = fresh from a bath, 0 = everyone can smell you. */
+  hygiene: number;
+  /** 0 = fine, 100 = you must find a toilet now. */
+  bladder: number;
   hunger: number;
   stress: number;
   health: number;

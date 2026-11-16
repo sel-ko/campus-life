@@ -15,6 +15,13 @@ export function isCurrentSave(game: unknown): game is GameState {
 /** Returns the game if it can be loaded, or null plus whether to show the reset notice. */
 export function loadSave(game: unknown): { game: GameState | null; wasReset: boolean } {
   if (game == null) return { game: null, wasReset: false };
-  if (isCurrentSave(game)) return { game, wasReset: false };
+  if (isCurrentSave(game)) {
+    // Saves from before hygiene and bladder existed get them filled in.
+    const needs = game.needs as Partial<GameState['needs']> | undefined;
+    if (needs && (needs.hygiene === undefined || needs.bladder === undefined)) {
+      return { game: { ...game, needs: { ...game.needs, hygiene: needs.hygiene ?? 70, bladder: needs.bladder ?? 20 } }, wasReset: false };
+    }
+    return { game, wasReset: false };
+  }
   return { game: null, wasReset: true };
 }

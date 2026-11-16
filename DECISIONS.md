@@ -558,3 +558,59 @@ the code mentioned.
      rooms are 10 to 18 m across so there is room to walk.
 136. **Development only:** add `?hour=13` to the address to see the sky at
      1 p.m. (the game otherwise follows the real time).
+
+## A game you can see happening (rooms with life, a story, real actions)
+
+137. **Two new needs: hygiene and bladder.** Hygiene falls 7 a slot (sweaty
+     actions like exercise, parties and plate washing take more); bladder
+     fills 11 a slot. Below 25 hygiene you are "smelly" and stress creeps up;
+     a full bladder is an accident (hygiene −40, stress +15). Bathe at the
+     bucket-bath corner in your room (needs running water or sachet water);
+     toilets are in your room and in most buildings (free on campus, ₦50 in
+     town). Both are quick and take no slot. Old saves get hygiene 70 and
+     bladder 20 filled in.
+138. **Mood and feelings** (idea from lagoslife.app): a mood word and emoji
+     from all needs, plus "feelings" that explain it ("Smelly −15",
+     "Pressed −18", "Fresh +8", "Belle full +8", "Clearance wahala −6"...).
+139. **Every action shows what it does:** price, how long it takes (quick,
+     the whole slot, till morning) and green/red effect chips.
+140. **Actions are acted out.** Choosing one makes your character walk to the
+     thing and do it in front of you, with a timer: lie in bed under the
+     wrapper with floating z's while the room goes dark, bathe with water
+     pouring, sit on the toilet, sit and write in class, eat at a table, cook,
+     dance, jog, chat. The result floats up ("+30 Hygiene", "−₦1,500").
+     Skip finishes early; walking away with the joystick before it starts
+     cancels it. The rules still run once, at the end.
+141. **The dorm was redesigned:** 13 × 10 m, four corners (bed, wardrobe,
+     desk with a phone extension), a bathroom behind low tiled walls (bucket
+     bath, WC, sink), a cooking corner with a cooler, a timetable board
+     (tap it to see today's plan), windows on both side walls. Characters are
+     drawn at 0.45 scale (big head, about 1.3 m) so rooms feel roomy, and
+     rooms sit on a patch of ground with cut walls like a doll's house.
+142. **Rooms are alive.** Roommates follow a routine (asleep at night,
+     reading at their desk, one cooking in the evening); before allocation
+     other freshers share the transit room. Other rooms fill with nameless
+     students by how busy they are: a packed hall during a GST class, a
+     lunch rush at the buka, a queue at the offices, dancers at the club at
+     night, joggers on the track.
+143. **A story with mandatory steps.** Chapter 1 "Welcome, fresher":
+     freshen up, eat, pay acceptance, buy documents, collect the eight
+     signatures, pay fees, collect allocation, register at the library.
+     Chapter 2 "Officially a student": register courses, first lecture, a
+     friend, read. Then one chapter per semester (fees, registration, next
+     class, exams, project). A quest chip on the map and in rooms shows the
+     next step with a "Go there" button; some steps pay a small reward from
+     home (₦300 to ₦2,000, once).
+144. **Clearance first:** the town and night life stay closed until the
+     clearance form is fully signed ("You are not even a student yet").
+145. **The timetable is a day planner:** every part of every day says what
+     is on (classes, tests, exams, orientation, clearance office hours,
+     allowance, deadlines, the election, meals, free time, sleep), so it is
+     never empty. It is on the phone (School app) and the board in your room.
+146. Rooms show a live status line ("Class on now: CSC 101 with ...",
+     "Lunch rush", "Closed. Opens tomorrow morning").
+147. lagoslife.app now redirects to vatarverse.com. The user signed in
+     themselves; I only looked at the needs, feelings, goals and skills
+     panels for ideas and copied no names, art or text.
+148. Simulator bots now use toilets and bathe; the balance table is about
+     the same as before (BALANCE.md regenerated).

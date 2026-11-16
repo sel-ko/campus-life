@@ -5,7 +5,7 @@ import { getFee } from './money';
 import { at, signAll, testGame } from './testkit';
 import type { GameState, PlaceType } from './types';
 
-const TARGETS = ['seat', 'lecturer', 'desk', 'counter', 'bed', 'locker', 'shelf', 'bench', 'stove', 'board', 'door', 'person'];
+const TARGETS = ['seat', 'lecturer', 'desk', 'counter', 'bed', 'locker', 'shelf', 'bench', 'stove', 'board', 'door', 'shower', 'toilet', 'person'];
 
 function check(list: Interaction[]): void {
   for (const i of list) {
@@ -174,6 +174,8 @@ describe('the town', () => {
 
   it('has night life that opens at night', () => {
     const d = structuredClone(testGame());
+    expect(getInteractions(d, PLACES.find((p) => p.venue === 'club')!.id).find((i) => i.id === 'party')?.reason).toMatch(/clearance/);
+    signAll(d);
     const club = placeOf((p) => p.venue === 'club');
     expect(getInteractions(d, club.id).find((i) => i.id === 'party')?.available).toBe(false);
     at(d, 3, 3);

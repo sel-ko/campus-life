@@ -15,23 +15,11 @@ import { presetLook } from '../world/characters/look';
 import { useNow } from './clock';
 import { DoorIcon, MapIcon, MoonIcon, SunIcon, SunriseIcon, SunsetIcon, UserIcon } from './icons';
 import { Portrait } from './Portrait';
+import { NeedsPanel, QuestChip } from './lifeUi';
 import { PILL } from './theme';
 
 const ACTIVE = 'bg-[#3A2F5C] text-white';
 const SLOT_ICONS = [SunriseIcon, SunIcon, SunsetIcon, MoonIcon];
-
-function Meter({ label, value, colour, invert = false }: { label: string; value: number; colour: string; invert?: boolean }) {
-  const bad = invert ? value >= 75 : value <= 25;
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-14 text-muted">{label}</span>
-      <span className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
-        <span className={`block h-full ${colour}`} style={{ width: `${value}%` }} />
-      </span>
-      <span className={`w-7 text-right font-bold ${bad ? 'text-red-300' : ''}`}>{Math.round(value)}</span>
-    </div>
-  );
-}
 
 function Toast({ game }: { game: GameState }) {
   const [text, setText] = useState<string | null>(null);
@@ -89,7 +77,7 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
   const tasks = journal(game);
   const urgent = tasks.filter((t) => t.urgent).length;
   const n = game.needs;
-  const warn = n.energy <= 20 || n.hunger >= 80 || n.stress >= 80 || game.ill;
+  const warn = n.energy <= 20 || n.hunger >= 80 || n.stress >= 80 || n.hygiene <= 20 || n.bladder >= 80 || game.ill;
   const week = campusEvent(game);
   const follow = showMap && cameraMode === 'follow';
 
@@ -125,11 +113,9 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
             <p className="text-sm font-semibold">
               {game.academics.level}00 level · semester {game.clock.semester} · day {game.clock.day} of 14 · {slotName(game.clock)}
             </p>
-            <Meter label="Energy" value={n.energy} colour="bg-emerald-400" />
-            <Meter label="Hunger" value={n.hunger} colour="bg-amber-400" invert />
-            <Meter label="Stress" value={n.stress} colour="bg-red-400" invert />
+            <NeedsPanel game={game} />
             <p className="text-xs text-muted">
-              Feeling: <b className="text-ink">{healthLabel(game)}</b>
+              Health: <b className="text-ink">{healthLabel(game)}</b>
               {game.room.light ? '' : ' · no light in the hostel'}
               {game.room.water ? '' : ' · no water'}
             </p>
@@ -143,6 +129,7 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
             </button>
           </div>
         )}
+        {!inside && <QuestChip game={game} />}
         <Toast game={game} />
       </div>
 

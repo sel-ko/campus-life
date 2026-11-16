@@ -19,8 +19,10 @@ export const ORIENTATION_DAYS = [1, 2, 3, 4, 5];
 export const ALLOWANCE_DAYS = [1, 8];
 
 // ---------- needs ----------
-export const START_NEEDS: Needs = { energy: 85, hunger: 25, stress: 20, health: 90 };
-export const PER_SLOT = { hunger: 7, energy: -3 };
+export const START_NEEDS: Needs = { energy: 85, hunger: 25, stress: 20, health: 90, hygiene: 55, bladder: 30 };
+export const PER_SLOT = { hunger: 7, energy: -3, hygiene: -7, bladder: 11 };
+/** Hygiene below this makes people keep their distance; bladder at 100 is an accident. */
+export const SMELLY_AT = 25;
 export const HUNGRY_AT = 80;
 export const STARVING_DRAIN = { energy: -5, stress: 3, health: -3 };
 export const TIRED_AT = 10;

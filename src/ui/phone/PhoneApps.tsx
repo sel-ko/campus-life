@@ -19,6 +19,7 @@ import { drawCourseForm, downloadCanvas } from '../courseForm';
 import { LeaderboardScreen } from '../LeaderboardScreen';
 import { GAME_NAME } from '../site';
 import { VendorCard } from '../VendorSection';
+import { DayPlanView } from '../lifeUi';
 import { getProgramme } from '../../content/courses';
 
 const tab = (on: boolean) => `min-h-10 shrink-0 rounded-full px-3 text-sm font-semibold ${on ? 'bg-sun text-night' : 'bg-white/10'}`;
@@ -107,7 +108,7 @@ export function SchoolApp({ game }: { game: GameState }) {
       )}
 
       {t === 'register' && <CoursesTab game={game} onRegister={register} />}
-      {t === 'timetable' && <Timetable game={game} />}
+      {t === 'timetable' && <TimetableTab game={game} />}
       {t === 'results' && <Results game={game} />}
     </div>
   );
@@ -148,48 +149,28 @@ function CoursesTab({ game, onRegister }: { game: GameState; onRegister: () => v
   );
 }
 
-function Timetable({ game }: { game: GameState }) {
-  const week = game.clock.day <= 7 ? 1 : 2;
-  const days = Array.from({ length: 7 }, (_, i) => (week - 1) * 7 + i + 1);
-  const cell = (day: number, slot: number) =>
-    game.academics.courses.flatMap((c) => c.meetings.filter((m) => m.day === day && m.slot === slot).map((m) => ({ c, m })));
-  const exams = [...game.academics.courses].filter((c) => c.exam.status === 'pending').sort((a, b) => a.exam.day - b.exam.day || a.exam.slot - b.exam.slot);
+function TimetableTab({ game }: { game: GameState }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted">Week {week}. Struck-through classes are cancelled; ⚠ marks a change.</p>
-      <div className="flex flex-col gap-2">
-        {days.map((day) => {
-          const lines = SLOTS.flatMap((_, s) => cell(day, s).map((x) => ({ ...x, s })));
-          return (
-            <div key={day} className={`${box} ${day === game.clock.day ? 'ring-2 ring-sun' : ''}`}>
-              <p className="text-xs font-bold text-muted">
-                {DAY_NAMES[(day - 1) % 7]} · day {day}
-                {EXAM_DAYS.includes(day) ? ' · exams' : ''}
-              </p>
-              {lines.length === 0 && <p className="text-sm text-muted">{WEEKEND_DAYS.includes(day) ? 'Weekend' : 'No classes'}</p>}
-              {lines.map(({ c, m, s }) => (
-                <p key={`${c.code}${s}`} className={`text-sm ${m.status === 'cancelled' ? 'text-muted line-through' : ''}`}>
-                  {slotName(s)}: <b>{c.code}</b>
-                  {m.test ? ' (TEST)' : ''} · {placeName(m.placeId)}
-                  {m.moved ? ' ⚠' : ''}
-                  {m.attended ? ' ✓' : ''}
-                </p>
-              ))}
-            </div>
-          );
-        })}
-      </div>
-      {exams.length > 0 && (
-        <div className={box}>
-          <p className="mb-1 font-semibold">Exam timetable</p>
-          {exams.map((c) => (
-            <p key={c.code} className="text-sm">
-              Day {c.exam.day} {slotName(c.exam.slot)}: <b>{c.code}</b> · {placeName(c.exam.placeId)}
-              {c.exam.batchMoved ? ' (moved!)' : ''}
-            </p>
-          ))}
-        </div>
-      )}
+      <DayPlanView game={game} />
+      <Timetable game={game} examsOnly />
+    </div>
+  );
+}
+
+/** The exam timetable (the day planner above covers the rest). */
+function Timetable({ game }: { game: GameState; examsOnly?: boolean }) {
+  const exams = [...game.academics.courses].filter((c) => c.exam.status === 'pending').sort((a, b) => a.exam.day - b.exam.day || a.exam.slot - b.exam.slot);
+  if (!exams.length) return null;
+  return (
+    <div className={box}>
+      <p className="mb-1 font-semibold">Exam timetable</p>
+      {exams.map((c) => (
+        <p key={c.code} className="text-sm">
+          Day {c.exam.day} {slotName(c.exam.slot)}: <b>{c.code}</b> · {placeName(c.exam.placeId)}
+          {c.exam.batchMoved ? ' (moved!)' : ''}
+        </p>
+      ))}
     </div>
   );
 }

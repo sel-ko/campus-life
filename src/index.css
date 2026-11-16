@@ -26,3 +26,13 @@ body {
   /* No pull-to-refresh or rubber-banding while dragging the map. */
   overscroll-behavior: none;
 }
+
+/* Results of an action float up and fade. */
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(16px) scale(0.9); }
+  12% { opacity: 1; transform: translateY(0) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-40px); }
+}
+.float-up { animation: float-up 4.2s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) { .float-up { animation: none; } }

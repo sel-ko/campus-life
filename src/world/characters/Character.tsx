@@ -16,7 +16,15 @@ function Limb({ geo, material, renderOrder = 0 }: { geo: LimbGeometry; material?
   );
 }
 
+/** What the body is doing. The parent places the character (on a chair, a bed...). */
+export type Pose = 'stand' | 'walk' | 'sit' | 'lie' | 'read' | 'write' | 'eat' | 'cook' | 'bathe' | 'dance' | 'jog' | 'chat' | 'lecture' | 'type' | 'cheer';
+
+
 export interface CharacterProps {
+  /** Body pose (default: stand, or walk while `walking` is true). */
+  pose?: Pose;
+  /** Sitting on something: the legs bend forward. */
+  seated?: boolean;
   look: CharacterLook;
   /** Set .current to true while the character is moving. */
   walking?: { current: boolean };
@@ -28,7 +36,7 @@ export interface CharacterProps {
   renderOrder?: number;
 }
 
-export function Character({ look, walking, phase = 0, material, renderOrder = 0 }: CharacterProps) {
+export function Character({ look, walking, pose = 'stand', seated = false, phase = 0, material, renderOrder = 0 }: CharacterProps) {
   const model = useMemo(() => characterModel(look), [look]);
   const body = useRef<THREE.Group>(null);
   const legL = useRef<THREE.Group>(null);
@@ -39,17 +47,88 @@ export function Character({ look, walking, phase = 0, material, renderOrder = 0 
 
   useFrame(({ clock }, dt) => {
     const t = clock.elapsedTime + phase;
-    const target = walking?.current ? 1 : 0;
-    blend.current += (target - blend.current) * Math.min(1, dt * 8);
+    const moving = !!walking?.current || pose === 'walk' || pose === 'jog';
+    blend.current += ((moving ? 1 : 0) - blend.current) * Math.min(1, dt * 8);
     const w = blend.current;
-    const swing = Math.sin(t * 9) * 0.6 * w;
-    if (legL.current) legL.current.rotation.x = swing;
-    if (legR.current) legR.current.rotation.x = -swing;
-    if (armL.current) armL.current.rotation.x = -swing * 0.8;
-    if (armR.current) armR.current.rotation.x = swing * 0.8;
+    const speed = pose === 'jog' ? 13 : 9;
+    const swing = Math.sin(t * speed) * 0.6 * w;
+    // Legs: forward over a seat, a little bounce for dancing, else walking.
+    let lL = swing;
+    let lR = -swing;
+    if (seated) {
+      lL = -1.45;
+      lR = -1.45;
+    } else if (pose === 'dance' || pose === 'cheer') {
+      lL = Math.max(0, Math.sin(t * 6)) * -0.35;
+      lR = Math.max(0, -Math.sin(t * 6)) * -0.35;
+    }
+    // Arms: x below zero swings them forward, about -3 is straight up.
+    let aL = -swing * 0.8;
+    let aR = swing * 0.8;
+    let zR = 0;
+    switch (pose) {
+      case 'sit':
+        aL = aR = -0.45;
+        break;
+      case 'read':
+        aL = aR = -1.15 + Math.sin(t * 0.7) * 0.03;
+        break;
+      case 'write':
+      case 'type':
+        aL = -1.0;
+        aR = -1.1 + Math.sin(t * (pose === 'type' ? 14 : 5)) * 0.08;
+        break;
+      case 'eat':
+        aL = -0.9;
+        aR = -1.0 - Math.max(0, Math.sin(t * 2.4)) * 1.1;
+        break;
+      case 'cook':
+        aL = -0.7;
+        aR = -1.05 + Math.sin(t * 5) * 0.2;
+        zR = Math.cos(t * 5) * 0.25;
+        break;
+      case 'bathe':
+        aL = -2.7 + Math.sin(t * 7) * 0.35;
+        aR = -2.7 + Math.cos(t * 7) * 0.35;
+        break;
+      case 'dance':
+        aL = -2.4 + Math.sin(t * 6) * 0.6;
+        aR = -2.4 - Math.sin(t * 6) * 0.6;
+        break;
+      case 'cheer':
+        aL = aR = -2.9 + Math.sin(t * 8) * 0.15;
+        break;
+      case 'chat':
+        aR = -0.5 + Math.sin(t * 2.2) * 0.35;
+        aL = -0.15;
+        break;
+      case 'lecture':
+        aR = -1.7 + Math.sin(t * 1.4) * 0.5;
+        aL = -0.2;
+        break;
+      case 'lie':
+        aL = aR = 0;
+        lL = lR = 0;
+        break;
+      default:
+        break;
+    }
+    if (legL.current) legL.current.rotation.x = lL;
+    if (legR.current) legR.current.rotation.x = lR;
+    if (armL.current) armL.current.rotation.x = aL;
+    if (armR.current) {
+      armR.current.rotation.x = aR;
+      armR.current.rotation.z = zR;
+    }
     if (body.current) {
-      // Idle: slow breathing bob. Walking: a bounce on each step.
-      body.current.position.y = Math.sin(t * 1.8) * 0.03 * (1 - w) + Math.abs(Math.sin(t * 9)) * 0.08 * w;
+      // Idle: slow breathing bob. Walking: a bounce on each step. Dancing: a bigger bounce.
+      body.current.position.y =
+        pose === 'lie' || seated
+          ? Math.sin(t * 1.2) * 0.015
+          : pose === 'dance' || pose === 'cheer'
+            ? Math.abs(Math.sin(t * 6)) * 0.18
+            : Math.sin(t * 1.8) * 0.03 * (1 - w) + Math.abs(Math.sin(t * speed)) * 0.08 * w;
+      body.current.rotation.y = pose === 'dance' ? Math.sin(t * 3) * 0.35 : 0;
     }
   });
 
