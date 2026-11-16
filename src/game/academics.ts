@@ -228,7 +228,7 @@ export function buildSemester(d: GameState, r: Rng): void {
     const testable = ['lecture', 'gst', 'practical', 'seminar', 'moot'].includes(def.kind);
     if (testable) {
       const live = meetings.filter((m) => m.status === 'scheduled');
-      const late = live.filter((m) => m.day >= 8);
+      const late = live.filter((m) => m.day >= 10);
       const t = late[0] ?? live[live.length - 1];
       if (t) t.test = true;
     }
@@ -249,7 +249,7 @@ export function buildSemester(d: GameState, r: Rng): void {
       knowledge: START_KNOWLEDGE,
       testScore: null,
       assignment: null,
-      assignmentDue: 10,
+      assignmentDue: 17,
       handout: { price: handoutPrice(lecturerId, def.code, r), status: 'none' },
       goodwill: 0,
       covered: false,
@@ -391,7 +391,7 @@ export function canDoAssignment(d: GameState, course: CourseState): Availability
   if (course.assignment !== null) return { ok: false, reason: 'Already submitted' };
   if (['it', 'chambers', 'project', 'posting'].includes(course.kind)) return { ok: false, reason: 'No assignment for this one' };
   if (course.code === 'EPS 312') return { ok: false, reason: 'EPS 312 is marked on your hustle profit' };
-  if (d.clock.day > course.assignmentDue) return { ok: false, reason: `It was due on day ${course.assignmentDue}` };
+  if (d.clock.day > course.assignmentDue) return { ok: false, reason: 'It is past the due date' };
   return { ok: true };
 }
 

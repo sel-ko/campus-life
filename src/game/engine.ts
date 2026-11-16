@@ -61,7 +61,7 @@ export function beginDay(d: GameState, r: Rng): void {
     weeklyData(d);
   }
   addLateFeeIfDue(d);
-  if (d.clock.day === 1 || d.clock.day === 8) newWeekMut(d, r);
+  if (d.clock.day % 7 === 1) newWeekMut(d, r);
   electionMut(d, r);
   const moved = moveGstBatches(d, r);
   dayOutagesMut(d, r);

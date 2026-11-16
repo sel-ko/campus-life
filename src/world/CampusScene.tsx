@@ -12,9 +12,9 @@ import { CampusLabels } from './campus/CampusLabels';
 import { CampusScenery } from './campus/CampusScenery';
 import { CameraRig } from './CameraRig';
 import { lookOf, presetLook } from './characters/look';
-import { nextStep } from '../game/story';
 import { SLOT_LOOKS } from './lighting';
 import { Npcs } from './Npcs';
+import { Cars } from './Cars';
 import { Player } from './Player';
 import { playerWorld } from './shared';
 
@@ -24,11 +24,7 @@ export default function CampusScene({ paused }: { paused: boolean }) {
   const look = SLOT_LOOKS[slot];
   const player = useGameStore((s) => s.game?.player);
   const look3d = useMemo(() => (player ? lookOf(player) : presetLook('m1')), [player]);
-  // A follow-up quest step floats over your head on the map too.
-  const questTag = useGameStore((s) => {
-    const n = s.game ? nextStep(s.game) : null;
-    return n?.sub ? n.label : null;
-  });
+
   // Battery saver: lower resolution, no edge smoothing, fewer students and trees.
   const quality = useSettings((s) => s.quality);
   const high = quality === 'high';
@@ -56,13 +52,14 @@ export default function CampusScene({ paused }: { paused: boolean }) {
       <hemisphereLight args={[look.hemiSky, look.hemiGround, look.hemiIntensity]} />
       <directionalLight position={look.sunPos} color={look.sunColor} intensity={look.sunIntensity} />
       {/* The player first, so the camera and students know where they start. */}
-      {player && <Player look={look3d} questTag={questTag} />}
+      {player && <Player look={look3d} />}
       <CameraRig start={[playerWorld.pos.x, playerWorld.pos.z]} />
       <CampusGround grass={look.grass} />
       <CampusBuildings />
       <CampusScenery quality={quality} />
       <CampusLabels />
       <Npcs count={high ? 6 : 3} />
+      <Cars count={high ? 18 : 8} />
     </Canvas>
   );
 }

@@ -44,12 +44,12 @@ describe('the clock', () => {
     expect(step.clock).toMatchObject({ day: 2, slot: 0, dayCount: 2, semester: 1, year: 1 });
   });
 
-  it('rolls day 14 into the next semester, and semester 2 into the next session', () => {
-    const end1 = stepClock({ year: 1, semester: 1, day: 14, slot: 3, dayCount: 14 });
+  it('rolls day 28 into the next semester, and semester 2 into the next session', () => {
+    const end1 = stepClock({ year: 1, semester: 1, day: 28, slot: 3, dayCount: 28 });
     expect(end1.newSemester).toBe(true);
-    expect(end1.clock).toMatchObject({ year: 1, semester: 2, day: 1, dayCount: 15 });
-    const end2 = stepClock({ year: 1, semester: 2, day: 14, slot: 3, dayCount: 28 });
-    expect(end2.clock).toMatchObject({ year: 2, semester: 1, day: 1, dayCount: 29 });
+    expect(end1.clock).toMatchObject({ year: 1, semester: 2, day: 1, dayCount: 29 });
+    const end2 = stepClock({ year: 1, semester: 2, day: 28, slot: 3, dayCount: 56 });
+    expect(end2.clock).toMatchObject({ year: 2, semester: 1, day: 1, dayCount: 57 });
   });
 });
 

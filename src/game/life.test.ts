@@ -50,6 +50,7 @@ describe('needs and health', () => {
     const lit = roomWith([], false);
     const dark = roomWith([], false);
     lit.needs.energy = dark.needs.energy = 20;
+    lit.room.light = true;
     dark.room.light = false;
     sleepMut(lit, new Rng(1));
     sleepMut(dark, new Rng(1));

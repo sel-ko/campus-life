@@ -41,7 +41,7 @@ add('pent-1', 'penthouse', 'Skyline Towers A', -42, 6, 3, 3, 14);
 add('pent-2', 'penthouse', 'Skyline Towers B', -38, 6, 4, 3, 11);
 add('pent-3', 'penthouse', 'Palm Penthouses', -42, 10, 3, 2, 8);
 add('pent-4', 'penthouse', 'Marina Heights', -38, 10, 4, 2, 9);
-add('mall', 'mall', 'City Mall', -33, 6, 8, 6, 2, { type: 'shop', menu: 'mall', stock: ['airtime', 'phone_upgrade', 'padlock', 'laundry', 'haircut'] });
+add('mall', 'mall', 'City Mall', -33, 6, 8, 6, 2, { type: 'shop', menu: 'mall', stock: ['airtime', 'phone_upgrade', 'padlock', 'laundry', 'haircut', 'plant', 'fairy_lights', 'duvet', 'rug_decor', 'poster'] });
 add('park-1', 'park', 'Freedom Park', -24, 6, 8, 6, 0, { type: 'field' });
 
 // ---- row 2: bungalows, cars and fuel, shops ----

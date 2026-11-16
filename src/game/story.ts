@@ -2,11 +2,12 @@
 // must do, in order. The first chapter is the fresher's first days (freshen
 // up, eat, then the long clearance walk); later chapters follow each semester
 // to graduation. Pure: worked out from the state every time, nothing saved.
-import { mainBuka, mainLibrary, placeName } from '../content/places';
+import { PLACES, getPlace, mainBuka, mainLibrary, placeName } from '../content/places';
 import { clearanceSteps, missingDocs, officeName, officePlaceId, signedCount } from './clearance';
 import { DOC_NAMES, OFFICES, OFFICE_ORDER } from '../content/offices';
 import { canRegister, feesDueNow, registrationDeadline } from './money';
 import { addMoney } from './money';
+import { dayLabel, meetingTime } from './calendar';
 import { log } from './draft';
 import type { DocId, GameState } from './types';
 
@@ -24,6 +25,8 @@ export interface StoryStep {
   reward?: number;
   /** A follow-up that came out of the step below it ("no passport? get one"). */
   sub?: boolean;
+  /** For a follow-up: the place where you were told (it floats over your head there). */
+  at?: string;
 }
 
 export interface Chapter {
@@ -35,6 +38,13 @@ export interface Chapter {
 }
 
 const DOC_SHOP = 'business-9';
+
+/** The eatery nearest your hostel (the hostel cafeteria), else the main buka. */
+function nearbyEatery(d: GameState): string {
+  const home = getPlace(d.room.placeId);
+  const near = PLACES.filter((p) => p.type === 'restaurant' && p.menu && p.sectionId === home?.sectionId);
+  return (near.find((p) => /cafeteria/i.test(p.name)) ?? near[0] ?? mainBuka()).id;
+}
 const PLURAL: Record<DocId, string> = { photocopy: 'photocopies of your credentials', passport: 'passport photographs', receipt: 'receipts' };
 
 function fresherChapter(d: GameState): Chapter {
@@ -51,9 +61,13 @@ function fresherChapter(d: GameState): Chapter {
     blurb: 'You made it in. Before you are a real student, you must survive clearance.',
     steps: [
       { id: 'bath', reward: 300, label: 'Freshen up: take a bath', done: !!d.flags.bathed || signed > 0, placeId: d.room.placeId, hint: 'Walk into the bathroom in your room' },
-      { id: 'eat', reward: 300, label: 'Eat something', done: d.stats.meals > 0 || signed > 0, placeId: mainBuka().id, hint: 'The buka, or cook in your room' },
+      { id: 'eat', reward: 300, label: 'Eat something', done: d.stats.meals > 0 || signed > 0, placeId: nearbyEatery(d), hint: 'The hostel cafeteria, or cook in your room' },
+      // Fees first: no office signs for a student who has not paid.
       { id: 'acceptance', label: 'Pay the acceptance fee', done: step('acceptance').done, portal: true, hint: 'Phone → School app → Fees' },
-      { id: 'docs', label: 'Buy photocopies, passports and a receipt', done: haveDocs, placeId: DOC_SHOP, hint: 'Every office wants paper' },
+      { id: 'school1', label: 'Pay your school fees (half or full)', done: step('school1').done, portal: true, hint: 'Phone → School app → Fees. Dad sent the money' },
+      { id: 'dues', label: 'Pay your departmental dues', done: step('dues').done, portal: true },
+      { id: 'hostel', label: 'Pay your hostel fee', done: step('hostel').done, portal: true },
+      { id: 'docs', label: 'Get photocopies, passport photos and the printed receipt', done: haveDocs, placeId: DOC_SHOP, hint: 'Business Centre. Every office keeps some paper' },
       // The clearance route: one office at a time, in order, each with what to bring.
       ...OFFICE_ORDER.flatMap((o, i): StoryStep[] => {
         const office = OFFICES[o];
@@ -62,7 +76,7 @@ function fresherChapter(d: GameState): Chapter {
         const step: StoryStep = {
           id: `office_${o}`,
           reward: i === OFFICE_ORDER.length - 1 ? 1500 : 200,
-          label: `${i === 0 ? 'Start clearance at the' : 'Signature:'} ${officeName(o)} (${placeName(placeId)})`,
+          label: `${i === 0 ? 'Start clearance at the' : 'Signature:'} ${officeName(o)} (${placeName(placeId)})${bring ? ` · 📄 ${bring}` : ''}${office.fee ? ` · ₦${office.fee.toLocaleString('en-NG')}` : ''}`,
           done: c.signed[o],
           placeId,
           hint: [bring && `Bring ${bring}`, office.fee ? `Fee ${office.fee.toLocaleString('en-NG')} naira` : '', 'Open weekday mornings and afternoons'].filter(Boolean).join(' · '),
@@ -73,17 +87,17 @@ function fresherChapter(d: GameState): Chapter {
         if (!current) return [step];
         const subs: StoryStep[] = [];
         const missing = missingDocs(d, o);
-        if (missing.length) subs.push({ id: `docs_${o}`, sub: true, label: `Get ${missing.map((m) => DOC_NAMES[m]).join(' and ')} at the Business Centre`, done: false, placeId: DOC_SHOP, hint: `The ${officeName(o)} will not sign without it` });
+        // Each follow-up remembers the office that gave it (`at`).
+        if (missing.length) subs.push({ id: `docs_${o}`, sub: true, at: placeId, label: `Get ${missing.map((m) => DOC_NAMES[m]).join(' and ')} at the Business Centre`, done: false, placeId: DOC_SHOP, hint: `The ${officeName(o)} will not sign without it` });
         for (const need of [...(office.needs ?? []), ...(c.extraPrereq[o] ? [c.extraPrereq[o]!] : [])]) {
-          if (!c.signed[need]) subs.push({ id: `first_${o}_${need}`, sub: true, label: `The ${officeName(o)} wants the ${officeName(need)} signature first`, done: false, placeId: officePlaceId(d, need) });
+          if (!c.signed[need]) subs.push({ id: `first_${o}_${need}`, sub: true, at: placeId, label: `The ${officeName(o)} wants the ${officeName(need)} signature first`, done: false, placeId: officePlaceId(d, need) });
         }
-        if (office.needsAcceptance && !clr[0]!.done) subs.push({ id: `acc_${o}`, sub: true, label: 'Pay the acceptance fee before the Bursary', done: false, portal: true });
-        if (office.fee && d.money < office.fee) subs.push({ id: `fee_${o}`, sub: true, label: `Find ${office.fee.toLocaleString('en-NG')} naira for the ${officeName(o)} fee`, done: false, hint: 'Hustle, wash plates, or ask a friend' });
+        if (office.needsAcceptance && !clr[0]!.done) subs.push({ id: `acc_${o}`, sub: true, at: placeId, label: 'Pay the acceptance fee before the Bursary', done: false, portal: true });
+        if (office.fee && d.money < office.fee) subs.push({ id: `fee_${o}`, sub: true, at: placeId, label: `Find ${office.fee.toLocaleString('en-NG')} naira for the ${officeName(o)} fee`, done: false, hint: 'Call home from your phone (Wallet), or wash plates' });
         const back = c.backOn[o];
-        if (back !== undefined && back > d.clock.dayCount) subs.push({ id: `back_${o}`, sub: true, label: `The ${officeName(o)} said come back tomorrow`, done: false, hint: 'Try another office today' });
+        if (back !== undefined && back > d.clock.dayCount) subs.push({ id: `back_${o}`, sub: true, at: placeId, label: `The ${officeName(o)} said come back tomorrow`, done: false, hint: 'Try another office today' });
         return [...subs, step];
       }),
-      { id: 'fees', label: 'Pay school fees, dues and the hostel fee', done: step('school1').done && step('dues').done && step('hostel').done, portal: true },
       { id: 'allocation', label: 'Collect your hostel allocation', done: c.allocation, placeId: step('allocation').placeId },
       { id: 'library', reward: 500, label: 'Register at the library', done: c.library, placeId: mainLibrary().id, hint: 'Bring one passport photograph' },
     ],
@@ -99,7 +113,7 @@ function firstLecturesChapter(d: GameState): Chapter {
     title: 'Officially a student',
     blurb: 'Clearance is done. Now the real work: register, go to class, find your people.',
     steps: [
-      { id: 'register', label: `Register your courses (by day ${registrationDeadline(d)})`, done: d.academics.registered, portal: true, hint: reg.ok || d.academics.registered ? 'Phone → School app → Courses' : reg.reason },
+      { id: 'register', label: `Register your courses (by ${dayLabel(d, registrationDeadline(d))})`, done: d.academics.registered, portal: true, hint: reg.ok || d.academics.registered ? 'Phone → School app → Courses' : reg.reason },
       { id: 'lecture', reward: 500, label: 'Attend your first lecture', done: d.stats.lecturesAttended > 0, placeId: nextClass?.placeId, hint: nextClass?.text },
       { id: 'friend', reward: 500, label: 'Make a friend on campus', done: Object.values(d.people).some((p) => p.rel >= 30), hint: 'Talk to people you meet in class, at the buka, at the field' },
       { id: 'read', label: 'Read for one course', done: d.academics.courses.some((c) => c.knowledge >= 20) || d.academics.transcript.length > 0, placeId: mainLibrary().id, hint: 'At your desk or in the library' },
@@ -117,9 +131,9 @@ function semesterChapter(d: GameState, number: number): Chapter {
   const sem = d.clock.semester === 1 ? 'First' : 'Second';
   const steps: StoryStep[] = [
     { id: 'fees', label: 'Pay what the school is owed', done: fees.length === 0, portal: true, hint: fees.map((f) => f.label).join(', ') || undefined },
-    { id: 'register', label: `Register this semester's courses (by day ${registrationDeadline(d)})`, done: a.registered, portal: true },
+    { id: 'register', label: `Register this semester's courses (by ${dayLabel(d, registrationDeadline(d))})`, done: a.registered, portal: true },
     { id: 'classes', label: nextClass ? `Next class: ${nextClass.text}` : 'No more classes this semester', done: !nextClass, placeId: nextClass?.placeId },
-    { id: 'exams', label: examsLeft.length ? `Write your exams (from day ${examDay})` : 'Exams written', done: examsLeft.length === 0 && a.courses.length > 0, placeId: examsLeft[0]?.exam.placeId },
+    { id: 'exams', label: examsLeft.length ? `Write your exams (from ${dayLabel(d, examDay)})` : 'Exams written', done: examsLeft.length === 0 && a.courses.length > 0, placeId: examsLeft[0]?.exam.placeId },
   ];
   if (a.project && !a.project.defended) {
     steps.push({ id: 'project', label: `Finish your project (${a.project.chapters}/5 chapters)`, done: false, hint: 'Write at your desk, then see your supervisor' });
@@ -136,13 +150,12 @@ function semesterChapter(d: GameState, number: number): Chapter {
 /** Today's (or the next) class you have not attended yet. */
 function upcomingClass(d: GameState): { placeId: string; text: string } | null {
   const now = d.clock.day * 4 + d.clock.slot;
-  const SLOTS = ['morning', 'afternoon', 'evening', 'night'];
   let best: { t: number; placeId: string; text: string } | null = null;
   for (const c of d.academics.courses) {
     for (const m of c.meetings) {
       const t = m.day * 4 + m.slot;
       if (m.status !== 'scheduled' || m.attended || t < now) continue;
-      if (!best || t < best.t) best = { t, placeId: m.placeId, text: `${c.code}, ${m.day === d.clock.day ? (t === now ? 'NOW' : `this ${SLOTS[m.slot]}`) : `day ${m.day} ${SLOTS[m.slot]}`}` };
+      if (!best || t < best.t) best = { t, placeId: m.placeId, text: `${c.code}, ${m.day === d.clock.day ? (t === now ? `NOW, ${meetingTime(c, m)}` : `today ${meetingTime(c, m)}`) : `${dayLabel(d, m.day)} ${meetingTime(c, m)}`}` };
     }
   }
   return best;

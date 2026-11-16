@@ -32,11 +32,11 @@ function course(d: GameState, kind = 'lecture'): CourseState {
 }
 
 describe('the timetable', () => {
-  it('starts lectures in week two for new freshers and keeps exams in the last days', () => {
+  it('starts lectures on day two for new freshers and keeps exams in the last week', () => {
     const d = testGame();
     for (const c of d.academics.courses) {
-      for (const m of c.meetings) expect(m.day).toBeGreaterThanOrEqual(8);
-      expect(c.exam.day).toBeGreaterThanOrEqual(11);
+      for (const m of c.meetings) expect(m.day).toBeGreaterThanOrEqual(2);
+      expect(c.exam.day).toBeGreaterThanOrEqual(19);
     }
     const examSlots = d.academics.courses.map((c) => `${c.exam.day}:${c.exam.slot}`);
     expect(new Set(examSlots).size).toBe(examSlots.length);

@@ -10,7 +10,7 @@ import { registrationDeadline } from './money';
 import type { CourseState, GameState, Meeting } from './types';
 
 /** Days of the exam-form signing window (at the College Office). */
-export const EXAM_FORM_DAYS = [8, 9, 10, 11];
+export const EXAM_FORM_DAYS = [15, 16, 17, 18, 19];
 /** Paid at the exam hall if you never signed your exam form. */
 export const EXAM_FORM_LATE_FEE = 2000;
 
@@ -129,4 +129,14 @@ export function sessionDates(d: GameState): Array<{ label: string; from: string;
     const end = new Date(start.getTime() + (SEMESTER_DAYS - 1) * 86400000);
     return { label: sem === 1 ? 'First semester' : 'Second semester', from: formatDate(start), to: formatDate(end, true) };
   });
+}
+
+/** When a message was sent (a stamp: day count × 4 + part of day) as "Mon 5 Oct, 12:00 pm". */
+export function stampLabel(d: GameState, at: number): string {
+  const dayCount = Math.floor(at / 4);
+  const slot = at % 4;
+  const day = dayCount - (d.clock.dayCount - d.clock.day);
+  const date = new Date(semesterStart(d).getTime() + (day - 1) * 86400000);
+  const h = [7, 12, 16, 20][slot]!;
+  return `${formatDate(date)}, ${h % 12 === 0 ? 12 : h % 12}:00 ${h < 12 ? 'am' : 'pm'}`;
 }

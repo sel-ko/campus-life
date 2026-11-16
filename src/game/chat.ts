@@ -10,11 +10,12 @@ import { CHAT_SCRIPTS } from '../content/chatScripts';
 import { CAST, getPerson } from '../content/people';
 import { placeName } from '../content/places';
 import type { ChatScript, ChatTrigger } from './contentTypes';
-import { CHAT_LIMIT, CLASS_DUES, FEES, LATE_REGISTRATION_CLOSE } from './config';
+import { CHAT_LIMIT, CLASS_DUES, EXAM_DAYS, FEES, LATE_REGISTRATION_CLOSE } from './config';
 import { log } from './draft';
 import { registrationDeadline } from './money';
 import type { Rng } from './rng';
-import { slotName, stamp } from './time';
+import { isWeekend, slotName, stamp } from './time';
+import { dayLabel } from './calendar';
 import type { ChatReply, ChatThread, GameState } from './types';
 
 export const dmThread = (personId: string) => `dm:${personId}`;
@@ -64,6 +65,8 @@ function sender(d: GameState, r: Rng, script: ChatScript, vars: ChatVars): strin
     }
     case 'roommate':
       return d.room.roommates.length ? r.pick(d.room.roommates) : 'system';
+    case 'family':
+      return 'mum';
     default:
       return CAST.find((p) => p.role === script.from)?.id ?? 'system';
   }
@@ -78,6 +81,8 @@ const THREAD_FOR: Record<ChatScript['thread'], (d: GameState, vars: ChatVars) =>
 
 /** Posts one message for a trigger (a random template of that trigger). */
 export function scriptMut(d: GameState, r: Rng, trigger: ChatTrigger, vars: ChatVars = {}, threadFilter?: ChatScript['thread']): void {
+  // Days are written as dates ("Thu 8 Oct"), not "day 4".
+  if (typeof vars.day === 'number') vars = { ...vars, day: dayLabel(d, vars.day) };
   const options = CHAT_SCRIPTS.filter((s) => s.trigger === trigger && (!threadFilter || s.thread === threadFilter));
   if (!options.length) return;
   const script = r.pick(options);
@@ -113,7 +118,7 @@ export function semesterChatMut(d: GameState, r: Rng): void {
   if (t) t.title = classThreadTitle(d);
   const first = d.academics.courses.flatMap((c) => c.meetings).sort((a, b) => a.day - b.day)[0];
   const code = d.academics.courses[0]?.code ?? '';
-  scriptMut(d, r, 'semester_start', { day: first ? `day ${first.day}` : 'soon', code });
+  scriptMut(d, r, 'semester_start', { day: first ? dayLabel(d, first.day) : 'soon', code });
 }
 
 /** Start of each day: announcements for tomorrow, rumours, chatter. */
@@ -124,7 +129,7 @@ export function chatDayMut(d: GameState, r: Rng, gstMoved: string[]): void {
     for (const m of c.meetings) {
       const vars = { code: c.code, title: c.title, day: m.day, slot: slotName(m.slot).toLowerCase(), place: placeName(m.placeId) };
       if (m.day === day + 1 && m.status === 'cancelled') scriptMut(d, r, 'lecture_cancelled', vars);
-      if (m.day === day + 1 && m.moved && m.status === 'scheduled') scriptMut(d, r, [6, 7, 13, 14].includes(m.day) ? 'lecture_weekend' : 'lecture_moved', vars);
+      if (m.day === day + 1 && m.moved && m.status === 'scheduled') scriptMut(d, r, isWeekend(m.day) ? 'lecture_weekend' : 'lecture_moved', vars);
       if (m.test && m.status === 'scheduled' && m.day === day + leak) scriptMut(d, r, 'test_announced', vars);
     }
   }
@@ -132,7 +137,7 @@ export function chatDayMut(d: GameState, r: Rng, gstMoved: string[]): void {
     const c = d.academics.courses.find((x) => x.code === code);
     if (c) scriptMut(d, r, 'gst_batch_moved', { code, day: c.exam.day, slot: slotName(c.exam.slot).toLowerCase() });
   }
-  if (day === 10 && d.academics.courses.length) scriptMut(d, r, 'exams_soon');
+  if (day === EXAM_DAYS[0]! - 5 && d.academics.courses.length) scriptMut(d, r, 'exams_soon');
   if (day === 2 && d.academics.courses.length) scriptMut(d, r, 'class_dues', { amount: `₦${CLASS_DUES.toLocaleString('en-NG')}` });
   if (d.clock.semester === 2 && day === 3) scriptMut(d, r, 'dept_week', { amount: '₦3,000' });
   const deadline = registrationDeadline(d);
@@ -148,7 +153,8 @@ export function chatDayMut(d: GameState, r: Rng, gstMoved: string[]): void {
     if (r.chance(0.15)) scriptMut(d, r, 'room_chatter');
   }
   // A friend checks in now and then.
-  const friends = Object.entries(d.people).filter(([id, p]) => p.rel >= 20 && getPerson(id)?.role !== 'officer' && getPerson(id)?.role !== 'lecturer');
+  // (Not lecturers, officers or your parents: they have their own chats.)
+  const friends = Object.entries(d.people).filter(([id, p]) => p.rel >= 20 && !['officer', 'lecturer', 'family', 'vendor', 'doctor'].includes(getPerson(id)?.role ?? ''));
   if (friends.length && r.chance(0.12)) scriptMut(d, r, 'friend_checkin', { personId: r.pick(friends)[0] }, 'direct');
 }
 

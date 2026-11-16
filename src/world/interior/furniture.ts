@@ -363,6 +363,13 @@ export function chargingStation(p: Parts, at: At) {
   blk(p, at, 0.6, 0.3, 0.03, '#F2C230', 0, 1.3, -0.28, 0.01); // sign
 }
 
+/** A string of coloured fairy lights along a wall. */
+export function fairyLights(p: Parts, at: At, length: number) {
+  const colours = ['#FFE066', '#FF6B9A', '#7FD4FF', '#B4FF3E'];
+  blk(p, at, length, 0.015, 0.015, '#2E3A44', 0, 2.05, 0, 0);
+  for (let i = 0; i < Math.floor(length / 0.25); i++) blk(p, at, 0.07, 0.09, 0.07, colours[i % colours.length]!, -length / 2 + 0.12 + i * 0.25, 1.95 - (i % 2) * 0.05, 0.02, 0.03);
+}
+
 export function shade(hex: string, f: number): string {
   const n = parseInt(hex.slice(1), 16);
   const ch = (v: number) => Math.max(0, Math.min(255, Math.round(v * f)));

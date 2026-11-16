@@ -106,7 +106,7 @@ describe('office visits', () => {
 describe('finishing clearance', () => {
   it('keeps the acceptance fee payable if clearance runs into the next session (no dead end)', () => {
     const d = structuredClone(testGame());
-    d.clock = { ...d.clock, semester: 2, day: 14, slot: 3, dayCount: 28 };
+    d.clock = { ...d.clock, semester: 2, day: 28, slot: 3, dayCount: 56 };
     d.academics.courses = [];
     passSlots(d, new Rng(1), 1);
     expect(d.clock.year).toBe(2);

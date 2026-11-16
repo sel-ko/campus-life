@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { placeName } from '../content/places';
 import { naira } from '../game/format';
-import { feelings, moodOf } from '../game/needs';
+import { feelings, moodLine } from '../game/needs';
 import { PLAN_ICON, dayPlan } from '../game/planner';
 import { currentChapter } from '../game/story';
 import { journal } from '../game/journal';
@@ -46,14 +46,10 @@ const NEEDS: Array<{ key: 'energy' | 'hunger' | 'hygiene' | 'bladder' | 'stress'
 
 /** Six bars: full green is good. Hunger, bladder and stress count down to good. */
 export function NeedsPanel({ game }: { game: GameState }) {
-  const mood = moodOf(game);
   const feels = feelings(game);
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm font-semibold">
-        {mood.emoji} Feeling <b>{mood.label}</b>
-        {game.ill ? ' · sick' : ''}
-      </p>
+      <p className="text-sm font-semibold">{moodLine(game)}</p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2">
         {NEEDS.map((n) => {
           const raw = game.needs[n.key] ?? 0;
@@ -225,6 +221,11 @@ export function InfoStack({ game }: { game: GameState }) {
   const items: Array<{ id: string; icon: string; text: string; placeId?: string; portal?: boolean; tone: 'red' | 'amber' }> = [];
   if (game.phone.battery <= 15) items.push({ id: 'battery', icon: '🪫', text: game.phone.battery <= 0 ? 'Phone dead: charge it' : `Phone battery ${Math.round(game.phone.battery)}%: charge it`, placeId: game.room.placeId, tone: 'red' });
   else if (game.phone.data <= 100) items.push({ id: 'data', icon: '📶', text: game.phone.data <= 0 ? 'No data: buy a bundle' : 'Data almost finished', tone: 'amber' });
+  // A class is on right now and you are not there: you are late.
+  for (const c of game.academics.courses) {
+    const m = c.meetings.find((x) => x.day === game.clock.day && x.slot === game.clock.slot && x.status === 'scheduled' && !x.attended);
+    if (m && insideId !== m.placeId) items.unshift({ id: `late:${c.code}`, icon: '⏰', text: `You're late! ${c.code} ${meetingTime(c, m)} at ${placeName(m.placeId)}`, placeId: m.placeId, tone: 'red' });
+  }
   const quest = currentChapter(game).steps.find((s) => !s.done);
   for (const t of journal(game).filter((t) => t.urgent)) {
     if (items.length >= 3) break;

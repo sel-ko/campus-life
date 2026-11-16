@@ -98,9 +98,9 @@ export function TravelSheet({ game }: { game: GameState }) {
               <span className="text-2xl" aria-hidden="true">
                 {ICONS[o.mode]}
               </span>
-              <span className="text-sm font-bold">{NAMES[o.mode]}</span>
+              <span className="text-sm font-bold">{o.mode === 'walk' && o.detail.includes('close by') ? 'Trek' : NAMES[o.mode]}</span>
               <span className="text-[11px] leading-tight text-muted">
-                {!o.available ? (o.reason ?? 'Not now') : o.cost.money ? naira(o.cost.money) : o.cost.slots ? `Free · ${o.cost.slots === 1 ? '1 slot' : `${o.cost.slots} slots`}` : 'Free'}
+                {!o.available ? (o.reason ?? 'Not now') : o.detail.includes('close by') ? o.detail : o.cost.money ? naira(o.cost.money) : o.cost.slots ? `Free · ${o.cost.slots === 1 ? 'takes a while' : 'a long walk'}` : 'Free'}
               </span>
             </button>
           ))}

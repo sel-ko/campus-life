@@ -5,18 +5,20 @@ import type { BackgroundId, Needs } from './types';
 export const SAVE_VERSION = 2;
 
 // ---------- time ----------
-export const SEMESTER_DAYS = 14;
+/** A semester is a month: four weeks, Monday to Sunday. */
+export const SEMESTER_DAYS = 28;
 /** Day 1 is a Monday. */
-export const WEEKEND_DAYS = [6, 7, 13, 14];
+export const WEEKEND_DAYS = [6, 7, 13, 14, 20, 21, 27, 28];
 export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-/** Exams fill the last three days. Lectures run until the day before. */
-export const EXAM_DAYS = [12, 13, 14];
-export const LAST_LECTURE_DAY = 11;
-/** Year one, first semester: clearance and orientation come first. */
-export const FRESHER_LECTURES_START = 8;
-export const ORIENTATION_DAYS = [1, 2, 3, 4, 5];
-/** Allowance lands on these semester days, in the morning. */
-export const ALLOWANCE_DAYS = [1, 8];
+/** Exams fill the weekdays of week four. Lectures run to the Friday before. */
+export const EXAM_DAYS = [22, 23, 24, 25, 26];
+export const LAST_LECTURE_DAY = 19;
+/** Year one, first semester: orientation on day one, lectures from day two
+ *  (so clearance is worth finishing on the first day). */
+export const FRESHER_LECTURES_START = 2;
+export const ORIENTATION_DAYS = [1];
+/** Upkeep lands every Monday morning. */
+export const ALLOWANCE_DAYS = [1, 8, 15, 22];
 
 // ---------- needs ----------
 export const START_NEEDS: Needs = { energy: 85, hunger: 25, stress: 20, health: 90, hygiene: 55, bladder: 30 };
@@ -92,7 +94,7 @@ export const FEES = {
   lateRegistration: 5000,
 } as const;
 /** School fees come in two instalments, one per semester, due before exams. */
-export const FEE_DUE_DAY = 11;
+export const FEE_DUE_DAY = 19;
 export const DATA_WEEKLY = 500;
 export const CLASS_DUES = 1000;
 export const PRACTICAL_MANUAL = 2000;
@@ -123,9 +125,9 @@ export const PORTAL = {
   resolveChance: 0.45,
 };
 /** Registration closes on this day; a late fee is charged after it, until the late close. */
-export const REGISTRATION_DEADLINE = 5;
+export const REGISTRATION_DEADLINE = 8;
 export const FRESHER_REGISTRATION_DEADLINE = 10;
-export const LATE_REGISTRATION_CLOSE = 11;
+export const LATE_REGISTRATION_CLOSE = 15;
 
 // ---------- clearance ----------
 export const CLEARANCE_WEIGHTS = {

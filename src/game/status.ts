@@ -7,6 +7,7 @@ import { examsNow, meetingsNow } from './academics';
 import { officeName } from './clearance';
 import { getQueueLength, officesAt, stillClearing } from './interactions';
 import { isWeekend } from './time';
+import { dayLabel } from './calendar';
 import type { GameState, PlaceType } from './types';
 
 /** An emoji for each kind of place (map pins, cards). */
@@ -102,7 +103,7 @@ function nextClassHere(d: GameState, placeId: string): string | null {
     for (const m of c.meetings) {
       const t = m.day * 4 + m.slot;
       if (m.placeId !== placeId || m.status !== 'scheduled' || t <= now) continue;
-      if (!best || t < best.t) best = { t, text: `${c.code}, ${m.day === d.clock.day ? 'today' : `day ${m.day}`} ${SLOT_NAMES[m.slot]}` };
+      if (!best || t < best.t) best = { t, text: `${c.code}, ${m.day === d.clock.day ? 'today' : dayLabel(d, m.day)} ${SLOT_NAMES[m.slot]}` };
     }
   }
   return best?.text ?? null;
@@ -113,7 +114,7 @@ export function crowdLevel(d: GameState, placeId: string): number {
   const place = getPlace(placeId);
   if (!place) return 0;
   // Your room: strangers on the transit bunks until you have real roommates.
-  if (d.room.placeId === placeId) return d.room.roommates.length ? 0 : [0.45, 0.3, 0.6, 0.45][d.clock.slot]!;
+  if (d.room.placeId === placeId) return d.room.roommates.length ? 0 : [0.67, 0.34, 0.67, 1][d.clock.slot]!;
   const slot = d.clock.slot;
   const weekend = isWeekend(d.clock.day);
   if (examsNow(d, placeId).length) return 0.95;

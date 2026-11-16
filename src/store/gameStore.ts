@@ -7,7 +7,9 @@ import { PLACES, getPlace } from '../content/places';
 import { newGame } from '../game/engine';
 import {
   answerChat,
+  askParent,
   buyData,
+  setAlarm,
   chooseEvent,
   dismissSummary,
   markChatRead,
@@ -23,10 +25,11 @@ import { loadSave } from '../game/save';
 import { placeOpen } from '../game/status';
 import type { NewGameSetup } from '../game/state';
 import type { FeeId, GameState, TravelMode } from '../game/types';
+import type { AskReason } from '../game/phone';
 import { waitSlot } from '../game/engine';
 
 export type CameraMode = 'follow' | 'overview';
-export type PhoneApp = 'home' | 'school' | 'chat' | 'calendar' | 'wallet' | 'people' | 'places' | 'market' | 'leaderboard' | 'settings';
+export type PhoneApp = 'home' | 'school' | 'chat' | 'calendar' | 'wallet' | 'people' | 'places' | 'market' | 'leaderboard' | 'settings' | 'clock';
 
 interface GameStore {
   game: GameState | null;
@@ -75,6 +78,8 @@ interface GameStore {
   payFee: (id: FeeId) => void;
   payFeesInFull: () => void;
   buyData: () => void;
+  askParent: (who: 'mum' | 'dad', reason: AskReason) => void;
+  setAlarm: (minutes: number | null) => void;
   /** A short message on screen ("The Senate Building is closed"). */
   notice: string | null;
   setNotice: (text: string | null) => void;
@@ -150,7 +155,8 @@ export const useGameStore = create<GameStore>()(
             mode === 'keke' && to && to.type !== 'busstop'
               ? PLACES.filter((p) => p.type === 'busstop' && (p.sectionId === 'town') === (to.sectionId === 'town')).sort((a, b) => Math.hypot(a.position[0] - to.position[0], a.position[1] - to.position[1]) - Math.hypot(b.position[0] - to.position[0], b.position[1] - to.position[1]))[0]
               : undefined;
-          set({ game: next, travelSheetId: null, walkTargetId: travelSheetId, riding: mode !== 'walk', travelMode: mode, rideStop: stop ? stop.position : null, insidePlaceId: null });
+          // The camera stays on you for the whole trip, and after it.
+          set({ game: next, travelSheetId: null, walkTargetId: travelSheetId, riding: mode !== 'walk', travelMode: mode, rideStop: stop ? stop.position : null, insidePlaceId: null, cameraMode: 'follow' });
         },
 
         closeTravelSheet: () => set({ travelSheetId: null }),
@@ -208,6 +214,8 @@ export const useGameStore = create<GameStore>()(
         payFee: (id) => apply((g) => payFee(g, id)),
         payFeesInFull: () => apply(payFeesInFull),
         buyData: () => apply(buyData),
+        askParent: (who, reason) => apply((g) => askParent(g, who, reason)),
+        setAlarm: (minutes) => apply((g) => setAlarm(g, minutes)),
         notice: null,
         setNotice: (notice) => set({ notice }),
         registerCourses: () => apply(registerCourses),

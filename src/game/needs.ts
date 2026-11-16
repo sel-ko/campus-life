@@ -107,7 +107,9 @@ export function sleepMut(d: GameState, r: Rng): void {
     energy += SLEEP.temporary;
     notes.push('the transit bunk creaks');
   }
-  n.energy = clamp(n.energy + energy);
+  // A night's sleep fills you up: all the way, less what disturbed it.
+  n.energy = clamp(Math.max(n.energy, 100 + energy - SLEEP.energy));
+  d.flags.wake_energy = n.energy;
   n.stress = clamp(n.stress + SLEEP.stress);
   d.flags.slept = d.clock.dayCount;
   log(d, notes.length ? `You slept, but ${notes.join(' and ')}.` : 'You slept well.');
@@ -190,6 +192,8 @@ export function feelings(d: GameState): Feeling[] {
   if (d.ill) f('sick', '🤒', 'Sick', 'Go and see a doctor.', -15);
   if (d.money < 1500) f('broke', '🪫', 'Broke', 'Your account is crying.', -10);
   if (d.clearance.active && d.clock.dayCount > 3) f('clearance', '🗂️', 'Clearance wahala', 'Office to office, queue to queue.', -6);
+  const decor = Object.entries(d.inventory).filter(([k, n]) => n > 0 && ['poster', 'plant', 'fairy_lights', 'duvet', 'rug_decor'].includes(k)).length;
+  if (decor >= 2) f('cosy', '🪴', 'Cosy corner', 'Your space feels like home.', 3 + decor * 2);
   if (!d.room.water) f('no_water', '🚱', 'No water', 'The taps are dry in the hostel.', -5);
   if (!d.room.light) f('no_light', '🕯️', 'NEPA took light', 'Phone at 4%.', -5);
   if (d.flags.party_night === d.clock.dayCount || d.flags.party_night === d.clock.dayCount - 1) f('party', '🪩', 'Last night was mad', 'Still feeling the music.', 10);
@@ -214,4 +218,21 @@ export function healthLabel(d: GameState): string {
   if (h >= 75) return 'Strong';
   if (h >= 50) return 'Okay';
   return 'Run down';
+}
+
+/** How you are, in words, updated with every action: "Pressed · tired, hungry". */
+export function moodLine(d: GameState): string {
+  const mood = moodOf(d);
+  const n = d.needs;
+  const words: string[] = [];
+  if (n.energy <= 15) words.push('exhausted');
+  else if (n.energy <= 35) words.push('tired');
+  if (n.hunger >= 80) words.push('starving');
+  else if (n.hunger >= 60) words.push('hungry');
+  if ((n.hygiene ?? 100) < 25) words.push('smelly');
+  if ((n.bladder ?? 0) >= 75) words.push('pressed');
+  if (n.stress >= 75) words.push('stressed');
+  if (d.ill) words.push('sick');
+  if (n.health < 40 && !d.ill) words.push('weak');
+  return `${mood.emoji} ${mood.label}${words.length ? ` · ${words.slice(0, 3).join(', ')}` : ''}`;
 }

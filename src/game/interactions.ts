@@ -50,8 +50,8 @@ import { answerMut, markReadMut } from './chat';
 import { BANK_LOAN, DRIVE_FUEL, FARES, HOSPITAL_TREATMENT, ORIENTATION_DAYS, PHONE, TOWN_TRIP } from './config';
 import { clamp, log, produce } from './draft';
 import { storyRewardsMut } from './story';
-import { EXAM_FORM_DAYS, EXAM_FORM_LATE_FEE } from './calendar';
-import { addDataMut, canBuyData, chargeMut, overnightChargeMut, phoneProblem, usePhoneMut } from './phone';
+import { EXAM_FORM_DAYS, EXAM_FORM_LATE_FEE, dayLabel } from './calendar';
+import { addDataMut, askParentMut, canBuyData, chargeMut, overnightChargeMut, phoneProblem, usePhoneMut, type AskReason } from './phone';
 import { addRel, applyEffects } from './effects';
 import { addMinutes, advance } from './engine';
 import { chooseEventMut, maybeEventMut } from './events';
@@ -62,7 +62,7 @@ import { canHustle, canSetUp, errandsMut, hustleMut, setUpMut, washPlatesMut } f
 import { clearanceFormDone, feePaid, portalPayFullMut, portalPayMut, portalRegisterMut, resolveDebitMut, spend } from './money';
 import { batheMut, canBathe, eatMut, napMut, sleepMut, toiletMut, TREATMENT, treatMut } from './needs';
 import { canTalk, doFavourMut, favoursFor, talkMut } from './people';
-import { SLOT_END, SLOT_START, clockMin, isWeekend, minutesLeftInSlot, slotName, stamp } from './time';
+import { SLOT_END, SLOT_START, clockMin, formatTime, isWeekend, minutesLeftInSlot, slotName, stamp } from './time';
 import type { FeeId, GameState, OfficeId, PlaceType, TravelMode } from './types';
 
 export type TargetType = 'seat' | 'lecturer' | 'desk' | 'counter' | 'bed' | 'locker' | 'shelf' | 'bench' | 'stove' | 'board' | 'door' | 'shower' | 'toilet' | 'copier' | 'camera' | 'printer' | 'charger' | 'person';
@@ -210,6 +210,9 @@ export function examFormKey(d: GameState): string {
 
 /** Some actions leave you sweaty. */
 const HYGIENE_COST: Partial<Record<InteractionKind, number>> = { exercise: 25, party: 25, wash_plates: 15, hustle: 8, errands: 10, owambe: 15, campaign: 10 };
+
+/** Places nearer than this (metres) are walking distance. */
+const CLOSE_BY = 70;
 
 /** Nothing fun before you are a proper student: clearance first. */
 export function stillClearing(d: GameState): boolean {
@@ -406,7 +409,7 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
     }
     for (const c of a.courses) {
       const can = canDoAssignment(d, c);
-      if (can.ok) add({ id: `assignment:${c.code}`, kind: 'assignment', label: `Do the ${c.code} assignment`, detail: `Due day ${c.assignmentDue}`, target: { type: 'desk' }, cost: SLOT, ...yes });
+      if (can.ok) add({ id: `assignment:${c.code}`, kind: 'assignment', label: `Do the ${c.code} assignment`, detail: `Due ${dayLabel(d, c.assignmentDue)}`, target: { type: 'desk' }, minutes: 45, ...yes });
     }
     const p = a.project;
     if (p && !p.defended) {
@@ -454,7 +457,16 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
 
   // Food.
   for (const dish of getMenu(d, placeId)) {
-    add({ id: `eat:${dish.id}`, kind: 'eat', label: `${dish.name}`, detail: dish.snack ? 'Snack' : `Fills you up`, target: { type: 'counter' }, cost: { money: dish.price }, ...(d.money >= dish.price ? yes : no(`You need ${naira(dish.price)}`)) });
+    add({
+      id: `eat:${dish.id}`,
+      kind: 'eat',
+      label: `${dish.name}`,
+      target: { type: 'counter' },
+      cost: { money: dish.price },
+      minutes: dish.minutes ?? (dish.snack ? 5 : 20),
+      effects: [`+${dish.energy ?? 0} Energy`, `-${dish.fills} Hunger`],
+      ...(d.money >= dish.price ? yes : no(`You need ${naira(dish.price)}`)),
+    });
   }
   if (place.type === 'restaurant') {
     add({ id: 'wash_plates', kind: 'wash_plates', label: 'Wash plates for cash and a free plate', detail: '₦500 and a meal', target: { type: 'counter' }, cost: SLOT, ...(slot === 3 ? no('Closed at night') : yes) });
@@ -475,7 +487,7 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
         ? no('Pay the acceptance fee on the portal first')
         : needsRegistration
           ? no('Register your courses first')
-        : (item.id === 'padlock' && d.room.padlock) || (item.id === 'car' && d.inventory.car)
+        : (item.id === 'padlock' && d.room.padlock) || (item.id === 'car' && d.inventory.car) || (item.decor && d.inventory[item.id])
           ? no('You already have one')
           : d.money >= item.price
             ? yes
@@ -507,20 +519,29 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
       add({ id: 'toilet', kind: 'toilet', label: 'Use the toilet', target: { type: 'toilet' }, ...(d.needs.bladder < 10 ? no('You do not need to go') : yes) });
       add({ id: 'charge', kind: 'charge', label: 'Charge your phone', detail: `Battery ${Math.round(d.phone?.battery ?? 100)}%`, target: { type: 'desk' }, ...(!d.room.light ? no('No light in the hostel (NEPA)') : (d.phone?.battery ?? 100) >= 100 ? no('Already full') : yes) });
       const night = slot === 3 ? yes : no('Sleep is for the night; take a nap');
-      add({ id: 'sleep:6', kind: 'sleep', label: 'Sleep, alarm at 6:00 am', detail: 'Up early: an extra hour before 7', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...night });
-      add({ id: 'sleep:7', kind: 'sleep', label: 'Sleep, alarm at 7:00 am', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...night });
-      add({ id: 'sleep', kind: 'sleep', label: 'Sleep, no alarm', detail: 'You might oversleep', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...night });
+      const alarm = d.flags.alarm_set;
+      add({ id: 'sleep', kind: 'sleep', label: 'Sleep till morning', detail: alarm ? `Alarm set for ${formatTime(alarm)}` : 'No alarm set (set one on your phone): you might oversleep', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...night });
       const day = slot === 3 ? no('It is night: sleep properly') : yes;
-      add({ id: 'nap:30', kind: 'nap', label: 'Power nap, alarm in 30 min', target: { type: 'bed', id: 'bed-1' }, minutes: 30, ...day });
-      add({ id: 'nap:60', kind: 'nap', label: 'Nap, alarm in 1 hour', target: { type: 'bed', id: 'bed-1' }, minutes: 60, ...day });
+      add({ id: 'nap:30', kind: 'nap', label: 'Power nap', target: { type: 'bed', id: 'bed-1' }, minutes: 30, ...day });
+      add({ id: 'nap:60', kind: 'nap', label: 'Nap for an hour', target: { type: 'bed', id: 'bed-1' }, minutes: 60, ...day });
       add({ id: 'nap', kind: 'nap', label: `Nap till ${slotName((slot + 1) % 4).toLowerCase()}`, target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...day });
       for (const [item, count] of Object.entries(d.inventory)) {
         const food = SHOP_ITEMS[item]?.food;
         if (!food || count <= 0) continue;
-        add({ id: `food:${item}`, kind: 'cook', label: `${food.cook ? 'Cook' : 'Eat'} ${item.replace('_', ' ')} (${count} left)`, target: { type: food.cook ? 'stove' : 'locker' }, ...ok(canEatProvision(d, item, food)) });
+        add({
+          id: `food:${item}`,
+          kind: 'cook',
+          label: `${food.cook ? 'Cook' : 'Eat'} ${item.replace('_', ' ')} (${count} left)`,
+          target: { type: food.cook ? 'stove' : 'locker' },
+          minutes: food.cook ? 35 : 10,
+          effects: [`+${food.energy ?? 0} Energy`, `-${food.fills} Hunger`],
+          ...ok(canEatProvision(d, item, food)),
+        });
+      }
+      if (!Object.entries(d.inventory).some(([k, n]) => n > 0 && SHOP_ITEMS[k]?.food?.cook)) {
+        add({ id: 'cook_hint', kind: 'cook', label: 'Cook a meal', detail: 'Buy rice, beans, noodles or eggs at the market or the provision shop first', target: { type: 'stove' }, minutes: 35, ...no('Nothing to cook: buy provisions first') });
       }
       if (d.room.levy) add({ id: 'levy', kind: 'levy', label: `Pay the room levy (${naira(d.room.levy)})`, target: { type: 'locker' }, cost: { money: d.room.levy }, ...(d.money >= d.room.levy ? yes : no('Not enough money')) });
-      add({ id: 'errands', kind: 'errands', label: 'Run errands for seniors', detail: '₦400. Always available.', target: { type: 'door' }, cost: SLOT, ...(slot === 3 ? no('Everyone is asleep') : yes) });
     }
   }
 
@@ -730,8 +751,8 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
       break;
     case 'sleep':
       sleepMut(d, r);
-      // An alarm: no oversleeping, and you are up at that hour.
-      if (arg) d.flags.alarm = Number(arg) * 60;
+      // The phone alarm: no oversleeping, and you are up at that hour.
+      if (d.flags.alarm_set) d.flags.alarm = d.flags.alarm_set;
       break;
     case 'nap':
       napMut(d, arg ? Number(arg) / 120 : 1);
@@ -860,6 +881,11 @@ export function performMut(d: GameState, r: import('./rng').Rng, placeId: string
   if (slots > 0) advance(d, r, slots);
   else addMinutes(d, r, i.minutes ?? QUICK_MINUTES[i.kind] ?? 10);
   if (i.kind === 'sleep' && isOwnRoom(d, placeId)) overnightChargeMut(d);
+  // You wake up as rested as you slept (the night itself does not tire you).
+  if (i.kind === 'sleep' && d.flags.wake_energy) {
+    d.needs.energy = Math.max(d.needs.energy, d.flags.wake_energy);
+    delete d.flags.wake_energy;
+  }
   if (d.flags.alarm) {
     // The alarm rang: the morning starts at that hour.
     if (d.clock.slot === 0 && d.flags.slept === d.clock.dayCount - 1 && !d.lostSlots) d.clock.min = d.flags.alarm;
@@ -922,6 +948,14 @@ export function travelOptions(d: GameState, toPlaceId: string): TravelOption[] {
     options.push({ mode: 'drive', label: 'Drive your car', detail: `${naira(DRIVE_FUEL)} of fuel`, cost: { money: DRIVE_FUEL }, ...(d.money < DRIVE_FUEL ? no(`You need ${naira(DRIVE_FUEL)} for fuel`) : yes) });
   }
   const ride = across ? '' : ' · a short hop';
+  // Right next door: no keke man will carry you that far. Just walk.
+  const from = getPlace(d.location.placeId);
+  const close = !across && !!from && Math.hypot(from.position[0] - to.position[0], from.position[1] - to.position[1]) < CLOSE_BY;
+  if (close) {
+    walk.label = 'Trek';
+    walk.detail = `${to.name} is close by`;
+    return [walk, { mode: 'keke', label: 'Take a keke', detail: '', cost: {}, ...no(`${to.name} is close by: walk`) }, { mode: 'cab', label: 'Call a cab', detail: '', cost: {}, ...no(`${to.name} is close by: walk`) }];
+  }
   const rides: TravelOption[] = [
     { mode: 'keke', label: 'Take a keke', detail: `${naira(keke)}${ride || ' · from the keke park'}`, cost: { money: keke }, ...(d.clock.slot === 3 ? no('No kekes at night') : d.money < keke ? no(`You need ${naira(keke)}`) : yes) },
     { mode: 'cab', label: 'Call a cab', detail: `${naira(cab)} · door to door${ride}${d.clock.slot === 3 ? ' (night rides run)' : ''}`, cost: { money: cab }, ...(d.money < cab ? no(`You need ${naira(cab)}`) : yes) },
@@ -988,6 +1022,26 @@ export function buyData(state: GameState): GameState {
     spend(d, PHONE.bundlePrice);
     addDataMut(d);
     log(d, `Data bundle bought with *USSD#: +${PHONE.bundle} MB for ${naira(PHONE.bundlePrice)}.`);
+  });
+}
+
+function trackMoneyIfAny(d: GameState): void {
+  if (d.money > d.stats.maxMoney) d.stats.maxMoney = d.money;
+}
+
+/** The phone alarm for the morning (minutes after midnight), or none. */
+export function setAlarm(state: GameState, minutes: number | null): GameState {
+  return produce(state, (d) => {
+    if (minutes) d.flags.alarm_set = minutes;
+    else delete d.flags.alarm_set;
+  });
+}
+
+/** Call Mum or Dad for money. */
+export function askParent(state: GameState, who: 'mum' | 'dad', reason: AskReason): GameState {
+  return produce(state, (d, r) => {
+    askParentMut(d, r, who, reason);
+    trackMoneyIfAny(d);
   });
 }
 

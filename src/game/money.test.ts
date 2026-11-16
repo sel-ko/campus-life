@@ -27,12 +27,12 @@ describe('fees', () => {
     expect(plain.find((f) => f.id === 'school1')!.amount * 2).toBe(FEES.school[0]);
   });
 
-  it('starts with the family fee money (a share of it for broke families)', () => {
+  it('starts with the pocket money plus every fee due, from home (whatever the family)', () => {
     const avg = testGame();
     const broke = testGame({ background: 'broke' });
     const dueNow = avg.finance.fees.filter((f) => f.dueSemester === 1).reduce((s, f) => s + f.amount, 0);
     expect(avg.money).toBeGreaterThanOrEqual(BACKGROUNDS.average.startMoney + dueNow);
-    expect(broke.money).toBeLessThan(BACKGROUNDS.broke.startMoney + dueNow + BACKGROUNDS.broke.allowance);
+    expect(broke.money).toBeGreaterThanOrEqual(BACKGROUNDS.broke.startMoney + dueNow);
   });
 });
 
@@ -89,7 +89,7 @@ describe('the portal', () => {
       }
       return bad;
     };
-    expect(count(10)).toBeGreaterThan(count(3) * 1.5);
+    expect(count(18)).toBeGreaterThan(count(3) * 1.5);
   });
 
   it('blocks registration until clearance is done, then charges a late fee after the deadline', () => {

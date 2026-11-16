@@ -21,7 +21,8 @@ import { GAME_NAME } from '../site';
 import { VendorCard } from '../VendorSection';
 import { TimetableGrid } from '../lifeUi';
 import { PHONE } from '../../game/config';
-import { canBuyData } from '../../game/phone';
+import { dayLabel, stampLabel } from '../../game/calendar';
+import { ASK_REASONS, canAsk, canBuyData, feesOwed, type AskReason } from '../../game/phone';
 import { getProgramme } from '../../content/courses';
 
 const tab = (on: boolean) => `min-h-10 shrink-0 rounded-full px-3 text-sm font-semibold ${on ? 'bg-sun text-night' : 'bg-white/10'}`;
@@ -91,7 +92,7 @@ export function SchoolApp({ game }: { game: GameState }) {
                 <span className="flex flex-1 flex-col">
                   <span className="font-semibold">{f.label}</span>
                   <span className="text-xs text-muted">
-                    {naira(f.amount)} · due day {f.dueDay} of semester {f.dueSemester}
+                    {naira(f.amount)} · due {f.dueSemester === game.clock.semester ? dayLabel(game, f.dueDay) : 'next semester'}
                   </span>
                 </span>
                 {f.paid ? (
@@ -132,7 +133,7 @@ function CoursesTab({ game, onRegister }: { game: GameState; onRegister: () => v
   return (
     <div className="flex flex-col gap-2">
       <div className={box}>
-        <p className="font-semibold">{game.academics.registered ? '✅ Registered for this semester' : `Registration deadline: day ${registrationDeadline(game)}`}</p>
+        <p className="font-semibold">{game.academics.registered ? '✅ Registered for this semester' : `Registration deadline: ${dayLabel(game, registrationDeadline(game))}`}</p>
         {!game.academics.registered && (
           <>
             <button disabled={!can.ok} onClick={onRegister} className="mt-2 min-h-11 w-full rounded-xl bg-sun font-bold text-night disabled:opacity-40">
@@ -179,7 +180,7 @@ function Timetable({ game }: { game: GameState; examsOnly?: boolean }) {
       <p className="mb-1 font-semibold">Exam timetable</p>
       {exams.map((c) => (
         <p key={c.code} className="text-sm">
-          Day {c.exam.day} {slotName(c.exam.slot)}: <b>{c.code}</b> · {placeName(c.exam.placeId)}
+          {dayLabel(game, c.exam.day)} {slotName(c.exam.slot)}: <b>{c.code}</b> · {placeName(c.exam.placeId)}
           {c.exam.batchMoved ? ' (moved!)' : ''}
         </p>
       ))}
@@ -276,7 +277,7 @@ export function ChatApp({ game }: { game: GameState }) {
                 {!mine && thread.kind === 'group' && <span className="text-xs font-bold text-sky-300">{name(m.from)}</span>}
                 <span>{m.text}</span>
                 <span className={`self-end text-[10px] ${mine ? 'text-night/60' : 'text-muted'}`}>
-                  Day {Math.floor(m.at / 4) - 0} · {slotName(m.at % 4)}
+                  {stampLabel(game, m.at)}
                 </span>
                 {m.replies && m.answered === undefined && (
                   <span className="mt-1 flex flex-wrap gap-1">
@@ -315,7 +316,7 @@ export function CalendarApp({ game }: { game: GameState }) {
           return (
             <div key={day} className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm font-semibold ${today ? 'bg-sun text-night' : WEEKEND_DAYS.includes(day) ? 'bg-white/15' : 'bg-white/8'} ${day < game.clock.day ? 'opacity-45' : ''}`}>
               {day}
-              <span className="text-[10px] leading-none">{EXAM_DAYS.includes(day) ? '📝' : day === 1 || day === 8 ? '₦' : ''}</span>
+              <span className="text-[10px] leading-none">{EXAM_DAYS.includes(day) ? '📝' : day % 7 === 1 ? '₦' : ''}</span>
             </div>
           );
         })}
@@ -336,6 +337,65 @@ export function CalendarApp({ game }: { game: GameState }) {
 }
 
 // ---------- Wallet ----------
+
+/** Set the alarm for the morning (used when you sleep in your room). */
+export function AlarmApp({ game }: { game: GameState }) {
+  const setAlarm = useGameStore((s) => s.setAlarm);
+  const current = game.flags.alarm_set ?? 0;
+  const times = [330, 360, 390, 420, 450, 480];
+  const label = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} am`;
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-muted">The alarm wakes you when you sleep. Without one you might oversleep and miss the morning. Earlier than 7 gives you extra time before lectures.</p>
+      <ul className="flex flex-col gap-2">
+        {times.map((m) => (
+          <li key={m}>
+            <button onClick={() => setAlarm(m)} aria-pressed={current === m} className={`flex min-h-14 w-full items-center justify-between rounded-2xl px-4 text-left ${current === m ? 'bg-sun text-night' : 'bg-white/8'}`}>
+              <span className="text-2xl font-extrabold">{label(m)}</span>
+              <span className="text-sm font-semibold">{current === m ? 'On ⏰' : 'Off'}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button onClick={() => setAlarm(null)} className="min-h-11 rounded-xl border border-white/20 text-sm font-semibold">
+        No alarm
+      </button>
+    </div>
+  );
+}
+
+/** Call home: pick a parent and what the money is for. */
+function AskHome({ game }: { game: GameState }) {
+  const ask = useGameStore((s) => s.askParent);
+  const [who, setWho] = useState<'mum' | 'dad'>('dad');
+  const owed = feesOwed(game);
+  return (
+    <section className={`${box} flex flex-col gap-2`}>
+      <h3 className="font-semibold">📞 Ask home for money</h3>
+      <div className="flex gap-2">
+        {(['dad', 'mum'] as const).map((p) => (
+          <button key={p} onClick={() => setWho(p)} aria-pressed={who === p} className={`min-h-10 flex-1 rounded-full text-sm font-semibold ${who === p ? 'bg-sun text-night' : 'bg-white/10'}`}>
+            {p === 'dad' ? 'Daddy' : 'Mummy'}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {(Object.keys(ASK_REASONS) as AskReason[]).map((r) => {
+          const can = canAsk(game, who, r);
+          return (
+            <button key={r} disabled={!can.ok} onClick={() => ask(who, r)} title={can.reason} className="flex min-h-14 flex-col items-start justify-center rounded-2xl bg-white/8 px-3 text-left disabled:opacity-40">
+              <span className="text-sm font-semibold">
+                {ASK_REASONS[r].emoji} {ASK_REASONS[r].label}
+              </span>
+              {r === 'fees' && owed > 0 && <span className="text-[11px] text-sun">You owe {naira(owed)}</span>}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted">One call to each parent a day. Ask too often and they start to say no.</p>
+    </section>
+  );
+}
 
 function DataCard({ game }: { game: GameState }) {
   const buyData = useGameStore((s) => s.buyData);
@@ -372,6 +432,7 @@ export function WalletApp({ game }: { game: GameState }) {
           Earned {naira(game.finance.earned)} · spent {naira(game.finance.spent)}
         </p>
       </div>
+      <AskHome game={game} />
       <DataCard game={game} />
       <section className={box}>
         <h3 className="mb-1 font-semibold">Hustles</h3>

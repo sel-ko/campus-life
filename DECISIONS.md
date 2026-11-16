@@ -819,3 +819,70 @@ the code mentioned.
      main button of every step stays pinned at the bottom of the panel, a
      hint says to type a name when Next is greyed out, and the campus behind
      stops rendering (and is no longer blurred) once the form is open.
+
+## A month-long semester, fees first, rooms you can walk out of
+
+195. **A semester is a month (28 days):** four weeks, weekends on days 6, 7,
+     13, 14, 20, 21, 27, 28. Freshers' orientation is day 1 and **lectures
+     start on day 2**, so clearance is worth finishing on the first day.
+     Lectures run to day 19 (Friday of week 3), exams fill week 4 (days 22 to
+     26). Upkeep comes every Monday; fees are due day 19; registration closes
+     day 8 (10 for freshers), late registration day 15; exam forms are signed
+     days 15 to 19; the election is day 17. The timetable has four weeks.
+196. **Home pays everything:** at the start of each semester Dad sends every
+     fee due (school fees, dues, hostel, acceptance), and a fresher also gets
+     ₦5,000 for clearance papers and the medical fee, whatever the family's
+     background (the background changes upkeep and how often a request for
+     more money is answered).
+197. **Fees come first:** no office signs your clearance form until at least
+     the first instalment of school fees is paid. The fresher chapter lists
+     acceptance, school fees (half or full), dues and hostel as separate
+     steps, then papers, then each office with the papers it needs ("📄 1
+     passport photograph, 1 photocopy…") and any fee.
+198. **Ask home for money** (phone → Wallet): Mummy or Daddy, for fees,
+     feeding, books or an emergency; once a day each. Fees are always found
+     (a broke family manages 60% after a few asks); other requests depend on
+     the family and get rarer the more you ask in a semester. Their reply and
+     the credit alert arrive in the Family and Bank chats.
+199. **Food:** every dish has an energy value and an eating time (snacks 2 to
+     10 minutes and little energy; rice about 20 minutes; eba, amala or
+     pounded yam with soup 35 to 40 minutes and the most energy). Cards show
+     "+15 Energy", "-55 Hunger" and the time. More provisions to cook (rice,
+     beans); the stove says what to buy when there is nothing to cook.
+200. **Decorations:** a poster, a plant, fairy lights, an Ankara duvet and a
+     fluffy rug at the hostel market, the provision shop and the mall. They
+     appear in your corner, and two or more give a "Cosy corner" feeling.
+201. **Sleep fills your energy** (less with no light, noisy roommates or a
+     transit bunk). The **alarm is set on the phone** (Alarm app, 5:30 to
+     8:00 or none); the bed only offers sleep and naps (30 minutes, an hour,
+     or until the next part of the day). Before you sleep, **a recap of the
+     day**: what you did, which classes you made or missed, your mood and
+     money.
+202. **Rooms:** walk out through the doorway to leave (the joystick keeps
+     working on the map). Walking to something plans a route round the
+     furniture (no more getting stuck on the bed by the bathroom). Nothing
+     opens by itself as you walk in. A long card has a "↓ More" hint and a
+     visible scrollbar; the desk's many actions are split into tabs (Read,
+     Assignments, Project, Phone). Assignments take 45 minutes each, not a
+     part of the day. No more errands for seniors.
+203. **Clearance feedback:** after a visit the result floats up ("✅ Signed"
+     or "❌ Not signed" with the officer's reason); if the office closed while
+     you queued, it says so instead of silently doing nothing. A follow-up
+     ("come back tomorrow", "bring a passport photograph") floats over your
+     head only inside the office that told you; there is no quest text over
+     your head on the map. Office rooms lost the queue chip.
+204. **Travel:** somewhere close by (under 70 m) offers only "Trek · X is close
+     by" (keke and cab are greyed out). The camera stays on you after any
+     ride. Cars drive round the roads of campus, the hostels and town.
+205. **The dorm holds four:** you and at most three others, one per corner;
+     an empty corner means nobody is there.
+206. **Dates everywhere:** chats, the phone, tasks, quests, the portal and
+     the timetable say "Thu 8 Oct" and times, not "day 4". A red "You're
+     late!" chip appears when a class is on and you are not there. The
+     profile shows a live mood line ("😩 Pressed · tired, hungry").
+207. Mummy no longer sends classmates' messages (family members are left out
+     of the random friend chats). The character creator shows the whole
+     character in 3D, turning.
+208. **Online play (planned):** the game is meant to become multiplayer with
+     live stats; when the single-player rules are solid, roommate NPCs will
+     make way for real players.

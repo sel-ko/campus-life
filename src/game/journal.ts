@@ -151,7 +151,7 @@ const healthTasks: Producer = (d) => {
   if (n.energy <= 25) out.push({ id: 'tired', text: 'You are exhausted: sleep tonight or take a nap in your room', placeId: d.room.placeId, urgent: n.energy <= 12, group: 'health' });
   if (n.stress >= 75) out.push({ id: 'stressed', text: 'Stress is high: hang out at the Sports Complex or rest', placeId: fieldPlace().id, group: 'health' });
   if (d.room.levy) out.push({ id: 'levy', text: `Pay the room levy (${naira(d.room.levy)}) in your room`, placeId: d.room.placeId, group: 'money' });
-  if (d.money < 1500) out.push({ id: 'broke', text: 'Money is very low: run errands in the hostel, wash plates at a buka, or borrow from a friend', placeId: d.room.placeId, group: 'money' });
+  if (d.money < 1500) out.push({ id: 'broke', text: 'Money is very low: call home (phone → Wallet), wash plates at a buka, or borrow from a friend', placeId: d.room.placeId, group: 'money' });
   return out;
 };
 
@@ -160,7 +160,7 @@ const peopleTasks: Producer = (d) =>
     .filter((l) => l.playerOwes)
     .map((l) => ({
       id: `loan:${l.id}`,
-      text: `Pay back ${naira(l.amount)} to ${getPerson(l.personId)?.name ?? 'a friend'} by day ${l.due - d.clock.dayCount + d.clock.day}`,
+      text: `Pay back ${naira(l.amount)} to ${getPerson(l.personId)?.name ?? 'a friend'} by ${dayLabel(d, l.due - d.clock.dayCount + d.clock.day)}`,
       urgent: l.due <= d.clock.dayCount + 1,
       group: 'people' as const,
     }));
@@ -170,7 +170,7 @@ const goalTasks: Producer = (d) => {
   const m = nextMilestone(d);
   if (m) out.push({ id: `milestone:${m.id}`, text: `Ambition: ${m.label}`, group: 'goals' });
   const e = upcomingElection(d);
-  if (e && d.clock.day <= ELECTION_DAY) out.push({ id: 'election', text: `Election on day ${ELECTION_DAY}: campaign at the Sports Complex and make friends`, placeId: fieldPlace().id, group: 'goals' });
+  if (e && d.clock.day <= ELECTION_DAY) out.push({ id: 'election', text: `Election on ${dayLabel(d, ELECTION_DAY)}: campaign at the Sports Complex and make friends`, placeId: fieldPlace().id, group: 'goals' });
   return out;
 };
 

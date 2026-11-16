@@ -175,7 +175,9 @@ function hustleSomething(c: Ctx): boolean {
     const place = id === 'snacks' ? getPlace(d.room.placeId) : nearest(c, (p) => !!p.hustles?.includes(id) && p.type !== 'hostel_room');
     if (place && act(c, place.id, `hustle:${id}`)) return true;
   }
-  return act(c, d.room.placeId, 'errands');
+  // Nothing else: wash plates at the nearest buka.
+  const buka = nearest(c, (p) => p.type === 'restaurant' && !!p.menu);
+  return !!buka && act(c, buka.id, 'wash_plates');
 }
 
 /** One slot's worth of decision. Always spends at least one slot (or resolves an event). */

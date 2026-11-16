@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AMBITIONS } from '../content/ambitions';
-import { checkMilestonesMut, checkObjectivesMut, electionMut, finalMilestonesMut, newWeekMut } from './goals';
+import { checkMilestonesMut, checkObjectivesMut, electionMut, finalMilestonesMut, newWeekMut, ELECTION_DAY } from './goals';
 import { journal } from './journal';
 import { Rng } from './rng';
 import { at, testGame } from './testkit';
@@ -33,13 +33,13 @@ describe('ambitions', () => {
   });
 
   it('holds elections for the Student Union ambition and rewards popularity', () => {
-    const d = at(structuredClone(testGame()), 10, 0);
+    const d = at(structuredClone(testGame()), ELECTION_DAY, 0);
     d.goals.ambition = 'su_president';
     d.academics.level = 2;
     for (const id of ['tobi', 'ify', 'kelz', 'dami', 'osaze', 'zainab', 'tega']) d.people[id]!.rel = 60;
     electionMut(d, new Rng(1));
     expect(d.goals.position).toBe('class_rep');
-    const loner = at(structuredClone(testGame()), 10, 0);
+    const loner = at(structuredClone(testGame()), ELECTION_DAY, 0);
     loner.goals.ambition = 'su_president';
     loner.academics.level = 2;
     electionMut(loner, new Rng(1));

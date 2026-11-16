@@ -66,6 +66,8 @@ export function canVisitOffice(d: GameState, id: OfficeId): Availability {
   if (d.clearance.signed[id]) return { ok: false, reason: 'Already signed' };
   if (d.clock.slot === 3) return { ok: false, reason: 'Offices are locked at night' };
   if (beforeOfficeHours(d)) return { ok: false, reason: 'Opens at 8:00 am' };
+  // No office signs for a student who has not paid at least the first instalment.
+  if (!feePaid(d, 'school1') && d.finance.fees.some((f) => f.id === 'school1')) return { ok: false, reason: 'Pay your school fees first (half or full, on the portal)' };
   return { ok: true };
 }
 

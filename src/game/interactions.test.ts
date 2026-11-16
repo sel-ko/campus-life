@@ -69,7 +69,7 @@ describe('the interaction API, by place type', () => {
     d.inventory.noodles = 2;
     const list = getInteractions(d, d.room.placeId);
     check(list);
-    for (const id of ['nap', 'errands', 'food:noodles', 'hustle:snacks']) expect(list.map((i) => i.id)).toContain(id);
+    for (const id of ['nap', 'sleep', 'bath', 'food:noodles', 'hustle:snacks']) expect(list.map((i) => i.id)).toContain(id);
     const other = PLACES.find((p) => p.type === 'hostel_room' && p.id !== d.room.placeId)!;
     expect(getInteractions(d, other.id).map((i) => i.id)).not.toContain('nap');
   });

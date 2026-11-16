@@ -101,6 +101,8 @@ export interface MenuItem {
   stress?: number;
   /** Snack: quick and light. */
   snack?: boolean;
+  /** Minutes to eat it (snacks are quick; swallow and soup takes a while). */
+  minutes?: number;
   draft?: boolean;
 }
 
@@ -112,6 +114,8 @@ export interface ShopItem {
   pack?: number;
   /** Provisions: what eating one does. */
   food?: { fills: number; energy?: number; needsWater?: boolean; cook?: boolean };
+  /** Decoration for your corner of the room (shown there, and makes it feel like home). */
+  decor?: boolean;
   draft?: boolean;
 }
 

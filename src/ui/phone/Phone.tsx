@@ -8,14 +8,15 @@ import { totalUnread } from '../../game/chat';
 import { journal } from '../../game/journal';
 import { clockTime, slotName } from '../../game/time';
 import { PHONE } from '../../game/config';
+import { todayLabel } from '../../game/calendar';
 import { naira } from '../../game/format';
 import { canBuyData } from '../../game/phone';
 import type { GameState } from '../../game/types';
 import { onlineConfigured } from '../../online/supabase';
 import { useGameStore, type PhoneApp } from '../../store/gameStore';
-import { FULL_DAY_NAMES } from '../clock';
+
 import { BackIcon, BellIcon, CalendarIcon, ChatIcon, CloseIcon, MoonIcon, PinIcon, SlidersIcon, StoreIcon, SunIcon, TrophyIcon, UserIcon, WalletIcon } from '../icons';
-import { CalendarApp, ChatApp, LeaderboardApp, MarketApp, PeopleApp, PlacesApp, SchoolApp, SettingsApp, WalletApp } from './PhoneApps';
+import { AlarmApp, CalendarApp, ChatApp, LeaderboardApp, MarketApp, PeopleApp, PlacesApp, SchoolApp, SettingsApp, WalletApp } from './PhoneApps';
 
 type AppId = Exclude<PhoneApp, 'home'>;
 type IconC = (p: { size?: number }) => ReactElement;
@@ -25,6 +26,7 @@ const APPS: Array<{ id: AppId; label: string; Icon: IconC; tile: string; ink: st
   { id: 'school', label: 'Student Portal', Icon: BellIcon, tile: '#D7F0E2', ink: '#1E7A4C' },
   { id: 'chat', label: 'Chats', Icon: ChatIcon, tile: '#E6DCFF', ink: '#5B3FD1' },
   { id: 'calendar', label: 'Calendar', Icon: CalendarIcon, tile: '#FFE1DA', ink: '#C2462E' },
+  { id: 'clock', label: 'Alarm', Icon: MoonIcon, tile: '#DCE3FF', ink: '#3346A8' },
   { id: 'wallet', label: 'Wallet', Icon: WalletIcon, tile: '#FFF1C9', ink: '#B7790B' },
   { id: 'people', label: 'Contacts', Icon: UserIcon, tile: '#FDE2EF', ink: '#B23A79' },
   { id: 'places', label: 'Places', Icon: PinIcon, tile: '#D9ECFF', ink: '#2F6FB7' },
@@ -90,7 +92,7 @@ function HomeScreen({ game, onPickPlace }: { game: GameState; onPickPlace: (id: 
             <div>
               <p className="text-7xl leading-none font-extrabold tracking-tight">{clockTime(game.clock).replace(/ [ap]m$/, '')}</p>
               <p className="mt-2 text-sm text-white/85">
-                {FULL_DAY_NAMES[(game.clock.day - 1) % 7]} · day {game.clock.day} of 14 · {slotName(game.clock).toLowerCase()}
+                {todayLabel(game)} · {game.clock.semester === 1 ? 'first' : 'second'} semester
               </p>
             </div>
             <div className="flex gap-2">
@@ -208,6 +210,7 @@ export function Phone({ game, onPickPlace }: { game: GameState; onPickPlace: (id
     market: <MarketApp game={game} />,
     leaderboard: <LeaderboardApp game={game} />,
     settings: <SettingsApp game={game} />,
+    clock: <AlarmApp game={game} />,
   };
 
   return (

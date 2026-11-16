@@ -125,7 +125,7 @@ const CASES = ['#1F4E9C', '#C0202E', '#2E3A44', '#8E3B8A'];
  * the back-right corner is a small bathroom (bucket bath and a WC) behind low
  * walls. Corner 0, back left, is yours.
  */
-function dorm(): RoomLayout {
+function dorm(decor: string[] = []): RoomLayout {
   const W = 13;
   const D = 10;
   const PI = Math.PI;
@@ -145,7 +145,7 @@ function dorm(): RoomLayout {
     const [dx, dz, dr] = c.desk;
     const own = i === 0;
     builds.push((p) => {
-      F.bed(p, { x: bx, z: bz, rot: br }, SHEETS[i]!, WOODS[i]);
+      F.bed(p, { x: bx, z: bz, rot: br }, own && decor.includes('duvet') ? '#E8742A' : SHEETS[i]!, WOODS[i]);
       F.wardrobe(p, { x: wx, z: wz, rot: wr }, WOODS[(i + 1) % 4]!, CASES[i]);
       F.desk(p, { x: dx, z: dz, rot: dr }, WOODS[(i + 2) % 4]!, CHAIRS[i]!, ['#D9482B', '#2F5D8A', '#F2C230', '#2E8B57'].slice(0, 2 + i));
       const [sx, sz] = turn(bx, bz, br, bx < 0 ? 0.75 : -0.75, 0.7);
@@ -212,7 +212,8 @@ function dorm(): RoomLayout {
   return {
     w: W,
     d: D,
-    crowd: [others[0]!, others[3]!, others[4]!, { x: 5.45, z: -0.05, rot: PI, pose: 'cook' }, others[1]!, others[2]!, others[5]!],
+    // One person per corner at most: four to a room, you included.
+    crowd: [others[0]!, others[3]!, others[4]!],
     floor: '#C79A68',
     wall: '#EADFC8',
     // You start by your own bed and wardrobe; the doorway is in the front wall.
@@ -221,6 +222,12 @@ function dorm(): RoomLayout {
     fixtures,
     build: (p) => {
       for (const b of builds) b(p);
+      // Your own touches in your corner.
+      if (decor.includes('poster')) F.poster(p, { x: -3.1, z: -D / 2 + 0.03 }, '#8E3BFF', 1.75);
+      if (decor.includes('fairy_lights')) F.fairyLights(p, { x: -4.6, z: -D / 2 + 0.05 }, 3.4);
+      if (decor.includes('plant')) F.plant(p, { x: -2.15, z: -4.6 });
+      if (decor.includes('rug_decor')) F.rug(p, { x: -4.6, z: -2.0 }, '#F29BC1', 1.6, 1.1);
+      if (decor.includes('duvet')) F.rug(p, { x: -5.85, z: -4.35 }, '#2E8B57', 0.6, 0.25);
       // Bathroom.
       F.tiles(p, { x: (bx0 + W / 2) / 2, z: (-D / 2 + bzFront) / 2 }, W / 2 - bx0, bzFront + D / 2);
       F.partition(p, { x: bx0, z: -4.0, rot: PI / 2 }, 2.0, '#D7E4EA');
@@ -612,11 +619,11 @@ function outdoors(): RoomLayout {
   };
 }
 
-export function roomLayout(type: PlaceType, opts: { venue?: string; offices?: string[]; business?: boolean }): RoomLayout {
+export function roomLayout(type: PlaceType, opts: { venue?: string; offices?: string[]; business?: boolean; decor?: string[] }): RoomLayout {
   if (opts.business) return businessCentre();
   switch (type) {
     case 'hostel_room':
-      return dorm();
+      return dorm(opts.decor);
     case 'lecture_hall':
       return lectureHall(false);
     case 'lab':

@@ -15,6 +15,7 @@ import { lookOf } from '../world/characters/look';
 import { CloseIcon } from './icons';
 import { Portrait } from './Portrait';
 import { NeedsPanel } from './lifeUi';
+import { moodLine } from '../game/needs';
 
 const H = 'mb-1.5 text-xs font-semibold tracking-wide text-muted uppercase';
 const BOX = 'rounded-2xl border border-white/10 bg-white/5 p-3';
@@ -102,6 +103,7 @@ export function ProfileSheet({ game }: { game: GameState }) {
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-xl font-bold">{p.name}</h2>
+            <p className="truncate text-sm font-semibold text-sun">{moodLine(game)}</p>
             <p className="truncate text-sm text-muted">
               {p.matric} · entrance test taken {p.testAttempts ?? 1}×
             </p>

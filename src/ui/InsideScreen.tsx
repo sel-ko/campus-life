@@ -12,6 +12,8 @@ import { getPlace, sectionName } from '../content/places';
 import { naira } from '../game/format';
 import { QUICK_MINUTES, actionMinutes, getInteractions, getOccupants, getQueueLength, isOwnRoom, officesAt, type Interaction, type InteractionKind, type TargetType } from '../game/interactions';
 import { crowdLevel, placeEmoji, placeStatus } from '../game/status';
+import { todayLabel } from '../game/calendar';
+import { moodOf } from '../game/needs';
 import { nextStep } from '../game/story';
 import { SLOT_START, clockMin, formatDuration, formatTime } from '../game/time';
 import type { GameState } from '../game/types';
@@ -323,6 +325,7 @@ function diff(before: GameState, after: GameState): string[] {
 export function InsideScreen({ game }: { game: GameState }) {
   const placeId = useGameStore((s) => s.insidePlaceId);
   const perform = useGameStore((s) => s.perform);
+  const leave = useGameStore((s) => s.leave);
   const wait = useGameStore((s) => s.wait);
   const openPhone = useGameStore((s) => s.openPhone);
   const quality = useSettings((s) => s.quality);
@@ -335,14 +338,18 @@ export function InsideScreen({ game }: { game: GameState }) {
   const [doing, setDoing] = useState<Doing | null>(null);
   const [float, setFloat] = useState<Float | null>(null);
   const [progress, setProgress] = useState(0);
+  // Before you sleep: a look back at the day (then sleep).
+  const [recap, setRecap] = useState<Interaction | null>(null);
   const place = placeId ? getPlace(placeId) : undefined;
   const interactions = useMemo(() => (placeId ? getInteractions(game, placeId) : []), [game, placeId]);
   const occupants = useMemo(() => (placeId ? getOccupants(game, placeId) : []), [game, placeId]);
+  // Your decorations show in your own room.
+  const decorKey = placeId && game.room.placeId === placeId ? ['poster', 'plant', 'fairy_lights', 'duvet', 'rug_decor'].filter((k) => (game.inventory[k] ?? 0) > 0).join(',') : '';
   const layout = useMemo(
-    () => (place ? roomLayout(place.type, { venue: place.venue, offices: officesAt(game, place.id), business: !!place.stock?.includes('photocopy') }) : null),
-    // The room only changes when you enter another place.
+    () => (place ? roomLayout(place.type, { venue: place.venue, offices: officesAt(game, place.id), business: !!place.stock?.includes('photocopy'), decor: decorKey ? decorKey.split(',') : [] }) : null),
+    // The room only changes when you enter another place (or decorate yours).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [place?.id],
+    [place?.id, decorKey],
   );
   // A new room starts with nothing selected.
   useEffect(() => {
@@ -361,16 +368,24 @@ export function InsideScreen({ game }: { game: GameState }) {
     if (!d) return;
     doingRef.current = null;
     const before = useGameStore.getState().game;
-    if (d.i.kind === 'wait') wait();
-    else perform(d.i.id);
-    const after = useGameStore.getState().game;
+    // Things change while you queue (the office closes at 4): say so instead of silently doing nothing.
+    const now = before && placeId ? getInteractions(before, placeId).find((x) => x.id === d.i.id || d.i.id.startsWith(`${x.id}:`)) : undefined;
     setDoing(null);
     setSelected(null);
     setDismissed(d.i.target);
     setProgress(0);
+    if (d.i.kind !== 'wait' && (!now || !now.available)) {
+      setFloat({ key: Date.now(), lines: ['❌ Not done'], text: now?.reason ?? 'That is not possible any more.' });
+      return;
+    }
+    if (d.i.kind === 'wait') wait();
+    else perform(d.i.id);
+    const after = useGameStore.getState().game;
     if (before && after && after !== before) {
       const last = after.log[after.log.length - 1];
-      setFloat({ key: Date.now(), lines: diff(before, after), text: after.log.length !== before.log.length ? (last?.text ?? '') : '' });
+      const office = d.i.kind === 'office' ? (d.i.target.id as keyof typeof after.clearance.signed) : null;
+      const failed = office && !after.clearance.signed[office] ? ['❌ Not signed'] : office ? ['✅ Signed'] : [];
+      setFloat({ key: Date.now(), lines: [...failed, ...diff(before, after)].slice(0, 4), text: after.log.length !== before.log.length ? (last?.text ?? '') : '' });
     }
   }
 
@@ -442,7 +457,9 @@ export function InsideScreen({ game }: { game: GameState }) {
   const status = placeStatus(game, placeId);
   // A quest step for this room, or a follow-up you were just given, floats over your head.
   const next = nextStep(game);
-  const questTag = next && (next.sub || next.placeId === placeId) ? (next.label.length > 40 ? `${next.label.slice(0, 38)}…` : next.label) : null;
+  // A follow-up shows over your head only in the building where you were told; a step for this building shows here.
+  const tagHere = next && (next.sub ? next.at === placeId : next.placeId === placeId);
+  const questTag = next && tagHere ? (next.label.length > 40 ? `${next.label.slice(0, 38)}…` : next.label) : null;
   const night = game.clock.slot === 3;
   const sleeping = !!doing?.startedAt && (doing.i.kind === 'sleep' || doing.i.kind === 'nap');
   const person = focus?.type === 'person' ? getPerson(focus.id ?? '') : undefined;
@@ -475,6 +492,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                 activity={doing?.activity ?? null}
                 onArrive={() => setDoing((d) => (d && !d.startedAt ? { ...d, activity: { ...d.activity, stage: 'act' }, startedAt: performance.now() } : d))}
                 onCancel={() => setDoing((d) => (d && d.startedAt === null ? null : d))}
+                onExit={leave}
                 crowd={crowdLevel(game, placeId)}
                 paused={!visible || eventOpen}
                 quality={quality}
@@ -487,7 +505,7 @@ export function InsideScreen({ game }: { game: GameState }) {
         <div className="absolute inset-0 overflow-y-auto bg-[#0E161E] px-3 pt-28 pb-8">
           <ul className="mx-auto flex max-w-md flex-col gap-1.5">
             {interactions.map((i) => (
-              <ActionRow key={i.id} i={i} onDo={start} queue={queue} time={timeLabel(game, i)} />
+              <ActionRow key={i.id} i={i} onDo={(x) => (x.kind === "sleep" ? (setShowAll(false), setRecap(x)) : start(x))} queue={queue} time={timeLabel(game, i)} />
             ))}
           </ul>
         </div>
@@ -521,7 +539,6 @@ export function InsideScreen({ game }: { game: GameState }) {
               ⋯
             </button>
             {ownRoom && <RoomCondition game={game} />}
-            {!ownRoom && queue > 0 && <span className="rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">⏳ {queue} in the queue</span>}
           </div>
         </div>
       </header>
@@ -564,7 +581,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                 )}
               </section>
             ) : focus ? (
-              <section className="no-scrollbar flex max-h-[42vh] flex-col gap-2 overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 shadow-2xl">
+              <ScrollCard>
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold">
                     {focusName}
@@ -579,28 +596,36 @@ export function InsideScreen({ game }: { game: GameState }) {
                 {focus.type === 'locker' && ownRoom && <Locker game={game} />}
                 {showTimetable && <TodayClasses game={game} />}
                 {focusList.length ? (
-                  <ul className="flex flex-col gap-1.5">
-                    {focusList.map((i) => (
-                      <ActionRow key={i.id} i={i} onDo={start} queue={queue} time={timeLabel(game, i)} />
-                    ))}
-                  </ul>
+                  <TabbedActions key={`${focus.type}:${focus.id ?? ''}`} list={focusList} render={(i) => <ActionRow key={i.id} i={i} onDo={(x) => (x.kind === 'sleep' ? setRecap(x) : start(x))} queue={queue} time={timeLabel(game, i)} />} />
                 ) : (
                   !showTimetable && <p className="text-sm text-muted">Nothing to do with this right now.</p>
                 )}
                 {showTimetable && (
                   <button onClick={() => openPhone('school')} className="min-h-10 rounded-xl border border-white/20 text-sm font-semibold">
-                    See the whole fortnight
+                    See the whole timetable
                   </button>
                 )}
-              </section>
+              </ScrollCard>
             ) : null}
           </div>
         </div>
       )}
 
+      {recap && (
+        <DayRecap
+          game={game}
+          onSleep={() => {
+            const i = recap;
+            setRecap(null);
+            start(i);
+          }}
+          onCancel={() => setRecap(null)}
+        />
+      )}
+
       {showAll && (
         <div className="fixed inset-0 z-30 bg-black/45" onClick={() => setShowAll(false)}>
-          <section className={SHEET} onClick={(e) => e.stopPropagation()}>
+          <section className={`${SHEET} max-h-[75vh]`} style={{ bottom: BOTTOM_BAR_SPACE }} onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-lg font-bold">Everything here</h2>
               <button onClick={() => setShowAll(false)} className="min-h-11 px-3 text-sm text-muted">
@@ -610,7 +635,7 @@ export function InsideScreen({ game }: { game: GameState }) {
             {ownRoom && <Locker game={game} />}
             <ul className="mt-2 flex flex-col gap-1.5">
               {interactions.map((i) => (
-                <ActionRow key={i.id} i={i} onDo={start} queue={queue} time={timeLabel(game, i)} />
+                <ActionRow key={i.id} i={i} onDo={(x) => (x.kind === "sleep" ? (setShowAll(false), setRecap(x)) : start(x))} queue={queue} time={timeLabel(game, i)} />
               ))}
             </ul>
           </section>
@@ -637,6 +662,106 @@ function FloatUp({ float, onDone }: { float: Float; onDone: () => void }) {
         ))}
       </div>
       {float.text && <p className="max-w-sm rounded-2xl bg-black/70 px-3 py-1.5 text-center text-sm text-white">{float.text}</p>}
+    </div>
+  );
+}
+
+/** The action card: scrolls when it is long, with a hint that there is more below. */
+function ScrollCard({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLElement>(null);
+  const [more, setMore] = useState(false);
+  const check = () => {
+    const el = ref.current;
+    if (el) setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 12);
+  };
+  useEffect(check);
+  return (
+    <div className="relative">
+      <section ref={ref} onScroll={check} className="card-scroll flex max-h-[42vh] flex-col gap-2 overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 pr-2 shadow-2xl">
+        {children}
+      </section>
+      {more && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center rounded-b-3xl bg-gradient-to-t from-[#14202B] to-transparent pb-1.5">
+          <span className="rounded-full bg-sun/90 px-2.5 py-0.5 text-[11px] font-bold text-night">↓ More</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const GROUPS: Array<{ id: string; label: string; kinds: InteractionKind[] }> = [
+  { id: 'read', label: '📖 Read', kinds: ['read'] },
+  { id: 'assignment', label: '✍️ Assignments', kinds: ['assignment'] },
+  { id: 'project', label: '📑 Project', kinds: ['project', 'supervisor'] },
+  { id: 'food', label: '🍲 Food', kinds: ['eat', 'cook'] },
+  { id: 'buy', label: '🛒 Buy', kinds: ['buy'] },
+  { id: 'work', label: '💼 Work', kinds: ['hustle', 'setup', 'wash_plates'] },
+  { id: 'phone', label: '🔌 Phone', kinds: ['charge'] },
+];
+
+/** Many actions at one thing (the desk): split them into tabs. */
+function TabbedActions({ list, render }: { list: Interaction[]; render: (i: Interaction) => React.ReactNode }) {
+  const groups = GROUPS.map((g) => ({ ...g, items: list.filter((i) => g.kinds.includes(i.kind)) })).filter((g) => g.items.length);
+  const rest = list.filter((i) => !GROUPS.some((g) => g.kinds.includes(i.kind)));
+  if (rest.length) groups.push({ id: 'other', label: '⋯ Other', kinds: [], items: rest });
+  const [tab, setTab] = useState(groups[0]?.id ?? '');
+  const tabbed = list.length > 4 && groups.length > 1;
+  const shown = tabbed ? (groups.find((g) => g.id === tab) ?? groups[0]!).items : list;
+  return (
+    <>
+      {tabbed && (
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5" role="tablist">
+          {groups.map((g) => (
+            <button key={g.id} role="tab" aria-selected={tab === g.id} onClick={() => setTab(g.id)} className={`min-h-8 shrink-0 rounded-full px-3 text-xs font-semibold ${tab === g.id ? 'bg-sun text-night' : 'bg-white/10'}`}>
+              {g.label} {g.items.length > 1 ? `(${g.items.length})` : ''}
+            </button>
+          ))}
+        </div>
+      )}
+      <ul className="flex flex-col gap-1.5">{shown.map(render)}</ul>
+    </>
+  );
+}
+
+/** Before sleeping: what you did today, how you feel, and your money. */
+function DayRecap({ game, onSleep, onCancel }: { game: GameState; onSleep: () => void; onCancel: () => void }) {
+  const today = game.log.filter((e) => Math.floor(e.at / 4) === game.clock.dayCount);
+  const classes = game.academics.courses.flatMap((c) => c.meetings.filter((m) => m.day === game.clock.day && m.status === 'scheduled').map((m) => ({ c, m })));
+  const mood = moodOf(game);
+  return (
+    <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={onCancel}>
+      <section role="dialog" aria-label="Your day" className="card-scroll max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <p className="text-xs font-semibold tracking-wide text-sun uppercase">Your day</p>
+        <h2 className="text-2xl font-bold">{todayLabel(game)}</h2>
+        <p className="mt-1 text-sm text-muted">
+          {mood.emoji} Feeling {mood.label.toLowerCase()} · {naira(game.money)} left
+        </p>
+        {classes.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {classes.map(({ c, m }) => (
+              <span key={`${c.code}${m.slot}`} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${m.attended ? 'bg-emerald-400/20 text-emerald-200' : 'bg-red-400/20 text-red-200'}`}>
+                {m.attended ? '✅' : '❌'} {c.code}
+              </span>
+            ))}
+          </div>
+        )}
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {today.length === 0 && <li className="text-sm text-muted">A quiet day.</li>}
+          {today.slice(-12).map((e, i) => (
+            <li key={i} className="rounded-xl bg-white/5 px-3 py-2 text-sm">
+              {e.text}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 flex gap-2">
+          <button onClick={onCancel} className="min-h-11 rounded-xl border border-white/20 px-4 font-semibold">
+            Not yet
+          </button>
+          <button onClick={onSleep} className="min-h-11 flex-1 rounded-xl bg-sun font-bold text-night">
+            🌙 Good night
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

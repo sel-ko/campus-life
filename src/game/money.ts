@@ -113,16 +113,22 @@ export function trackMoney(d: GameState): void {
 
 // ---------- family money ----------
 
-/** Start of a semester: the family sends the share of the fees due this semester. */
+/** Money for clearance papers and the medical fee, sent with a fresher's first fees. */
+export const CLEARANCE_MONEY = 5000;
+
+/**
+ * Start of a semester: the family sends everything due this semester (school
+ * fees, dues, hostel, acceptance), and for a fresher a little extra for the
+ * clearance papers and the medical fee.
+ */
 export function sendFeeMoney(d: GameState): void {
-  const share = BACKGROUNDS[d.player.background].feeShare;
   const due = d.finance.fees.filter((f) => !f.paid && f.dueSemester === d.clock.semester && f.id !== 'late_reg');
-  const total = Math.round(due.reduce((s, f) => s + f.amount, 0) * share);
+  const fresher = d.clearance.active;
+  const total = due.reduce((s, f) => s + f.amount, 0) + (fresher ? CLEARANCE_MONEY : 0);
   if (total <= 0) return;
   earn(d, total);
-  const note = share < 1 ? ` They could only manage ${Math.round(share * 100)}%, so the rest is on you.` : '';
-  log(d, `Your people sent ${naira(total)} for fees. Pay on the portal before it grows legs.${note}`);
-  feesFromHomeMut(d, total, share < 1);
+  log(d, `Your people sent ${naira(total)} for fees${fresher ? ' and clearance' : ''}. Pay on the portal before it grows legs.`);
+  feesFromHomeMut(d, total, false);
 }
 
 /** Allowance day: it lands now, or late. */

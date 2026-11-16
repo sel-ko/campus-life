@@ -73,6 +73,7 @@ describe('the story', () => {
     d.flags.bathed = 1;
     d.stats.meals = 1;
     d.flags.acceptance_paid = 1;
+    for (const f of d.finance.fees) if (f.dueSemester === 1) f.paid = true;
     d.inventory.photocopy = 1; // documents bought, but no passport photograph
     d.inventory.passport = 0;
     const steps = currentChapter(d).steps;

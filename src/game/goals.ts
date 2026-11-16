@@ -72,7 +72,7 @@ const ELECTIONS: Election[] = [
   { position: 'dept_president', label: 'departmental president', level: () => 3, threshold: 45 },
   { position: 'su_president', label: 'Student Union president', level: (years) => years, threshold: 60 },
 ];
-export const ELECTION_DAY = 10;
+export const ELECTION_DAY = 17;
 
 export function popularity(d: GameState): number {
   const friends = friendsCount(d, 25);
@@ -172,9 +172,9 @@ export function newWeekMut(d: GameState, r: Rng): void {
     picks.push(o);
   }
   d.goals.objectives = picks.map((o) => ({ id: o.id, label: o.label, metric: o.metric, target: o.target, done: false, draft: true }));
-  if (d.goals.ambition === 'su_president' && upcomingElection(d) && d.clock.day === 8) {
+  if (d.goals.ambition === 'su_president' && upcomingElection(d) && d.clock.day === 10) {
     scriptMut(d, r, 'chatter');
-    log(d, `Election season: voting is on day ${ELECTION_DAY}. Campaign at the Sports Complex and make friends.`);
+    log(d, `Election season: voting is in a week. Campaign at the Sports Complex and make friends.`);
   }
 }
 

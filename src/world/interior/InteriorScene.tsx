@@ -44,6 +44,8 @@ export interface InteriorProps {
   onArrive: () => void;
   /** The joystick took over in the middle of an activity. */
   onCancel: () => void;
+  /** You walked out through the doorway. */
+  onExit?: () => void;
   /** 0 = empty, 1 = packed. */
   crowd: number;
   /** What to do next, floating over your head (a quest step for here). */
@@ -266,7 +268,16 @@ function Body({ look, spot, phase = 0, walking }: { look: Look; spot: Spot; phas
 
 // ---------------------------------------------------------------- you
 
+/** Half the width of the doorway in the front wall. */
+const DOOR_HALF = 0.75;
+
+function inDoorway(layout: RoomLayout, x: number, z: number): boolean {
+  return !layout.outdoor && z > layout.d / 2 - 1 && Math.abs(x - (layout.doorX ?? layout.spawn[0])) < DOOR_HALF - RADIUS;
+}
+
 function blocked(layout: RoomLayout, x: number, z: number): boolean {
+  // The doorway lets you walk out of the front of the room.
+  if (inDoorway(layout, x, z)) return z > layout.d / 2 + 1.5;
   if (!layout.outdoor && (Math.abs(x) > layout.w / 2 - RADIUS || Math.abs(z) > layout.d / 2 - RADIUS)) return true;
   if (layout.outdoor && (Math.abs(x) > layout.w / 2 + 6 || Math.abs(z) > layout.d / 2 + 6)) return true;
   for (const f of layout.fixtures) {
@@ -276,9 +287,73 @@ function blocked(layout: RoomLayout, x: number, z: number): boolean {
   return false;
 }
 
+/**
+ * A walking route round the furniture: a search over a 25 cm grid of the
+ * room, then straightened where the way is clear.
+ */
+function findRoomPath(layout: RoomLayout, from: V2, to: V2): V2[] {
+  const STEP = 0.25;
+  const W = layout.w + (layout.outdoor ? 12 : 0);
+  const D = layout.d + (layout.outdoor ? 12 : 0);
+  const cols = Math.ceil(W / STEP);
+  const rows = Math.ceil(D / STEP);
+  const cell = (x: number, z: number): [number, number] => [Math.round((x + W / 2) / STEP), Math.round((z + D / 2) / STEP)];
+  const pt = (c: number, r: number): V2 => [c * STEP - W / 2, r * STEP - D / 2];
+  const free = (c: number, r: number) => c >= 0 && r >= 0 && c <= cols && r <= rows && !blocked(layout, ...pt(c, r));
+  const clear = (a: V2, b: V2) => {
+    const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.1);
+    for (let i = 1; i <= n; i++) if (blocked(layout, a[0] + ((b[0] - a[0]) * i) / n, a[1] + ((b[1] - a[1]) * i) / n)) return false;
+    return true;
+  };
+  if (clear(from, to)) return [to];
+  // Nearest free square to the goal (a use point can sit right against furniture).
+  let [gc, gr] = cell(...to);
+  if (!free(gc, gr)) {
+    let best: [number, number] | null = null;
+    for (let rad = 1; rad < 8 && !best; rad++) for (let dc = -rad; dc <= rad; dc++) for (let dr = -rad; dr <= rad; dr++) if (!best && free(gc + dc, gr + dr)) best = [gc + dc, gr + dr];
+    if (!best) return [to];
+    [gc, gr] = best;
+  }
+  const [sc, sr] = cell(...from);
+  const key = (c: number, r: number) => r * (cols + 1) + c;
+  const prev = new Map<number, number>();
+  const queue: Array<[number, number]> = [[sc, sr]];
+  prev.set(key(sc, sr), -1);
+  let found = false;
+  while (queue.length) {
+    const [c, r] = queue.shift()!;
+    if (c === gc && r === gr) {
+      found = true;
+      break;
+    }
+    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const) {
+      const nc = c + dc;
+      const nr = r + dr;
+      if (prev.has(key(nc, nr)) || !free(nc, nr)) continue;
+      prev.set(key(nc, nr), key(c, r));
+      queue.push([nc, nr]);
+    }
+  }
+  if (!found) return [to];
+  const cells: V2[] = [];
+  for (let k = key(gc, gr); k !== -1; k = prev.get(k)!) cells.push(pt(k % (cols + 1), Math.floor(k / (cols + 1))));
+  cells.reverse();
+  // Straighten: keep only the corners you cannot see past.
+  const out: V2[] = [];
+  let anchor = from;
+  for (let i = 1; i < cells.length; i++) {
+    if (!clear(anchor, cells[i]!)) {
+      out.push(cells[i - 1]!);
+      anchor = cells[i - 1]!;
+    }
+  }
+  out.push(to);
+  return out;
+}
+
 type PersonTarget = { target: Target; at: V2 };
 
-interface WalkerProps extends Pick<InteriorProps, 'layout' | 'characterId' | 'onNear' | 'onSelect' | 'activity' | 'onArrive' | 'onCancel' | 'questTag'> {
+interface WalkerProps extends Pick<InteriorProps, 'layout' | 'characterId' | 'onNear' | 'onSelect' | 'activity' | 'onArrive' | 'onCancel' | 'questTag' | 'onExit'> {
   look?: Look;
   goal: { current: V2 | null };
   live: Array<{ target: Target; use: V2 }>;
@@ -305,7 +380,7 @@ function actSpot(layout: RoomLayout, a: Activity, people: PersonTarget[], from: 
   return { spot: { x: f.use[0], z: f.use[1], rot: Math.atan2(cx - f.use[0], cz - f.use[1]), pose: a.pose }, back: f.use };
 }
 
-function Walker({ layout, characterId, look: custom, onNear, onSelect, goal, live, people, activity, onArrive, onCancel, questTag }: WalkerProps) {
+function Walker({ layout, characterId, look: custom, onNear, onSelect, goal, live, people, activity, onArrive, onCancel, onExit, questTag }: WalkerProps) {
   const look = useMemo(() => custom ?? presetLook(characterId), [custom, characterId]);
   const group = useRef<THREE.Group>(null);
   const walking = useRef(false);
@@ -318,8 +393,13 @@ function Walker({ layout, characterId, look: custom, onNear, onSelect, goal, liv
   const focus = useRef(new THREE.Vector3(0, 0, 0));
   const act = useRef<Activity | null>(activity);
   act.current = activity;
-  const callbacks = useRef({ onArrive, onCancel, onNear, onSelect });
-  callbacks.current = { onArrive, onCancel, onNear, onSelect };
+  const callbacks = useRef({ onArrive, onCancel, onNear, onSelect, onExit });
+  callbacks.current = { onArrive, onCancel, onNear, onSelect, onExit };
+  const route = useRef<V2[]>([]);
+  const routeFor = useRef<V2 | null>(null);
+  const stuck = useRef(0);
+  const movedOnce = useRef(false);
+  const left = useRef(false);
 
   // Doing something: work out where once, when the doing starts.
   const doing = useMemo(
@@ -333,6 +413,11 @@ function Walker({ layout, characterId, look: custom, onNear, onSelect, goal, liv
   useEffect(() => {
     pos.current.set(layout.spawn[0], 0, layout.spawn[1]);
     if (group.current) group.current.rotation.y = Math.PI;
+    movedOnce.current = false;
+    left.current = false;
+    route.current = [];
+    routeFor.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout]);
 
   // Heading off to do something: walk to where it is used.
@@ -376,11 +461,20 @@ function Walker({ layout, characterId, look: custom, onNear, onSelect, goal, liv
       dz = (joystick.y / stick) * Math.min(stick, 1);
     } else if (goal.current && !(a && a.stage === 'act')) {
       steering.current = false;
-      const gx = goal.current[0] - p.x;
-      const gz = goal.current[1] - p.z;
+      // A new destination: plan a route round the furniture.
+      if (goal.current !== routeFor.current) {
+        routeFor.current = goal.current;
+        route.current = findRoomPath(layout, [p.x, p.z], goal.current);
+        stuck.current = 0;
+      }
+      const next = route.current[0] ?? goal.current;
+      const gx = next[0] - p.x;
+      const gz = next[1] - p.z;
       const dist = Math.hypot(gx, gz);
-      if (dist < 0.1) goal.current = null;
-      else {
+      if (dist < 0.12) {
+        route.current.shift();
+        if (!route.current.length) goal.current = null;
+      } else {
         dx = gx / dist;
         dz = gz / dist;
       }
@@ -391,11 +485,23 @@ function Walker({ layout, characterId, look: custom, onNear, onSelect, goal, liv
       const step = SPEED * dt;
       const nx = p.x + dx * step;
       const nz = p.z + dz * step;
+      const bx = p.x;
+      const bz = p.z;
       if (blocked(layout, p.x, p.z) || !blocked(layout, nx, nz)) p.set(nx, 0, nz);
       else if (!blocked(layout, nx, p.z)) p.x = nx;
       else if (!blocked(layout, p.x, nz)) p.z = nz;
       else goal.current = null; // stuck: stop walking into furniture
+      // Not getting anywhere for a second: give up on the walk (you are as close as it gets).
+      if (Math.hypot(p.x - bx, p.z - bz) < step * 0.2) stuck.current += dt;
+      else stuck.current = 0;
+      if (stuck.current > 1) goal.current = null;
       if (group.current) group.current.rotation.y = Math.atan2(dx, dz);
+      movedOnce.current = true;
+      // Out through the doorway: you leave the building.
+      if (!layout.outdoor && p.z > layout.d / 2 + 0.6 && !left.current) {
+        left.current = true;
+        cb.onExit?.();
+      }
     }
     walking.current = moving;
     // On the way to do something and got there (or as near as it gets).
@@ -412,8 +518,8 @@ function Walker({ layout, characterId, look: custom, onNear, onSelect, goal, liv
       }
     }
 
-    // What are you standing at?
-    if (!a) {
+    // What are you standing at? (Only once you have moved: nothing pops up as you walk in.)
+    if (!a && movedOnce.current) {
       let best: Target | null = null;
       let bestD = NEAR;
       for (const l of live) {
@@ -615,6 +721,7 @@ export default function InteriorScene(props: InteriorProps) {
         activity={activity}
         onArrive={onArrive}
         onCancel={onCancel}
+        onExit={props.onExit}
         questTag={props.questTag}
         look={props.look}
       />

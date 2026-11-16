@@ -27,7 +27,7 @@ export function dayName(day: number): string {
 
 /** 1 for days 1-7, 2 for days 8-14. */
 export function weekOf(day: number): number {
-  return day <= 7 ? 1 : 2;
+  return Math.ceil(day / 7);
 }
 
 /** Day of the week, 0 = Monday. */
@@ -63,7 +63,7 @@ export function stepClock(full: Clock): ClockStep {
 }
 
 export function describeClock(c: Clock): string {
-  return `${dayName(c.day)} ${slotName(c)}, day ${c.day} of ${SEMESTER_DAYS}`;
+  return `${dayName(c.day)} ${slotName(c)} (day ${c.day} of ${SEMESTER_DAYS})`;
 }
 
 // ---------- clock time (hours and minutes) ----------

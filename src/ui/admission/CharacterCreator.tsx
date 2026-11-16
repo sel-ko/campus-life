@@ -2,7 +2,11 @@
 // colours. The preview updates as you tap. Chosen once at sign-up.
 import type { CharacterLook, HairStyle, OutfitStyle } from '../../world/characters/look';
 import { PRESETS } from '../../world/characters/look';
+import { lazy, Suspense } from 'react';
 import { Portrait } from '../Portrait';
+import { hasWebGL } from '../webgl';
+
+const CharacterPreview = lazy(() => import('./CharacterPreview'));
 
 export type Gender = 'male' | 'female';
 
@@ -86,11 +90,17 @@ export function CharacterCreator({ gender, look, onGender, onLook }: { gender: G
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-4">
-        <span className="grid size-32 shrink-0 place-items-center overflow-hidden rounded-full bg-[#2B4558]">
-          <Portrait look={look} size={124} />
-        </span>
-        <p className="text-sm text-muted">Make your fresher. Tap to change; this is how you look for the whole degree.</p>
+      <div className="relative h-72 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#2B4558] to-[#14202B]">
+        {hasWebGL() ? (
+          <Suspense fallback={<span className="absolute inset-0 grid place-items-center"><Portrait look={look} size={140} /></span>}>
+            <CharacterPreview look={look} />
+          </Suspense>
+        ) : (
+          <span className="absolute inset-0 grid place-items-center">
+            <Portrait look={look} size={140} />
+          </span>
+        )}
+        <p className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-xs text-white/70">This is how you look for the whole degree.</p>
       </div>
       <Swatches label="Skin" colours={SKINS} value={look.skin} onPick={(c) => set({ skin: c })} />
       <Choice label="Hair" options={HAIR[gender]} value={look.hairStyle} onPick={(h) => set({ hairStyle: h })} />

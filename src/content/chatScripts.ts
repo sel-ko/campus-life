@@ -24,16 +24,16 @@ export const CHAT_SCRIPTS: ChatScript[] = [
   s({ trigger: 'semester_start', thread: 'class', from: 'classmate', text: 'Who else has not registered courses? Portal is slow already 😩' }),
 
   // ---- lectures ----
-  s({ trigger: 'test_announced', thread: 'class', from: 'course_rep', text: '📢 {code} test is on day {day}, {slot}, at {place}. Come early!', replies: [
+  s({ trigger: 'test_announced', thread: 'class', from: 'course_rep', text: '📢 {code} test is on {day}, {slot}, at {place}. Come early!', replies: [
     { label: 'Which topics?', reply: 'Everything from week one. Sorry 😅' },
     { label: 'Thanks Tobi 🙏', reply: 'You are welcome!', effects: { rel: { tobi: 1 } } },
   ] }),
-  s({ trigger: 'test_announced', thread: 'class', from: 'course_rep', text: 'Reminder: {code} ({title}) test on day {day}. No phones in the hall.' }),
+  s({ trigger: 'test_announced', thread: 'class', from: 'course_rep', text: 'Reminder: {code} ({title}) test on {day}. No phones in the hall.' }),
   s({ trigger: 'lecture_cancelled', thread: 'class', from: 'course_rep', text: '{code} lecture tomorrow is cancelled. The lecturer travelled.' }),
-  s({ trigger: 'lecture_cancelled', thread: 'class', from: 'course_rep', text: 'No {code} class on day {day}. Lecturer has a meeting. Use the time to read.' }),
-  s({ trigger: 'lecture_moved', thread: 'class', from: 'course_rep', text: '⚠️ {code} lecture on day {day} has been MOVED to {place}, {slot}. Please share.' }),
-  s({ trigger: 'lecture_weekend', thread: 'class', from: 'course_rep', text: 'Sorry guys, {code} lecturer fixed a class for the WEEKEND: day {day}, {slot}, at {place}. 😩' }),
-  s({ trigger: 'gst_batch_moved', thread: 'class', from: 'course_rep', text: '🚨 GST UPDATE: our batch for {code} has changed to day {day}, {slot}. Tell everybody!' }),
+  s({ trigger: 'lecture_cancelled', thread: 'class', from: 'course_rep', text: 'No {code} class on {day}. Lecturer has a meeting. Use the time to read.' }),
+  s({ trigger: 'lecture_moved', thread: 'class', from: 'course_rep', text: '⚠️ {code} lecture on {day} has been MOVED to {place}, {slot}. Please share.' }),
+  s({ trigger: 'lecture_weekend', thread: 'class', from: 'course_rep', text: 'Sorry guys, {code} lecturer fixed a class for the WEEKEND: {day}, {slot}, at {place}. 😩' }),
+  s({ trigger: 'gst_batch_moved', thread: 'class', from: 'course_rep', text: '🚨 GST UPDATE: our batch for {code} has changed to {day}, {slot}. Tell everybody!' }),
   s({ trigger: 'exams_soon', thread: 'class', from: 'course_rep', text: 'Exam timetable is out. Exams start day 12. Make sure your school fees are paid: no fees, no exam.' }),
   s({ trigger: 'exams_soon', thread: 'class', from: 'efiko', text: 'Group revision at the library tonight. Anybody?', replies: [
     { label: 'I will come', reply: 'See you there 📖', effects: { rel: { ify: 3 } } },
@@ -49,7 +49,7 @@ export const CHAT_SCRIPTS: ChatScript[] = [
   s({ trigger: 'portal_rumour', thread: 'class', from: 'classmate', text: 'Guys the portal is closing TONIGHT. No extension. Pay now!!' }),
   s({ trigger: 'portal_rumour', thread: 'class', from: 'classmate', text: 'Is the portal working for anybody? It just keeps loading 😭' }),
   s({ trigger: 'portal_rumour', thread: 'class', from: 'classmate', text: 'My money was debited but portal says not paid. Bursary said come back tomorrow 💔' }),
-  s({ trigger: 'registration_reminder', thread: 'class', from: 'course_rep', text: 'Last day for course registration is day {day}. Late fee after that is {amount}. Don\'t say I didn\'t tell you.' }),
+  s({ trigger: 'registration_reminder', thread: 'class', from: 'course_rep', text: 'Last day for course registration is {day}. Late fee after that is {amount}. Don\'t say I didn\'t tell you.' }),
 
   // ---- rumours, false alarms and jokes ----
   s({ trigger: 'false_alarm', thread: 'class', from: 'classmate', text: 'No lecture today, lecturer is not around!! (sent from a friend in 300L)' }),
@@ -58,7 +58,7 @@ export const CHAT_SCRIPTS: ChatScript[] = [
   s({ trigger: 'chatter', thread: 'class', from: 'classmate', text: 'Who else is hungry in class right now? 🙋' }),
   s({ trigger: 'chatter', thread: 'class', from: 'classmate', text: 'The way this lecturer is teaching ehn, I think he is talking to himself' }),
   s({ trigger: 'chatter', thread: 'class', from: 'coursemate', text: 'Buka has fried rice today. Run!' }),
-  s({ trigger: 'chatter', thread: 'class', from: 'efiko', text: 'Please don\'t forget the assignment is due day {day}.' }),
+  s({ trigger: 'chatter', thread: 'class', from: 'efiko', text: 'Please don\'t forget the assignment is due {day}.' }),
   s({ trigger: 'chatter', thread: 'class', from: 'hustle_partner', text: 'Chin chin and zobo available in Room B12. Fresh! 🥤' }),
   s({ trigger: 'chatter', thread: 'class', from: 'classmate', text: 'Who has the soft copy of the handout? I will pay 😂' }),
   s({ trigger: 'chatter', thread: 'class', from: 'coursemate', text: 'Light is back in the hostel. Charge your phones!' }),
