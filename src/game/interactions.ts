@@ -129,6 +129,11 @@ function collegeId(d: GameState): string {
 }
 
 /** Offices in this place that serve this player (college offices only for your college). */
+export function officesAt(d: GameState, placeId: string): OfficeId[] {
+  const place = getPlace(placeId);
+  return place ? officesHere(d, place) : [];
+}
+
 function officesHere(d: GameState, place: PlaceDef): OfficeId[] {
   return (place.offices ?? []).filter((o) => !['college_office', 'hod'].includes(o) || !place.colleges || place.colleges.includes(collegeId(d)));
 }

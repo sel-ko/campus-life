@@ -528,3 +528,33 @@ the code mentioned.
 131. **The bank** gives one student loan at a time: ₦20,000 now, ₦24,000 back
      within 14 days. **The General Hospital** treats for ₦3,000 and heals
      more than the Medical Centre.
+
+## Walkable rooms
+
+132. **Rooms fill the screen and you walk in them.** Inside any building your
+     character moves with the joystick (or walks to whatever you tap),
+     bumping into furniture and walls. Things you can use show a bouncing ◆
+     marker; standing at one (or tapping it) opens a small card with just
+     its actions. The full list is still there behind "⋯" (and is the whole
+     screen on phones without 3D), with "Wait here". Phone and journal
+     buttons sit in the room's top bar.
+133. **The shared dorm** is built in the same chunky style as the
+     characters: four corners, each with a bed (own sheet colour), a wardrobe
+     with a suitcase on top, and a desk with books, a lamp and a plastic
+     chair; plus a cooking corner (stove, pot, water bucket), a window with
+     bars and curtains, a book shelf with a radio, a rug, posters, slippers
+     and a clothes line. Corner one is yours: your bed (sleep, nap), your
+     wardrobe (locker, provisions, snacks hustle, levy), your desk (read,
+     assignments, project), the stove (cook) and the door (errands).
+     Roommates stand at their own beds.
+134. **A new game starts inside your dorm room** (Freshers' Hall).
+135. Other rooms have their own plans: lecture halls (seat rows, board,
+     lectern, exam desk), labs (benches with equipment), the library
+     (shelves, tables, desk), offices (one desk per office, waiting
+     benches), eateries and shops (counter and tables), clinics (doctor's
+     desk, beds), workplaces, the club and lounge (dance floor, bar, sofas),
+     the cinema (screen and seat rows), the event centre, and parks and the
+     sports complex (now enterable, outdoors). Characters are 1.8 m tall and
+     rooms are 10 to 18 m across so there is room to walk.
+136. **Development only:** add `?hour=13` to the address to see the sky at
+     1 p.m. (the game otherwise follows the real time).

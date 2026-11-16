@@ -29,6 +29,7 @@ export const ENTERABLE: PlaceType[] = [
   'shop',
   'workplace',
   'nightlife',
+  'field',
 ];
 
 const LABELLED: PlaceType[] = ['lecture_hall', 'admin_office', 'library', 'lab', 'clinic', 'field', 'busstop', 'gate', 'workplace', 'nightlife'];

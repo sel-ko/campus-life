@@ -104,7 +104,11 @@ export const useGameStore = create<GameStore>()(
         ...freshScreen,
         cameraMode: 'follow',
 
-        start: (setup) => set({ game: syncCampusWeek(newGame(setup), Date.now()), ...freshScreen, cameraMode: 'follow', resetNotice: false }),
+        start: (setup) => {
+          const game = syncCampusWeek(newGame(setup), Date.now());
+          // The first thing you see: your room in the hostel.
+          set({ game, ...freshScreen, insidePlaceId: game.room.placeId, cameraMode: 'follow', resetNotice: false });
+        },
 
         tapPlace: (placeId, nearby = false) => {
           const { game } = get();
