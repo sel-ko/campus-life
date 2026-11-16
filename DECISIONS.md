@@ -637,7 +637,8 @@ the code mentioned.
      where you were. "Me" brings the close-up back.
 154. **The bottom bar is always on screen**, on the map and inside rooms,
      and is always phone-sized (440 px wide at most, centred on big
-     screens); the top bar matches. Inside rooms the action cards sit above
+     screens). Only the bottom bar: the top bars and other panels use the
+     full screen as before. Inside rooms the action cards sit above
      it. Home takes you to your room; Me and Map leave the room.
 155. **Panels close themselves after a choice:** the place card after you
      pick a ride, the action card after an action (it stays shut until you

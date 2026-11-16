@@ -59,7 +59,7 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
   const follow = showMap && cameraMode === 'follow';
 
   return (
-    <div className="pointer-events-none absolute inset-0 mx-auto flex w-full max-w-[440px] flex-col justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <button

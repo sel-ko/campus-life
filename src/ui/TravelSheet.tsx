@@ -49,7 +49,7 @@ export function TravelSheet({ game }: { game: GameState }) {
       <section
         role="dialog"
         aria-label={`Go to ${place.name}`}
-        className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[440px] rounded-t-3xl border border-white/10 bg-[#14202B] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
+        className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-3xl border border-white/10 bg-[#14202B] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">

@@ -351,7 +351,7 @@ export function InsideScreen({ game }: { game: GameState }) {
       <div className={`pointer-events-none absolute inset-0 bg-[#060B18] transition-opacity duration-[2500ms] ${sleeping ? 'opacity-70' : 'opacity-0'}`} />
 
       {/* Top: back, the place and what is happening, your status. */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 mx-auto flex w-full max-w-[440px] flex-col gap-2 px-3 pt-[max(0.6rem,env(safe-area-inset-top))]">
+      <header className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 px-3 pt-[max(0.6rem,env(safe-area-inset-top))]">
         <div className="flex items-start gap-2">
           <button onClick={leave} disabled={!!doing?.startedAt} className="pointer-events-auto grid size-10 shrink-0 place-items-center rounded-full bg-black/60 text-white disabled:opacity-40" aria-label="Leave the building">
             <BackIcon />
@@ -399,7 +399,7 @@ export function InsideScreen({ game }: { game: GameState }) {
       {/* Bottom: the activity in progress, or what you can do here. */}
       {can3d && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3" style={{ paddingBottom: BOTTOM_BAR_SPACE }}>
-          <div className="pointer-events-auto mx-auto max-w-[440px]">
+          <div className="pointer-events-auto mx-auto max-w-md">
             {doing ? (
               <section className="flex items-center gap-3 rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 shadow-2xl">
                 <div className="min-w-0 flex-1">
