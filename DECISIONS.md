@@ -647,3 +647,8 @@ the code mentioned.
 156. **First-time tour:** seven cards (welcome, walking, doing things, your
      story, your needs, the bottom bar, getting around), shown once on this
      device; Settings on the phone has "Show the tour again".
+157. **The top bar is always on screen too** (time and part of day, journal,
+     money), on the map and inside rooms, full width. Rooms have no back
+     button: you leave with the bottom bar (Home, Me, Map). Under the top
+     bar a room shows its name and live status, "⋯" for all actions, your
+     quest and your needs.

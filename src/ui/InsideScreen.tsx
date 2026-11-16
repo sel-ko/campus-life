@@ -12,7 +12,6 @@ import { getPlace, sectionName } from '../content/places';
 import { naira } from '../game/format';
 import { getInteractions, getOccupants, isOwnRoom, officesAt, type Interaction, type InteractionKind, type TargetType } from '../game/interactions';
 import { crowdLevel, placeEmoji, placeStatus } from '../game/status';
-import { slotName } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { useSettings } from '../store/settingsStore';
@@ -20,11 +19,9 @@ import type { Pose } from '../world/characters/Character';
 import type { Activity } from '../world/interior/InteriorScene';
 import { roomLayout, type Target } from '../world/interior/layouts';
 import { SHOP_ITEMS } from '../content/food';
-import { useNow } from './clock';
 import { ErrorBoundary } from './ErrorBoundary';
-import { BackIcon } from './icons';
 import { FloatingJoystick, useJoystickHandlers } from './Joystick';
-import { DayPlanView, EffectChips, NeedsPanel, NeedsStrip, QuestChip, StatusPill } from './lifeUi';
+import { DayPlanView, EffectChips, NeedsPanel, NeedsStrip, QuestChip } from './lifeUi';
 import { usePageVisible } from './usePageVisible';
 import { hasWebGL } from './webgl';
 import { SHEET } from './theme';
@@ -196,14 +193,11 @@ function diff(before: GameState, after: GameState): string[] {
 
 export function InsideScreen({ game }: { game: GameState }) {
   const placeId = useGameStore((s) => s.insidePlaceId);
-  const leave = useGameStore((s) => s.leave);
   const perform = useGameStore((s) => s.perform);
   const wait = useGameStore((s) => s.wait);
   const openPhone = useGameStore((s) => s.openPhone);
-  const setJournalOpen = useGameStore((s) => s.setJournalOpen);
   const quality = useSettings((s) => s.quality);
   const visible = usePageVisible();
-  const now = useNow();
   const [selected, setSelected] = useState<Target | null>(null);
   const [near, setNear] = useState<Target | null>(null);
   // After doing something, its card stays closed until you walk to something else.
@@ -305,7 +299,6 @@ export function InsideScreen({ game }: { game: GameState }) {
     : '';
   const status = placeStatus(game, placeId);
   const night = game.clock.slot === 3;
-  const time = now.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' });
   const sleeping = !!doing?.startedAt && (doing.i.kind === 'sleep' || doing.i.kind === 'nap');
   const person = focus?.type === 'person' ? getPerson(focus.id ?? '') : undefined;
 
@@ -351,37 +344,27 @@ export function InsideScreen({ game }: { game: GameState }) {
       <div className={`pointer-events-none absolute inset-0 bg-[#060B18] transition-opacity duration-[2500ms] ${sleeping ? 'opacity-70' : 'opacity-0'}`} />
 
       {/* Top: back, the place and what is happening, your status. */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 px-3 pt-[max(0.6rem,env(safe-area-inset-top))]">
+      {/* Under the top bar (time, journal, money): where you are and what is going on. Leave with the bottom bar. */}
+      <header className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 px-3 pt-[calc(max(0.75rem,env(safe-area-inset-top))+3.25rem)]">
         <div className="flex items-start gap-2">
-          <button onClick={leave} disabled={!!doing?.startedAt} className="pointer-events-auto grid size-10 shrink-0 place-items-center rounded-full bg-black/60 text-white disabled:opacity-40" aria-label="Leave the building">
-            <BackIcon />
-          </button>
           <div className="min-w-0 flex-1 rounded-2xl bg-black/55 px-3 py-1.5 text-white">
             <p className="truncate text-sm font-bold">
               {placeEmoji(game, placeId)} {place.name}
             </p>
             <p className="truncate text-[11px] text-white/80">
               <span className={`mr-1 inline-block size-1.5 rounded-full align-middle ${status.tone === 'live' ? 'bg-red-400' : status.tone === 'open' ? 'bg-emerald-400' : status.tone === 'closed' ? 'bg-zinc-400' : 'bg-sky-300'}`} />
-              {status.text || sectionName(place.sectionId)} · day {game.clock.day}, {slotName(game.clock).toLowerCase()}
+              {status.text || sectionName(place.sectionId)}
             </p>
           </div>
-          <StatusPill game={game} time={time} onClick={() => setShowNeeds((o) => !o)} />
+          <button onClick={() => setShowAll(true)} className="pointer-events-auto h-10 shrink-0 rounded-full bg-black/60 px-3 text-sm font-semibold text-white" aria-label="All actions">
+            ⋯
+          </button>
         </div>
         <div className="flex items-start justify-between gap-2">
           <QuestChip game={game} />
-          <div className="pointer-events-auto flex shrink-0 flex-col items-end gap-1.5">
-            <button onClick={() => setShowNeeds((o) => !o)} aria-label="Your needs" aria-expanded={showNeeds}>
-              <NeedsStrip game={game} />
-            </button>
-            <div className="flex gap-1.5">
-              <button onClick={() => setJournalOpen(true)} className="grid size-10 place-items-center rounded-full bg-black/60" aria-label="Journal">
-                📓
-              </button>
-              <button onClick={() => setShowAll(true)} className="h-10 rounded-full bg-black/60 px-3 text-sm font-semibold text-white" aria-label="All actions">
-                ⋯
-              </button>
-            </div>
-          </div>
+          <button onClick={() => setShowNeeds((o) => !o)} aria-label="Your needs" aria-expanded={showNeeds} className="pointer-events-auto shrink-0">
+            <NeedsStrip game={game} />
+          </button>
         </div>
         {showNeeds && <div className="pointer-events-auto fixed inset-0" onClick={() => setShowNeeds(false)} aria-hidden="true" />}
         {showNeeds && (

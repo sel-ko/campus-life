@@ -106,17 +106,6 @@ export function NeedsStrip({ game }: { game: GameState }) {
   );
 }
 
-/** Time, mood and money in one pill. */
-export function StatusPill({ game, time, onClick }: { game: GameState; time: string; onClick?: () => void }) {
-  const mood = moodOf(game);
-  return (
-    <button onClick={onClick} className={`flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold ${PILL}`} aria-label={`${time}, feeling ${mood.label}, ${naira(game.money)}`}>
-      <span>{time}</span>
-      <span aria-hidden="true">{mood.emoji}</span>
-      <span className="text-sun">{naira(game.money)}</span>
-    </button>
-  );
-}
 
 /** Your story's next step, with a button to go there. */
 export function QuestChip({ game }: { game: GameState }) {

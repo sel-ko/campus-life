@@ -4,7 +4,7 @@ import { useGameStore } from '../store/gameStore';
 import { ErrorBoundary } from './ErrorBoundary';
 import { BottomBar } from './BottomBar';
 import { EventCard } from './EventCard';
-import { Hud } from './Hud';
+import { Hud, TopBar } from './Hud';
 import { InsideScreen } from './InsideScreen';
 import { JournalSheet } from './JournalSheet';
 import { FloatingJoystick, useJoystickHandlers } from './Joystick';
@@ -80,6 +80,7 @@ export function PlayScreen({ game }: { game: GameState }) {
       <FloatingJoystick />
       <TravelSheet game={game} />
       <InsideScreen game={game} />
+      <TopBar game={game} />
       <BottomBar game={game} showMap={showMap} />
       <JournalSheet game={game} />
       <ProfileSheet game={game} />

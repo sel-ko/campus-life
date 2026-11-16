@@ -41,26 +41,51 @@ function Toast({ game }: { game: GameState }) {
 
 
 export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
-  const [statsOpen, setStatsOpen] = useState(false);
-  const now = useNow();
   const cameraMode = useGameStore((s) => s.cameraMode);
-  const openPhone = useGameStore((s) => s.openPhone);
-  const setJournalOpen = useGameStore((s) => s.setJournalOpen);
   const nearbyId = useGameStore((s) => s.nearbyPlaceId);
   const inside = useGameStore((s) => s.insidePlaceId !== null);
   const walking = useGameStore((s) => s.walkTargetId !== null);
   const tapPlace = useGameStore((s) => s.tapPlace);
-  const wait = useGameStore((s) => s.wait);
   const nearby = nearbyId ? getPlace(nearbyId) : undefined;
+  const follow = showMap && cameraMode === 'follow';
+
+  return (
+    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3 pt-[calc(max(0.75rem,env(safe-area-inset-top))+3.25rem)] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="flex flex-col gap-2">
+        {!inside && <QuestChip game={game} />}
+        <Toast game={game} />
+      </div>
+
+      <div className="flex flex-col items-center gap-3">
+        {follow && !inside && nearby?.enterable && !walking && (
+          <button onClick={() => tapPlace(nearby.id, true)} className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-full bg-sun px-5 font-bold text-night shadow-lg">
+            <DoorIcon size={20} /> Enter {nearby.name}
+          </button>
+        )}
+        {/* The bottom bar lives in BottomBar.tsx so it shows in rooms too. */}
+        <div className="h-[60px]" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The top bar, always on screen (on the map and inside rooms): the real
+ * clock with the game day and part of day (tap for your needs and to let
+ * time pass), the journal, and your money (tap for the wallet).
+ */
+export function TopBar({ game }: { game: GameState }) {
+  const [statsOpen, setStatsOpen] = useState(false);
+  const now = useNow();
+  const openPhone = useGameStore((s) => s.openPhone);
+  const setJournalOpen = useGameStore((s) => s.setJournalOpen);
+  const wait = useGameStore((s) => s.wait);
   const SlotIcon = SLOT_ICONS[game.clock.slot]!;
   const tasks = journal(game);
   const urgent = tasks.filter((t) => t.urgent).length;
   const week = campusEvent(game);
-  const follow = showMap && cameraMode === 'follow';
-
   return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <div className="flex flex-col gap-2">
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[25] flex flex-col gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={() => setStatsOpen((o) => !o)}
@@ -112,19 +137,6 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
             </button>
           </div>
         )}
-        {!inside && <QuestChip game={game} />}
-        <Toast game={game} />
-      </div>
-
-      <div className="flex flex-col items-center gap-3">
-        {follow && !inside && nearby?.enterable && !walking && (
-          <button onClick={() => tapPlace(nearby.id, true)} className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-full bg-sun px-5 font-bold text-night shadow-lg">
-            <DoorIcon size={20} /> Enter {nearby.name}
-          </button>
-        )}
-        {/* The bottom bar lives in BottomBar.tsx so it shows in rooms too. */}
-        <div className="h-[60px]" />
-      </div>
     </div>
   );
 }
