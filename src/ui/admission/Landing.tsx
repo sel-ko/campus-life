@@ -1,7 +1,7 @@
 // Before you sign up: the live campus fills the screen (drag to look around,
 // students walking, the sky at its time of day) and the application sits on
 // top. Buildings cannot be entered until you have admission.
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { hasWebGL } from '../webgl';
@@ -13,6 +13,8 @@ export function Landing({ onLeaderboard }: { onLeaderboard: () => void }) {
   const setCameraMode = useGameStore((s) => s.setCameraMode);
   const notice = useGameStore((s) => s.notice);
   const setNotice = useGameStore((s) => s.setNotice);
+  const [welcome, setWelcome] = useState(true);
+  const onStepChange = useCallback((w: boolean) => setWelcome(w), []);
   useEffect(() => setCameraMode('overview'), [setCameraMode]);
   useEffect(() => {
     if (!notice) return;
@@ -25,7 +27,7 @@ export function Landing({ onLeaderboard }: { onLeaderboard: () => void }) {
         <div className="absolute inset-0">
           <ErrorBoundary fallback={null}>
             <Suspense fallback={null}>
-              <CampusScene paused={false} />
+              <CampusScene paused={!welcome} />
             </Suspense>
           </ErrorBoundary>
         </div>
@@ -35,8 +37,9 @@ export function Landing({ onLeaderboard }: { onLeaderboard: () => void }) {
           🔒 {notice}
         </p>
       )}
-      <div className="pointer-events-none absolute inset-0 overflow-y-auto">
-        <AdmissionFlow onLeaderboard={onLeaderboard} />
+      {/* On the welcome card, drags reach the campus; on the form, the form takes every touch. */}
+      <div className={`absolute inset-0 px-3 ${welcome ? 'pointer-events-none overflow-y-auto' : 'overflow-hidden bg-black/30'}`}>
+        <AdmissionFlow onLeaderboard={onLeaderboard} onStepChange={onStepChange} />
       </div>
     </div>
   );

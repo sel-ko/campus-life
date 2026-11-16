@@ -813,3 +813,9 @@ the code mentioned.
      The service worker and manifest use relative paths so the game works
      from a subfolder or a domain root. Online features stay optional
      (repository variables).
+194. **Sign-up on iPhones:** the application form scrolls inside its own
+     panel (iOS Safari would not scroll the see-through layer it sat in, so
+     the Next button below the character creator was out of reach), the
+     main button of every step stays pinned at the bottom of the panel, a
+     hint says to type a name when Next is greyed out, and the campus behind
+     stops rendering (and is no longer blurred) once the form is open.

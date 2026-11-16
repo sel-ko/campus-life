@@ -16,14 +16,19 @@ import { CharacterCreator, baseLook, type Gender } from './CharacterCreator';
 import { Onboarding } from './Onboarding';
 import { BTN_GHOST, BTN_PRIMARY, CARD } from '../theme';
 
+/** A row of buttons that stays at the bottom of the panel while the form scrolls. */
+const STICKY = 'sticky bottom-0 -mx-4 flex gap-2 border-t border-white/10 bg-[#14202B] px-4 py-3';
+
 type Step = 'welcome' | 'details' | 'course' | 'test' | 'letter' | 'ambition';
 const BACKGROUND_IDS: BackgroundId[] = ['broke', 'average', 'comfortable'];
 
-export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) {
+export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: () => void; onStepChange?: (welcome: boolean) => void }) {
   const start = useGameStore((s) => s.start);
   const resetNotice = useGameStore((s) => s.resetNotice);
   const dismissResetNotice = useGameStore((s) => s.dismissResetNotice);
   const [step, setStep] = useState<Step>('welcome');
+  // The campus behind only moves on the welcome card (phones need the power for the form).
+  useEffect(() => onStepChange?.(step === 'welcome'), [step, onStepChange]);
   const [showIntro, setShowIntro] = useState(false);
   const [name, setName] = useState('');
   const [gender, setGender] = useState<Gender>('male');
@@ -70,9 +75,12 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
   }
 
   const shell = (children: React.ReactNode) => (
-    <main className="pointer-events-auto mx-auto my-4 flex min-h-[calc(100%-2rem)] max-w-md flex-col gap-5 rounded-3xl border border-white/10 bg-[#14202B]/94 px-4 py-6 shadow-2xl backdrop-blur">
+    <main
+      className="pointer-events-auto mx-auto my-4 flex max-w-md touch-pan-y flex-col gap-5 overflow-y-auto overscroll-contain rounded-3xl border border-white/10 bg-[#14202B] px-4 pt-6 shadow-2xl"
+      style={{ maxHeight: 'calc(100dvh - 2rem)' }}
+    >
       {children}
-      <p className="mt-auto pt-4 text-center text-xs text-muted">Unofficial fan-made game. Not affiliated with any real university.</p>
+      <p className="mt-auto pt-2 pb-6 text-center text-xs text-muted">Unofficial fan-made game. Not affiliated with any real university.</p>
     </main>
   );
 
@@ -161,7 +169,8 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
             );
           })}
         </fieldset>
-        <div className="flex gap-2">
+        {!ready && <p className="-mb-3 text-center text-sm text-sun">Type your name above to continue</p>}
+        <div className={STICKY}>
           <button onClick={() => setStep('welcome')} className={BTN_GHOST}>
             Back
           </button>
@@ -204,7 +213,7 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
           </p>
           <p className="text-muted">Acceptance fee {naira(FEES.acceptance[p.competitive ? 1 : 0])}. Miss the cut-off and you will be offered another course.</p>
         </div>
-        <div className="flex gap-2">
+        <div className={STICKY}>
           <button onClick={() => setStep('details')} className={BTN_GHOST}>
             Back
           </button>
@@ -249,7 +258,7 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
             countTest();
             setStep('letter');
           }}
-          className={BTN_PRIMARY}
+          className={`${BTN_PRIMARY} sticky bottom-3`}
         >
           {qIndex < questions.length - 1 ? 'Next question' : 'Submit the test'}
         </button>
@@ -302,9 +311,11 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
             Retake the test for {letter.firstChoice}
           </button>
         )}
-        <button onClick={() => setStep('ambition')} className={BTN_PRIMARY}>
-          {letter.admittedToChoice ? 'Accept the offer' : `Accept ${letter.programme} instead`}
-        </button>
+        <div className={STICKY}>
+          <button onClick={() => setStep('ambition')} className={`${BTN_PRIMARY} flex-1`}>
+            {letter.admittedToChoice ? 'Accept the offer' : `Accept ${letter.programme} instead`}
+          </button>
+        </div>
         <p className="text-center text-sm text-muted">Accepting adds you to the Freshers group chat.</p>
       </>,
     );
@@ -322,9 +333,11 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
           </button>
         ))}
       </div>
-      <button onClick={begin} className={BTN_PRIMARY}>
-        Resume on campus
-      </button>
+      <div className={STICKY}>
+        <button onClick={begin} className={`${BTN_PRIMARY} flex-1`}>
+          Move into the hostel
+        </button>
+      </div>
     </>,
   );
 }
