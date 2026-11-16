@@ -5,7 +5,7 @@ import { freshersHall } from '../content/places';
 import { BACKGROUNDS, SAVE_VERSION, START_NEEDS, PHONE } from './config';
 import { matricNumber } from './admission';
 import { START_CLOCK } from './time';
-import type { AmbitionId, BackgroundId, GameState, OfficeId, PersonState } from './types';
+import type { AmbitionId, BackgroundId, GameState, OfficeId, PersonState, PlayerProfile } from './types';
 
 export interface NewGameSetup {
   name: string;
@@ -21,6 +21,8 @@ export interface NewGameSetup {
   seed: number;
   /** Real year the game started, for the matric number. */
   startYear: number;
+  gender?: 'male' | 'female';
+  look?: PlayerProfile['look'];
 }
 
 const NO_OFFICES: Record<OfficeId, boolean> = {
@@ -53,6 +55,9 @@ export function blankState(s: NewGameSetup): GameState {
       testAttempts: s.testAttempts ?? 1,
       matric: matricNumber(s.programmeId, s.seed, s.startYear),
       ambition: s.ambition,
+      startYear: s.startYear,
+      gender: s.gender ?? (s.characterId.startsWith('f') ? 'female' : 'male'),
+      ...(s.look ? { look: s.look } : {}),
     },
     clock: { ...START_CLOCK },
     needs: { ...START_NEEDS },

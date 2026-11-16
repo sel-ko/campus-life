@@ -34,7 +34,11 @@ function scatter(): { trees: Spot[]; bushes: Spot[] } {
     const p = b.plot;
     for (let x = p.x0 + 3; x < p.x1 - 2; x += 5.5) {
       for (let z = p.z0 + 3; z < p.z1 - 2; z += 5.5) {
-        trees.push({ x: x + (rand() - 0.5) * 2.5, z: z + (rand() - 0.5) * 2.5, s: 0.75 + rand() * 0.5 });
+        const tx = x + (rand() - 0.5) * 2.5;
+        const tz = z + (rand() - 0.5) * 2.5;
+        const [cx, cy] = cellOf(tx, tz);
+        if (taken.has(`${cx},${cy}`)) continue; // a keke stop took this corner
+        trees.push({ x: tx, z: tz, s: 0.75 + rand() * 0.5 });
         if (rand() < 0.4) bushes.push({ x: x + 2.5, z: z + 2, s: 0.7 + rand() * 0.4 });
       }
     }

@@ -310,6 +310,59 @@ function cylinderOnWall(p: Parts, at: At, r: number, colour: string, y: number) 
   blk(p, at, 0.03, r * 0.8, 0.02, '#1B1E22', 0, y + r * 0.6, 0.03, 0);
 }
 
+// ---------- business centre ----------
+
+/** Big office photocopier with a lid and paper trays. */
+export function photocopier(p: Parts, at: At) {
+  blk(p, at, 1.0, 0.95, 0.75, '#D9DEE2', 0, 0, 0, 0.05);
+  blk(p, at, 0.95, 0.06, 0.7, '#3C3F45', 0, 0.95, 0, 0.02); // glass
+  blk(p, at, 0.95, 0.08, 0.7, '#B8BEC6', 0, 1.01, -0.02, 0.02); // lid
+  blk(p, at, 0.3, 0.1, 0.18, '#2E3A44', 0.3, 0.95, 0.28, 0.02); // control panel
+  blk(p, at, 0.05, 0.05, 0.02, '#34D399', 0.38, 1.05, 0.38, 0);
+  for (const y of [0.2, 0.45]) blk(p, at, 0.8, 0.12, 0.05, '#C9CED3', 0, y, 0.38, 0.02); // trays
+  blk(p, at, 0.5, 0.04, 0.35, '#FFFFFF', -0.55, 0.6, 0, 0.01); // output paper
+}
+
+/** Desk with a computer and a printer. */
+export function printerDesk(p: Parts, at: At) {
+  blk(p, at, 1.6, 0.06, 0.75, '#8B5E3C', 0, 0.74, 0, 0.02);
+  for (const [lx, lz] of [[-0.72, -0.3], [0.72, -0.3], [-0.72, 0.3], [0.72, 0.3]] as const) blk(p, at, 0.06, 0.74, 0.06, '#5B3F27', lx, 0, lz, 0.01);
+  blk(p, at, 0.55, 0.4, 0.05, '#1B1E22', -0.3, 0.8, -0.2, 0.02); // monitor
+  blk(p, at, 0.5, 0.03, 0.18, '#2E3A44', -0.3, 0.8, 0.12, 0.01); // keyboard
+  blk(p, at, 0.5, 0.28, 0.4, '#E7ECEF', 0.45, 0.8, -0.05, 0.04); // printer
+  blk(p, at, 0.36, 0.03, 0.3, '#FFFFFF', 0.45, 1.08, -0.05, 0.01);
+}
+
+/** Passport photo corner: a blue backdrop on a stand. */
+export function photoBackdrop(p: Parts, at: At) {
+  blk(p, at, 1.6, 2.1, 0.05, '#2F7FC1', 0, 0.05, 0, 0.01);
+  blk(p, at, 0.06, 2.2, 0.06, '#2E3A44', -0.82, 0, 0.05, 0);
+  blk(p, at, 0.06, 2.2, 0.06, '#2E3A44', 0.82, 0, 0.05, 0);
+}
+
+/** A round stool. */
+export function stool(p: Parts, at: At, colour = '#D9482B') {
+  cyl(p, at, 0.2, 0.06, colour, 0, 0.45, 0);
+  cyl(p, at, 0.04, 0.45, '#2E3A44', 0, 0, 0);
+}
+
+/** Camera on a tripod, with a flash umbrella. */
+export function tripodCamera(p: Parts, at: At) {
+  for (const a of [0, 2.1, 4.2]) blk(p, at, 0.04, 1.3, 0.04, '#2E3A44', Math.cos(a) * 0.18, 0, Math.sin(a) * 0.18, 0);
+  blk(p, at, 0.3, 0.2, 0.18, '#1B1E22', 0, 1.3, 0, 0.04);
+  cyl(p, at, 0.06, 0.12, '#3C3F45', 0, 1.33, 0.12);
+  blk(p, at, 0.6, 0.5, 0.05, '#F4EFE6', 0.45, 1.5, -0.2, 0.2); // umbrella
+}
+
+/** Charging station: a table with a power strip and phones charging. */
+export function chargingStation(p: Parts, at: At) {
+  blk(p, at, 1.4, 0.06, 0.6, '#7A4E2D', 0, 0.85, 0, 0.02);
+  blk(p, at, 1.3, 0.85, 0.5, '#5B3F27', 0, 0, 0, 0.02);
+  blk(p, at, 1.1, 0.05, 0.1, '#F4EFE6', 0, 0.91, -0.15, 0.02); // power strip
+  ['#1B1E22', '#2F5D8A', '#B23A79', '#1B1E22'].forEach((c, i) => blk(p, at, 0.12, 0.02, 0.22, c, -0.45 + i * 0.3, 0.92, 0.1, 0.01));
+  blk(p, at, 0.6, 0.3, 0.03, '#F2C230', 0, 1.3, -0.28, 0.01); // sign
+}
+
 export function shade(hex: string, f: number): string {
   const n = parseInt(hex.slice(1), 16);
   const ch = (v: number) => Math.max(0, Math.min(255, Math.round(v * f)));

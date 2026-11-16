@@ -41,6 +41,7 @@ export function CameraRig({ start }: { start: [number, number] }) {
   const goal = useRef({ followDist: FOLLOW.start, overviewDist: 0, ox: 0, oz: 0, yaw: 0, tilt: DEFAULT_TILT });
   /** Set when pinching out switched to the map: keep the view where it is. */
   const zoomedOut = useRef(false);
+  const wasOverhead = useRef(false);
   // First-person camera while walking somewhere (smoothed).
   const fp = useRef(new THREE.Vector3());
   const look = useRef(new THREE.Vector3());
@@ -192,10 +193,16 @@ export function CameraRig({ start }: { start: [number, number] }) {
     g.ox = THREE.MathUtils.clamp(g.ox, b.minX, b.maxX);
     g.oz = THREE.MathUtils.clamp(g.oz, b.minZ, b.maxZ);
 
-    const follow = modeRef.current === 'follow';
+    const st = useGameStore.getState();
+    // Riding a keke: watch from overhead, following it.
+    const overhead = st.travelMode === 'keke' && st.riding;
+    const follow = modeRef.current === 'follow' || overhead;
     const tx = follow ? playerWorld.pos.x : g.ox;
     const tz = follow ? playerWorld.pos.z : g.oz;
-    const td = follow ? g.followDist : g.overviewDist || v.dist;
+    const td = overhead ? 70 : follow ? g.followDist : g.overviewDist || v.dist;
+    if (overhead) g.tilt = THREE.MathUtils.degToRad(78);
+    else if (wasOverhead.current) g.tilt = DEFAULT_TILT;
+    wasOverhead.current = overhead;
     const k = 1 - Math.exp(-dt * (follow ? 6 : 4));
     const kr = 1 - Math.exp(-dt * 10);
     v.x += (tx - v.x) * k;

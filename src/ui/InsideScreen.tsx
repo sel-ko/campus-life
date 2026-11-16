@@ -12,6 +12,7 @@ import { getPlace, sectionName } from '../content/places';
 import { naira } from '../game/format';
 import { QUICK_MINUTES, actionMinutes, getInteractions, getOccupants, getQueueLength, isOwnRoom, officesAt, type Interaction, type InteractionKind, type TargetType } from '../game/interactions';
 import { crowdLevel, placeEmoji, placeStatus } from '../game/status';
+import { nextStep } from '../game/story';
 import { SLOT_START, clockMin, formatDuration, formatTime } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
@@ -22,7 +23,7 @@ import { roomLayout, type Target } from '../world/interior/layouts';
 import { SHOP_ITEMS } from '../content/food';
 import { ErrorBoundary } from './ErrorBoundary';
 import { FloatingJoystick, useJoystickHandlers } from './Joystick';
-import { DayPlanView, EffectChips, InfoStack } from './lifeUi';
+import { EffectChips, InfoStack, TodayClasses } from './lifeUi';
 import { usePageVisible } from './usePageVisible';
 import { hasWebGL } from './webgl';
 import { SHEET } from './theme';
@@ -44,6 +45,10 @@ const TARGET_NAMES: Record<TargetType, string> = {
   door: 'Door',
   shower: 'Bathroom',
   toilet: 'Toilet',
+  copier: 'Photocopier',
+  camera: 'Passport photos',
+  printer: 'Printing',
+  charger: 'Charging station',
   person: 'Person',
 };
 
@@ -78,7 +83,15 @@ const POSES: Partial<Record<InteractionKind, Pose>> = {
   wait: 'sit',
   treat: 'lie',
   charge: 'read',
+  wait_open: 'sit',
+  exam_form: 'chat',
 };
+
+/** Business-centre stations have their own icons. */
+const EMOJI_AT: Partial<Record<TargetType, string>> = { copier: '📠', camera: '📸', printer: '🖨️', charger: '🔌' };
+
+/** At the business centre the station says what is happening. */
+const DOING_AT: Partial<Record<TargetType, string>> = { copier: 'Making photocopies', camera: 'Smile! Taking passport photos', printer: 'Printing', charger: 'Charging your phone' };
 
 /** What the screen says while you do it. */
 const DOING: Partial<Record<InteractionKind, string>> = {
@@ -110,6 +123,9 @@ const DOING: Partial<Record<InteractionKind, string>> = {
   wait: 'Waiting',
   treat: 'With the doctor',
   charge: 'Charging your phone',
+  wait_open: 'Waiting for 8:00',
+  exam_form: 'Signing the exam form',
+  buy: 'Paying',
 };
 
 /** How long the animation runs: longer things look longer. */
@@ -162,6 +178,8 @@ const EMOJI: Partial<Record<InteractionKind, string>> = {
   bath: '🧼',
   toilet: '🚽',
   charge: '🔌',
+  wait_open: '⏳',
+  exam_form: '✍🏾',
   wait: '⏳',
 };
 
@@ -169,7 +187,7 @@ const EMOJI: Partial<Record<InteractionKind, string>> = {
 const KEEP_DETAIL: InteractionKind[] = ['hustle', 'setup', 'project', 'handout', 'plead', 'library'];
 
 /** People queue at these. */
-const QUEUED: InteractionKind[] = ['office', 'debit', 'issue', 'allocation', 'plead', 'treat', 'library'];
+const QUEUED: InteractionKind[] = ['office', 'debit', 'issue', 'allocation', 'plead', 'treat', 'library', 'exam_form'];
 
 /** About six minutes a person in the queue. */
 const queueText = (n: number) => (n > 0 ? `⏳ ${n} ahead · ~${Math.max(5, n * 6)} min` : '');
@@ -184,11 +202,15 @@ function timeLabel(game: GameState, i: Interaction): string {
 
 function ActionRow({ i, onDo, queue = 0, time }: { i: Interaction; onDo: (i: Interaction) => void; queue?: number; time: string }) {
   const q = QUEUED.includes(i.kind) ? queueText(queue) : '';
+  const [n, setN] = useState(2);
+  const pay = i.label.startsWith('Pay');
+  const total = i.qty ? i.qty.unit * n : i.cost?.money;
+  const go = () => onDo(i.qty ? { ...i, id: `${i.id}:${n}`, cost: { ...i.cost, money: total } } : i);
   return (
     <li className={`rounded-2xl border border-white/10 bg-white/6 p-2.5 ${i.available ? '' : 'opacity-60'}`}>
       <div className="flex items-center gap-2.5">
         <span className="text-2xl" aria-hidden="true">
-          {EMOJI[i.kind] ?? '•'}
+          {EMOJI_AT[i.target.type] ?? EMOJI[i.kind] ?? '•'}
         </span>
         <div className="min-w-0 flex-1">
           <p className="leading-tight font-semibold">{i.label.replace(/^Get your clearance form signed: /, 'Clearance: ')}</p>
@@ -196,13 +218,32 @@ function ActionRow({ i, onDo, queue = 0, time }: { i: Interaction; onDo: (i: Int
           <div className="mt-1 flex flex-wrap items-center gap-1">
             <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold">⏱ {time}</span>
             {q && <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-200">{q}</span>}
-            {i.cost?.money ? <span className="rounded-full bg-sun/20 px-2 py-0.5 text-[11px] font-bold text-sun">{naira(i.cost.money)}</span> : null}
+            {total ? <span className="rounded-full bg-sun/20 px-2 py-0.5 text-[11px] font-bold text-sun">{naira(total)}{i.qty ? ` · ${naira(i.qty.unit)} each` : ''}</span> : null}
             <EffectChips effects={i.effects} />
           </div>
           {!i.available && i.reason && <p className="mt-1 text-xs font-semibold text-red-300">{i.reason}</p>}
         </div>
-        <button onClick={() => onDo(i)} disabled={!i.available} className="min-h-10 shrink-0 rounded-xl bg-sun px-3 text-sm font-bold text-night disabled:bg-white/10 disabled:text-muted">
-          {i.kind === 'buy' || i.kind === 'eat' ? 'Buy' : 'Do it'}
+        {i.qty && (
+          <span className="flex shrink-0 items-center gap-1 rounded-xl bg-white/8 p-1" aria-label="How many">
+            <button onClick={() => setN((x) => Math.max(1, x - 1))} className="grid size-8 place-items-center rounded-lg bg-white/10 font-bold" aria-label="One fewer">
+              −
+            </button>
+            <input
+              type="number"
+              min={1}
+              max={i.qty.max}
+              value={n}
+              onChange={(e) => setN(Math.max(1, Math.min(i.qty!.max, Number(e.target.value) || 1)))}
+              className="w-9 bg-transparent text-center text-sm font-bold [appearance:textfield]"
+              aria-label="Number of copies"
+            />
+            <button onClick={() => setN((x) => Math.min(i.qty!.max, x + 1))} className="grid size-8 place-items-center rounded-lg bg-white/10 font-bold" aria-label="One more">
+              +
+            </button>
+          </span>
+        )}
+        <button onClick={go} disabled={!i.available} className="min-h-10 shrink-0 rounded-xl bg-sun px-3 text-sm font-bold text-night disabled:bg-white/10 disabled:text-muted">
+          {pay ? 'Pay' : i.kind === 'buy' || i.kind === 'eat' ? 'Buy' : 'Do it'}
         </button>
       </div>
     </li>
@@ -298,7 +339,7 @@ export function InsideScreen({ game }: { game: GameState }) {
   const interactions = useMemo(() => (placeId ? getInteractions(game, placeId) : []), [game, placeId]);
   const occupants = useMemo(() => (placeId ? getOccupants(game, placeId) : []), [game, placeId]);
   const layout = useMemo(
-    () => (place ? roomLayout(place.type, { venue: place.venue, offices: officesAt(game, place.id) }) : null),
+    () => (place ? roomLayout(place.type, { venue: place.venue, offices: officesAt(game, place.id), business: !!place.stock?.includes('photocopy') }) : null),
     // The room only changes when you enter another place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [place?.id],
@@ -399,6 +440,9 @@ export function InsideScreen({ game }: { game: GameState }) {
               : TARGET_NAMES[focus.type]
     : '';
   const status = placeStatus(game, placeId);
+  // A quest step for this room, or a follow-up you were just given, floats over your head.
+  const next = nextStep(game);
+  const questTag = next && (next.sub || next.placeId === placeId) ? (next.label.length > 40 ? `${next.label.slice(0, 38)}…` : next.label) : null;
   const night = game.clock.slot === 3;
   const sleeping = !!doing?.startedAt && (doing.i.kind === 'sleep' || doing.i.kind === 'nap');
   const person = focus?.type === 'person' ? getPerson(focus.id ?? '') : undefined;
@@ -414,6 +458,9 @@ export function InsideScreen({ game }: { game: GameState }) {
                 interactions={interactions}
                 occupants={occupants}
                 characterId={game.player.characterId}
+                look={game.player.look}
+                crowdGender={ownRoom ? (game.player.gender ?? 'male') : undefined}
+                questTag={questTag}
                 selected={selected}
                 onSelect={(t) => {
                   if (doingRef.current) return;
@@ -497,7 +544,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                         ? `Waiting in the queue · ${Math.max(1, Math.ceil(doing.queue * (1 - progress)))} ahead`
                         : 'Joining the queue…'
                       : doing.startedAt
-                        ? `${EMOJI[doing.i.kind] ?? ''} ${DOING[doing.i.kind] ?? 'Busy'}…`
+                        ? `${EMOJI[doing.i.kind] ?? ''} ${DOING_AT[doing.i.target.type] ?? DOING[doing.i.kind] ?? 'Busy'}…`
                         : 'On my way…'}
                     {sleeping && ' 🌙'}
                   </p>
@@ -530,7 +577,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                   )}
                 </div>
                 {focus.type === 'locker' && ownRoom && <Locker game={game} />}
-                {showTimetable && <DayPlanView game={game} onlyToday />}
+                {showTimetable && <TodayClasses game={game} />}
                 {focusList.length ? (
                   <ul className="flex flex-col gap-1.5">
                     {focusList.map((i) => (

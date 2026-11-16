@@ -7,7 +7,8 @@ import { useGameStore } from '../store/gameStore';
 import { SHEET } from './theme';
 import { useState } from 'react';
 import { currentChapter } from '../game/story';
-import { DayPlanView } from './lifeUi';
+import { dayLabel } from '../game/calendar';
+import { CalendarView, TimetableGrid } from './lifeUi';
 
 const GROUP_TITLES: Record<JournalTask['group'], string> = {
   today: 'Today',
@@ -24,7 +25,7 @@ export function JournalSheet({ game }: { game: GameState }) {
   const setOpen = useGameStore((s) => s.setJournalOpen);
   const tapPlace = useGameStore((s) => s.tapPlace);
   const openPhone = useGameStore((s) => s.openPhone);
-  const [tab, setTab] = useState<'quest' | 'timetable' | 'tasks'>('quest');
+  const [tab, setTab] = useState<'quest' | 'timetable' | 'calendar' | 'tasks'>('quest');
   if (!open) return null;
   const ch = currentChapter(game);
   const next = ch.steps.find((x) => !x.done);
@@ -50,10 +51,11 @@ export function JournalSheet({ game }: { game: GameState }) {
             [
               ['quest', '🧭 Quest'],
               ['timetable', '🗓️ Timetable'],
+              ['calendar', '📅 Calendar'],
               ['tasks', `📝 Tasks (${tasks.length})`],
             ] as const
           ).map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={`min-h-10 flex-1 rounded-full text-sm font-semibold ${tab === id ? 'bg-sun text-night' : 'bg-white/10'}`}>
+            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={`min-h-10 flex-1 rounded-full px-1 text-xs font-semibold ${tab === id ? 'bg-sun text-night' : 'bg-white/10'}`}>
               {label}
             </button>
           ))}
@@ -88,14 +90,11 @@ export function JournalSheet({ game }: { game: GameState }) {
 
         {tab === 'timetable' && (
           <section>
-            <p className="mb-2 flex flex-wrap gap-3 text-xs text-muted">
-              <span className="flex items-center gap-1"><span className="size-2.5 rounded-full bg-emerald-400" /> attended</span>
-              <span className="flex items-center gap-1"><span className="size-2.5 rounded-full bg-amber-300" /> on now</span>
-              <span className="flex items-center gap-1"><span className="size-2.5 rounded-full bg-red-500" /> missed</span>
-            </p>
-            <DayPlanView game={game} />
+            <TimetableGrid game={game} />
           </section>
         )}
+
+        {tab === 'calendar' && <CalendarView game={game} />}
 
         {tab === 'tasks' && (
         <>
@@ -118,7 +117,14 @@ export function JournalSheet({ game }: { game: GameState }) {
             <ul className="flex flex-col gap-1.5">
               {list.map((t) => (
                 <li key={t.id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${t.urgent ? 'border-red-400/50 bg-red-400/10' : 'border-white/10 bg-white/5'}`}>
-                  <span className="flex-1">{t.text}</span>
+                  <span className="flex-1">
+                    {t.text}
+                    {t.due !== undefined && (
+                      <span className={`block text-[11px] font-semibold ${t.due < game.clock.day ? 'text-red-300' : t.due - game.clock.day <= 1 ? 'text-amber-300' : 'text-muted'}`}>
+                        ⏰ {t.due < game.clock.day ? 'Overdue since' : 'By'} {dayLabel(game, t.due)}
+                      </span>
+                    )}
+                  </span>
                   {t.placeId && getPlace(t.placeId) && (
                     <button
                       onClick={() => {

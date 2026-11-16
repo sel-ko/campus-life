@@ -113,10 +113,11 @@ export function sleepMut(d: GameState, r: Rng): void {
   log(d, notes.length ? `You slept, but ${notes.join(' and ')}.` : 'You slept well.');
 }
 
-export function napMut(d: GameState): void {
-  d.needs.energy = clamp(d.needs.energy + NAP.energy);
-  d.needs.stress = clamp(d.needs.stress + NAP.stress);
-  log(d, 'You took a nap. Small sleep, big difference.');
+/** A nap; `share` is how much of a full nap (a short one with an alarm gives less). */
+export function napMut(d: GameState, share = 1): void {
+  d.needs.energy = clamp(d.needs.energy + Math.round(NAP.energy * Math.max(0.5, share * 1.3)));
+  d.needs.stress = clamp(d.needs.stress + Math.round(NAP.stress * share));
+  log(d, share < 1 ? 'The alarm rang. Short nap, but you feel better.' : 'You took a nap. Small sleep, big difference.');
 }
 
 /** End of day: no sleep at all costs extra. */

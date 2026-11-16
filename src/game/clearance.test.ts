@@ -119,6 +119,7 @@ describe('finishing clearance', () => {
 
   it('needs fees, an allocation and the library after the form', () => {
     const d = ready();
+    d.clock.min = 9 * 60; // offices open at 8:00
     signAll(d);
     expect(canCollectAllocation(d).ok).toBe(false);
     getFee(d, 'hostel')!.paid = true;

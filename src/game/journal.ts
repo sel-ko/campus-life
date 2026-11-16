@@ -4,9 +4,11 @@ import { getPerson } from '../content/people';
 import { fieldPlace, mainBuka, medicalCentre, placeName } from '../content/places';
 import { attendance, canDoAssignment } from './academics';
 import { ELECTION_DAY, nextMilestone, upcomingElection } from './goals';
-import { clearanceSteps, officeName, officePlaceId } from './clearance';
+import { clearanceSteps, missingDocs, officeName, officePlaceId } from './clearance';
 import { naira } from './format';
 import { canRegister, feesDueNow, registrationDeadline } from './money';
+import { EXAM_FORM_DAYS, dayLabel, meetingTime } from './calendar';
+import { DOC_NAMES, OFFICE_ORDER } from '../content/offices';
 import type { GameState } from './types';
 
 export interface JournalTask {
@@ -17,6 +19,8 @@ export interface JournalTask {
   /** Done on the phone (portal). */
   portal?: boolean;
   urgent?: boolean;
+  /** Day of the semester it must be done by. */
+  due?: number;
   group: 'today' | 'clearance' | 'money' | 'study' | 'health' | 'people' | 'goals';
 }
 
@@ -24,9 +28,15 @@ type Producer = (d: GameState) => JournalTask[];
 
 const clearanceTasks: Producer = (d) => {
   if (!d.clearance.active) return [];
-  return clearanceSteps(d)
+  const due = registrationDeadline(d);
+  const out: JournalTask[] = clearanceSteps(d)
     .filter((s) => !s.done)
-    .map((s) => ({ id: `clr:${s.id}`, text: s.label, placeId: s.placeId, portal: s.portal, group: 'clearance' as const }));
+    .map((s) => ({ id: `clr:${s.id}`, text: s.label, placeId: s.placeId, portal: s.portal, due, group: 'clearance' as const }));
+  // Papers for the next office.
+  const next = OFFICE_ORDER.find((o) => !d.clearance.signed[o]);
+  const missing = next ? missingDocs(d, next) : [];
+  if (missing.length) out.unshift({ id: 'clr:docs', text: `Get ${missing.map((m) => DOC_NAMES[m]).join(' and ')} at the Business Centre`, placeId: 'business-9', due, urgent: true, group: 'clearance' });
+  return out;
 };
 
 const moneyTasks: Producer = (d) => {
@@ -34,7 +44,7 @@ const moneyTasks: Producer = (d) => {
   if (!d.clearance.active) {
     for (const f of feesDueNow(d)) {
       const late = f.dueSemester === d.clock.semester && d.clock.day >= f.dueDay - 2;
-      out.push({ id: `fee:${f.id}`, text: `Pay ${f.label.toLowerCase()} (${naira(f.amount)}) by day ${f.dueDay}`, portal: true, urgent: late, group: 'money' });
+      out.push({ id: `fee:${f.id}`, text: `Pay ${f.label.toLowerCase()} (${naira(f.amount)})`, portal: true, urgent: late, due: f.dueDay, group: 'money' });
     }
   }
   for (const debit of d.finance.debits) {
@@ -50,7 +60,8 @@ const moneyTasks: Producer = (d) => {
   if (!d.academics.registered && (reg.ok || reg.reason.startsWith('Pay the late'))) {
     out.push({
       id: 'register',
-      text: reg.ok ? `Register your courses on the portal (deadline day ${registrationDeadline(d)})` : reg.reason,
+      text: reg.ok ? 'Register your courses on the portal' : reg.reason,
+      due: registrationDeadline(d),
       portal: true,
       urgent: d.clock.day >= registrationDeadline(d) - 1,
       group: 'study',
@@ -72,7 +83,7 @@ const studyTasks: Producer = (d) => {
       if (m.status !== 'scheduled' || m.attended || t < now || m.day > d.clock.day) continue;
       out.push({
         id: `lecture:${c.code}:${m.day}:${m.slot}`,
-        text: `${m.test ? 'TEST: ' : ''}${c.code} ${c.kind === 'posting' ? 'posting' : c.kind === 'it' ? 'placement' : 'lecture'} this ${SLOT_NAMES[m.slot]} at ${placeName(m.placeId)}${m.moved ? ' (moved)' : ''}`,
+        text: `${m.test ? 'TEST: ' : ''}${c.code} ${c.kind === 'posting' ? 'posting' : c.kind === 'it' ? 'placement' : 'lecture'}, ${meetingTime(c, m)} at ${placeName(m.placeId)}${m.moved ? ' (moved)' : ''}`,
         placeId: m.placeId,
         urgent: t === now || !!m.test,
         group: 'today',
@@ -82,21 +93,32 @@ const studyTasks: Producer = (d) => {
     if (e.status === 'pending' && e.day * 4 + e.slot >= now && e.day <= d.clock.day + 1) {
       out.push({
         id: `exam:${c.code}`,
-        text: `EXAM: ${c.code} on day ${e.day}, ${SLOT_NAMES[e.slot]}, at ${placeName(e.placeId)}${e.batchMoved ? ' (batch time changed!)' : ''}`,
+        text: `EXAM: ${c.code}, ${dayLabel(d, e.day)} ${SLOT_NAMES[e.slot]}, at ${placeName(e.placeId)}${e.batchMoved ? ' (batch time changed!)' : ''}`,
         placeId: e.placeId,
         urgent: true,
         group: 'today',
       });
     }
     if (canDoAssignment(d, c).ok && d.clock.day >= 3) {
-      out.push({ id: `assignment:${c.code}`, text: `Submit the ${c.code} assignment by day ${c.assignmentDue} (library or room)`, urgent: d.clock.day >= c.assignmentDue - 1, group: 'study' });
+      out.push({ id: `assignment:${c.code}`, text: `Submit the ${c.code} assignment (library or room)`, urgent: d.clock.day >= c.assignmentDue - 1, due: c.assignmentDue, group: 'study' });
+    }
+    // Tests coming up this semester.
+    for (const m of c.meetings) {
+      if (!m.test || m.attended || m.status !== 'scheduled' || m.day * 4 + m.slot < now) continue;
+      out.push({ id: `test:${c.code}`, text: `✏️ ${c.code} test, ${dayLabel(d, m.day)} ${meetingTime(c, m)} at ${placeName(m.placeId)}`, placeId: m.placeId, urgent: m.day - d.clock.day <= 1, due: m.day, group: 'study' });
     }
     if (c.meetings.length && !c.covered && d.clock.day >= 6 && attendance(d, c).pct < 0.75) {
       out.push({ id: `bar:${c.code}`, text: `Attendance in ${c.code} is below 75%: attend every class or you will be barred`, urgent: true, group: 'study' });
     }
   }
-  if (a.courses.some((c) => c.kind === 'practical') && !(d.inventory.manual ?? 0)) {
-    out.push({ id: 'manual', text: 'Buy a practical manual (Business Centre or Stationery Kiosk): without it you only watch in practicals', placeId: 'business-9', group: 'study' });
+  if (a.courses.some((c) => c.kind === 'practical') && !(d.inventory.manual ?? 0) && d.flags[`manual_${d.clock.year}_${d.clock.semester}`]) {
+    const first = Math.min(...a.courses.filter((c) => c.kind === 'practical').flatMap((c) => c.meetings.map((m) => m.day)), 14);
+    out.push({ id: 'manual', text: 'Buy the practical manual at the Business Centre: without it you only watch in practicals', placeId: 'business-9', due: first, group: 'study' });
+  }
+  // The exam form, signed at the College Office before exams.
+  if (a.registered && !d.flags[`examform_${d.clock.year}_${d.clock.semester}`] && d.clock.day <= EXAM_FORM_DAYS[EXAM_FORM_DAYS.length - 1]!) {
+    const open = EXAM_FORM_DAYS.includes(d.clock.day);
+    out.push({ id: 'exam_form', text: open ? 'Sign your exam form at the College Office' : `Exam form signing opens ${dayLabel(d, EXAM_FORM_DAYS[0]!)}`, placeId: officePlaceId(d, 'college_office'), urgent: open, due: EXAM_FORM_DAYS[EXAM_FORM_DAYS.length - 1], group: 'study' });
   }
   for (const issue of a.issues) {
     out.push({
@@ -156,6 +178,6 @@ const PRODUCERS: Producer[] = [goalTasks, studyTasks, healthTasks, clearanceTask
 
 export function journal(d: GameState): JournalTask[] {
   const tasks = PRODUCERS.flatMap((p) => p(d));
-  return tasks.sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent));
+  return tasks.sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent) || (a.due ?? 99) - (b.due ?? 99));
 }
 

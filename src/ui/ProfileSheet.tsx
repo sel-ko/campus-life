@@ -11,7 +11,7 @@ import { naira } from '../game/format';
 import { slotName } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
-import { presetLook } from '../world/characters/look';
+import { lookOf } from '../world/characters/look';
 import { CloseIcon } from './icons';
 import { Portrait } from './Portrait';
 import { NeedsPanel } from './lifeUi';
@@ -98,7 +98,7 @@ export function ProfileSheet({ game }: { game: GameState }) {
       <section role="dialog" aria-label="Your profile" onClick={(e) => e.stopPropagation()} className="mx-auto flex max-h-[92%] w-full max-w-md flex-col gap-4 overflow-y-auto rounded-t-3xl border-t border-line bg-panel px-4 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-3">
           <span className="grid size-16 place-items-center overflow-hidden rounded-full bg-[#2B4558]">
-            <Portrait look={presetLook(p.characterId)} size={60} />
+            <Portrait look={lookOf(p)} size={60} />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-xl font-bold">{p.name}</h2>

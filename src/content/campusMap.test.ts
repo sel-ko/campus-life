@@ -1,3 +1,4 @@
+import { KEKE_ITEMS } from './kekeStops';
 import { describe, expect, it } from 'vitest';
 import { findPath, isBlocked, nearestDoor, nearestNode, roadGraph } from '../world/campus/navigation';
 import { buildings, sections } from './campusMap';
@@ -9,7 +10,7 @@ import { TOWN_ITEMS } from './town';
 describe('the planner layout', () => {
   it('loads every section and building you drew', () => {
     expect(sections).toHaveLength(raw.sections.length + 1); // + the town
-    expect(buildings).toHaveLength(raw.items.length + TOWN_ITEMS.length);
+    expect(buildings).toHaveLength(raw.items.length + TOWN_ITEMS.length + KEKE_ITEMS.length);
   });
 
   it('gives every building except gardens a role and a unique name', () => {

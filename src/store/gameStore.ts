@@ -130,7 +130,11 @@ export const useGameStore = create<GameStore>()(
 
         tapPlace: (placeId, nearby = false) => {
           const { game } = get();
-          if (!game || game.pendingEvent) return;
+          if (!game) {
+            set({ notice: `Apply for admission to go into ${getPlace(placeId)?.name ?? 'buildings'}` });
+            return;
+          }
+          if (game.pendingEvent) return;
           if (nearby || game.location.placeId === placeId) get().enter(placeId);
           else set({ travelSheetId: placeId, phoneApp: null });
         },
@@ -141,10 +145,10 @@ export const useGameStore = create<GameStore>()(
           const next = update(game, (g) => travel(g, travelSheetId, mode));
           if (next.location.placeId !== travelSheetId) return; // not allowed (e.g. no fare)
           const to = getPlace(travelSheetId);
-          // Kekes run between keke parks: the nearest one to the place.
+          // Kekes run between keke stops: you get off at the stop nearest the place and walk the rest.
           const stop =
             mode === 'keke' && to && to.type !== 'busstop'
-              ? PLACES.filter((p) => p.type === 'busstop' && p.sectionId === to.sectionId).sort((a, b) => Math.hypot(a.position[0] - to.position[0], a.position[1] - to.position[1]) - Math.hypot(b.position[0] - to.position[0], b.position[1] - to.position[1]))[0]
+              ? PLACES.filter((p) => p.type === 'busstop' && (p.sectionId === 'town') === (to.sectionId === 'town')).sort((a, b) => Math.hypot(a.position[0] - to.position[0], a.position[1] - to.position[1]) - Math.hypot(b.position[0] - to.position[0], b.position[1] - to.position[1]))[0]
               : undefined;
           set({ game: next, travelSheetId: null, walkTargetId: travelSheetId, riding: mode !== 'walk', travelMode: mode, rideStop: stop ? stop.position : null, insidePlaceId: null });
         },

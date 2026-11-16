@@ -13,6 +13,7 @@ import { findPath, isBlocked, nearestDoor, campusBounds } from './campus/navigat
 import { Character } from './characters/Character';
 import type { CharacterLook } from './characters/look';
 import { joystick } from './input';
+import { Label } from './Label';
 import { cameraState, playerWorld } from './shared';
 
 const WALK_SPEED = 8; // metres per second at full joystick
@@ -57,7 +58,7 @@ function pathLength(from: Pt, path: Pt[]): number {
   return len;
 }
 
-export function Player({ look }: { look: CharacterLook }) {
+export function Player({ look, questTag }: { look: CharacterLook; questTag?: string | null }) {
   const group = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const pos = useRef<THREE.Vector3 | null>(null);
@@ -69,6 +70,9 @@ export function Player({ look }: { look: CharacterLook }) {
   const walking = useRef(false);
   // The route being walked after a tap.
   const route = useRef<{ target: string; points: Pt[]; speed: number } | null>(null);
+  // A keke ride: climb in, ride along the road to the stop, climb out.
+  const keke = useRef<THREE.Group>(null);
+  const ride = useRef<{ phase: 'board' | 'drive' | 'alight'; t: number; points: Pt[]; speed: number } | null>(null);
 
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
@@ -108,10 +112,44 @@ export function Player({ look }: { look: CharacterLook }) {
       if (!target) {
         store.cancelWalk();
       } else if (store.riding && store.rideStop) {
-        // A keke ride drops you at the keke park nearest the place; walk the rest.
-        p.set(store.rideStop[0], 0, store.rideStop[1]);
-        route.current = null;
-        store.reachStop();
+        // A keke ride to the stop nearest the place (you walk the rest).
+        const stop = store.rideStop;
+        if (!ride.current) {
+          const points = findPath([p.x, p.z], stop);
+          ride.current = { phase: 'board', t: 0, points, speed: Math.max(18, pathLength([p.x, p.z], points) / 6) };
+        }
+        const k = ride.current;
+        k.t += dt;
+        if (k.phase === 'board' && k.t > 0.9) {
+          k.phase = 'drive';
+          k.t = 0;
+        } else if (k.phase === 'drive') {
+          let step = k.speed * dt;
+          while (step > 0 && k.points.length) {
+            const [tx, tz] = k.points[0]!;
+            const dx = tx - p.x;
+            const dz = tz - p.z;
+            const dist = Math.hypot(dx, dz);
+            if (dist <= step) {
+              p.set(tx, 0, tz);
+              step -= dist;
+              k.points.shift();
+            } else {
+              p.x += (dx / dist) * step;
+              p.z += (dz / dist) * step;
+              g.rotation.y = Math.atan2(dx, dz);
+              step = 0;
+            }
+          }
+          if (!k.points.length) {
+            k.phase = 'alight';
+            k.t = 0;
+          }
+        } else if (k.phase === 'alight' && k.t > 0.8) {
+          ride.current = null;
+          route.current = null;
+          store.reachStop();
+        }
       } else if (store.riding) {
         // A cab (or your car): to the door; the camera glides over.
         p.set(target.position[0], 0, target.position[1]);
@@ -168,15 +206,64 @@ export function Player({ look }: { look: CharacterLook }) {
     playerWorld.heading = g.rotation.y;
     // Walking somewhere is seen through your own eyes: hide your body.
     g.visible = !(store.walkTargetId && store.travelMode === 'walk');
+    // In the keke: the keke shows; you are inside it while it drives.
+    const k = ride.current;
+    if (keke.current) keke.current.visible = !!k;
+    body.current.visible = !k || k.phase !== 'drive';
+    if (k && body.current) {
+      // Step sideways into (or out of) the keke.
+      const side = k.phase === 'board' ? Math.max(0, 1 - k.t / 0.9) * 1.6 : k.phase === 'alight' ? Math.min(1, k.t / 0.8) * 1.6 : 0;
+      body.current.position.x = side;
+    } else body.current.position.x = 0;
   });
 
   return (
     <group ref={group}>
       <Blob scale={0.9} />
+      <Keke groupRef={keke} />
+      {questTag && <Label text={`👉 ${questTag.length > 40 ? `${questTag.slice(0, 38)}…` : questTag}`} position={[0, 3.2, 0]} size={0.9} accent />}
       <group ref={body} scale={SCALE}>
         <Character look={look} walking={walking} material={silhouetteMaterial} renderOrder={1} />
         <Character look={look} walking={walking} renderOrder={2} />
       </group>
+    </group>
+  );
+}
+
+/** A keke (tricycle taxi): green and yellow body, black canopy, three wheels. */
+function Keke({ groupRef }: { groupRef: React.RefObject<THREE.Group | null> }) {
+  return (
+    <group ref={groupRef} visible={false}>
+      <mesh position={[0, 0.9, 0]}>
+        <boxGeometry args={[1.6, 0.9, 2.8]} />
+        <meshLambertMaterial color="#2E8B57" />
+      </mesh>
+      <mesh position={[0, 0.75, 1.2]}>
+        <boxGeometry args={[1.3, 0.7, 0.6]} />
+        <meshLambertMaterial color="#F2C230" />
+      </mesh>
+      <mesh position={[0, 2.0, -0.2]}>
+        <boxGeometry args={[1.7, 0.12, 2.6]} />
+        <meshLambertMaterial color="#1B1E22" />
+      </mesh>
+      {[-0.75, 0.75].map((x) => (
+        <mesh key={x} position={[x, 1.45, -0.2]}>
+          <boxGeometry args={[0.08, 1.0, 0.08]} />
+          <meshLambertMaterial color="#1B1E22" />
+        </mesh>
+      ))}
+      {(
+        [
+          [0, 0.35, 1.5],
+          [-0.8, 0.35, -0.9],
+          [0.8, 0.35, -0.9],
+        ] as const
+      ).map(([x, y, z], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.35, 0.35, 0.25, 12]} />
+          <meshLambertMaterial color="#111111" />
+        </mesh>
+      ))}
     </group>
   );
 }

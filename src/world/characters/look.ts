@@ -112,9 +112,10 @@ const BOTTOMS = ['#31507A', '#5B86B8', '#2A2A30', '#6B5A44', '#EDE6D6'];
 const SHOES = ['#F1EFE8', '#2A1E33', '#6B4423', '#D9482B'];
 
 /** A random variation of one of the presets, for students walking around. */
-export function randomLook(rand: () => number): CharacterLook {
+export function randomLook(rand: () => number, gender?: 'male' | 'female'): CharacterLook {
   const pick = <T,>(list: T[]) => list[Math.floor(rand() * list.length)]!;
-  const base = PRESETS[pick(PRESET_IDS)].look;
+  const ids = gender ? PRESET_IDS.filter((id) => id.startsWith(gender === 'female' ? 'f' : 'm')) : PRESET_IDS;
+  const base = PRESETS[pick(ids)].look;
   const top = pick(TOPS);
   return {
     ...base,
@@ -126,4 +127,9 @@ export function randomLook(rand: () => number): CharacterLook {
       shoes: pick(SHOES),
     },
   };
+}
+
+/** The player's look: built in the creator, or one of the original presets on older saves. */
+export function lookOf(player: { characterId: string; look?: CharacterLook }): CharacterLook {
+  return player.look ?? presetLook(player.characterId);
 }

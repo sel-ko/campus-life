@@ -12,6 +12,7 @@ import { chooseEventMut, pendingEventDef } from '../events';
 import { canSetUp } from '../hustle';
 import { getInteractions, getMenu, performMut, travelMut } from '../interactions';
 import { addDataMut, canBuyData } from '../phone';
+import { beforeOfficeHours } from '../clearance';
 import { PHONE } from '../config';
 import { spend } from '../money';
 import { canPay, canRegister, portalPayMut, portalRegisterMut } from '../money';
@@ -47,6 +48,11 @@ function goQuick(c: Ctx, placeId: string): boolean {
 }
 
 function act(c: Ctx, placeId: string, id: string, urgent = false): boolean {
+  // Early at an office: get there and wait for 8:00 first.
+  if (beforeOfficeHours(c.d) && getInteractions(c.d, placeId).some((i) => i.id === 'wait_open')) {
+    if (!go(c, placeId, urgent)) return false;
+    performMut(c.d, c.r, placeId, 'wait_open');
+  }
   // Check first, so the bot never pays a fare for something it cannot do.
   if (!getInteractions(c.d, placeId).some((i) => i.id === id && i.available)) return false;
   const before = c.d.clock;

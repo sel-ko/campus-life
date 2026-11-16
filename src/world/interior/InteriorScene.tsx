@@ -15,6 +15,7 @@ import { Character, type Pose } from '../characters/Character';
 import { presetLook, randomLook } from '../characters/look';
 import { joystick } from '../input';
 import { Parts, mergeWithVertexColours, vertexColourMaterials } from '../three-utils';
+import { Label } from '../Label';
 import { CHAR_SCALE, crowdSpots, fixtureFor, placePeople, type Fixture, type RoomLayout, type Spot, type Target, type V2 } from './layouts';
 
 const SPEED = 2.6; // metres per second
@@ -45,6 +46,12 @@ export interface InteriorProps {
   onCancel: () => void;
   /** 0 = empty, 1 = packed. */
   crowd: number;
+  /** What to do next, floating over your head (a quest step for here). */
+  questTag?: string | null;
+  /** Your character's look (from the creator). */
+  look?: Look;
+  /** Students in your own room share your gender. */
+  crowdGender?: 'male' | 'female';
   paused: boolean;
   quality: Quality;
   night: boolean;
@@ -271,7 +278,8 @@ function blocked(layout: RoomLayout, x: number, z: number): boolean {
 
 type PersonTarget = { target: Target; at: V2 };
 
-interface WalkerProps extends Pick<InteriorProps, 'layout' | 'characterId' | 'onNear' | 'onSelect' | 'activity' | 'onArrive' | 'onCancel'> {
+interface WalkerProps extends Pick<InteriorProps, 'layout' | 'characterId' | 'onNear' | 'onSelect' | 'activity' | 'onArrive' | 'onCancel' | 'questTag'> {
+  look?: Look;
   goal: { current: V2 | null };
   live: Array<{ target: Target; use: V2 }>;
   people: PersonTarget[];
@@ -288,7 +296,7 @@ function actSpot(layout: RoomLayout, a: Activity, people: PersonTarget[], from: 
   if (!f) return { spot: { x: from.x, z: from.z, rot: Math.PI, pose: a.pose }, back: here };
   if (f.act) {
     // The fixture says where; the action says what (but lying stays lying).
-    const pose = f.act.pose === 'lie' || f.act.hide ? f.act.pose : a.pose;
+    const pose = f.act.pose === 'lie' || f.act.hide || a.pose === 'stand' ? (f.act.pose ?? a.pose) : a.pose;
     return { spot: { ...f.act, pose: pose ?? a.pose }, back: f.use };
   }
   const s = f.solid;
@@ -297,8 +305,8 @@ function actSpot(layout: RoomLayout, a: Activity, people: PersonTarget[], from: 
   return { spot: { x: f.use[0], z: f.use[1], rot: Math.atan2(cx - f.use[0], cz - f.use[1]), pose: a.pose }, back: f.use };
 }
 
-function Walker({ layout, characterId, onNear, onSelect, goal, live, people, activity, onArrive, onCancel }: WalkerProps) {
-  const look = useMemo(() => presetLook(characterId), [characterId]);
+function Walker({ layout, characterId, look: custom, onNear, onSelect, goal, live, people, activity, onArrive, onCancel, questTag }: WalkerProps) {
+  const look = useMemo(() => custom ?? presetLook(characterId), [custom, characterId]);
   const group = useRef<THREE.Group>(null);
   const walking = useRef(false);
   const pos = useRef(new THREE.Vector3(layout.spawn[0], 0, layout.spawn[1]));
@@ -459,6 +467,7 @@ function Walker({ layout, characterId, onNear, onSelect, goal, live, people, act
         </mesh>
       )}
       <Body look={look} spot={local} walking={walking} />
+      {questTag && !spot && <Label text={`👉 ${questTag}`} position={[0, 1.75, 0]} size={0.85} accent />}
     </group>
   );
 }
@@ -498,8 +507,8 @@ export default function InteriorScene(props: InteriorProps) {
   const extras = useMemo(() => {
     const yours = layout.fixtures.flatMap((f) => (f.act ? [f.act] : []));
     const spots = crowdSpots(layout, crowd, [...people.map((p) => p.at), ...yours]);
-    return spots.map((s, i) => ({ s, look: randomLook(seeded(i * 31 + Math.round(s.x * 10) * 7 + Math.round(s.z * 10))) }));
-  }, [layout, crowd, people]);
+    return spots.map((s, i) => ({ s, look: randomLook(seeded(i * 31 + Math.round(s.x * 10) * 7 + Math.round(s.z * 10)), props.crowdGender) }));
+  }, [layout, crowd, people, props.crowdGender]);
 
   function tapFixture(f: Fixture) {
     if (!f.target || activity) return;
@@ -606,6 +615,8 @@ export default function InteriorScene(props: InteriorProps) {
         activity={activity}
         onArrive={onArrive}
         onCancel={onCancel}
+        questTag={props.questTag}
+        look={props.look}
       />
     </Canvas>
   );

@@ -743,3 +743,73 @@ the code mentioned.
      background cards show the starting pocket money prominently.
 180. Bots charge their phones at home and buy data when low; the balance
      table is about the same (BALANCE.md regenerated).
+
+## Calendar, timetable, business centre, characters, keke, start screen
+
+181. **Academic calendar with real dates.** The first semester starts on the
+     first Monday of October of the start year, the second on the first
+     Monday of February; each game day is a date ("Mon 5 Oct"). The journal
+     has a Calendar tab: orientation, clearance, lectures begin,
+     registration deadlines, fees, upkeep, exam-form signing, every test,
+     the election, exams, semester end, and both semesters' date ranges.
+     The top bar shows "9:00 am · Mon 5 Oct" (no "Morning").
+182. **A real timetable:** Monday to Friday by class periods (8–10, 10–12,
+     lunch 12–1, 1–3, 4–6), each class coloured by course with its hall,
+     week 1 and week 2 (exams), attendance dots, then the course list with
+     a **preparedness meter** (from what you know of the course: Low,
+     Fair, Good, Strong). What you know is what passes tests and exams;
+     reading raises it and every course slowly fades if not revised
+     (0.25 a day). Clearance, buying things and so on are not on the
+     timetable: they are tasks.
+183. **Tasks have deadlines** ("⏰ By Fri 9 Oct", amber when close, red when
+     overdue): clearance steps (by the registration deadline), papers for
+     the next office, fees, registration, assignments, upcoming tests, the
+     practical manual (by the first practical) and the exam form.
+184. **Exam forms** are signed at the College Office on days 8 to 11 (office
+     hours, with a queue). Miss it and the invigilator collects a ₦2,000 late
+     fee at your first exam. Signing competes with classes for your time.
+185. **Clearance in a day is possible.** Office visits are timed visits, not
+     whole parts of the day: about five minutes per person in the queue plus
+     15 at the desk. Offices open 8:00 to 4:00 on weekdays; early birds find
+     almost nobody, mid-morning is the rush. Arrive before 8 and you can
+     wait on the bench for the doors to open. "Not on seat" and "come back
+     tomorrow" are rarer (7% and 5%).
+185b. Sleep has alarms: 6:00 am (an extra hour before 7), 7:00 am, or no
+     alarm (you may oversleep). Naps: 30 minutes, an hour, or until the next
+     part of the day.
+186. **Business centre:** its own room (photocopier, printing desk with a
+     computer, passport-photo backdrop with a stool and a camera on a
+     tripod, charging station, cashier, queue bench). Services say "Pay":
+     photocopies are ₦50 each and you choose how many (1 to 20); passport
+     photos; printing the acceptance receipt and admission letter (only
+     after the acceptance fee is paid) and the course form (only after
+     registration); charging. Each is done at its station, shown in motion.
+     The practical manual is only on sale once the practical lecturer drops
+     it there (announced in the class group).
+187. **Character creation:** choose male or female, then skin, hair (fade
+     or cap and beard; puffs or braids), hair colour, outfit (hoodie, tee and
+     jeans, kaftan, gown), top, trousers and shoes. Fixed for the degree. The
+     four ready-made characters are gone from sign-up (old saves keep
+     theirs). **Hostel rooms are single-sex:** roommates and the freshers on
+     the transit bunks share your gender.
+188. **Quest tag:** when a step is for the room you are in, or an office has
+     just sent you off for something, it floats over your character's head.
+189. **The bag** opens as a dropdown under the top bar.
+190. **Keke stops** were added across campus (three more where there was
+     room, including Off-campus, which had none), on garden corners by the
+     roads. A keke never drops you at the door: you watch it from above as
+     you climb in, it drives along the road to the stop nearest the place,
+     you climb out and walk the rest. Only a cab (or your car) goes to the
+     door.
+191. Map names: up close, building names (no emoji); further out, emoji;
+     fully zoomed out, only the section names.
+192. **Start screen:** the live campus fills the screen (drag to look
+     around); the application card sits on top. Tapping a building says you
+     need admission first. "How it works" opens the five interactive cards.
+     The application steps sit over the world in a panel.
+193. **Deploying:** GitHub Pages through GitHub Actions
+     (.github/workflows/deploy.yml): every push to main runs the tests,
+     builds with the repository's subfolder as the base path and publishes.
+     The service worker and manifest use relative paths so the game works
+     from a subfolder or a domain root. Online features stay optional
+     (repository variables).

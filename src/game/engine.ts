@@ -4,11 +4,13 @@
 // the exported pure versions copy the state first.
 import { buildSemester, closeSlot, endOfSession, moveGstBatches, semesterResults } from './academics';
 import { chatDayMut, scriptMut, semesterChatMut, setupChatMut } from './chat';
-import { ALLOWANCE_DAYS } from './config';
+import { ALLOWANCE_DAYS, FORGET_PER_DAY } from './config';
 import { dueEventsMut } from './events';
 import { checkMilestonesMut, electionMut, finalMilestonesMut, newWeekMut } from './goals';
 import { log, produce } from './draft';
 import { drainPhoneMut } from './phone';
+import { postMut } from './chat';
+import { getPerson } from '../content/people';
 import { addLateFeeIfDue, allowanceDay, landLateAllowance, sendFeeMoney, sessionFees, weeklyData } from './money';
 import { dayOutagesMut, oversleepMut, reallocateMut, roommateNightMut } from './hostel';
 import { checkCollapse, hangoverMut, nightWithoutSleep, tickNeeds } from './needs';
@@ -68,6 +70,22 @@ export function beginDay(d: GameState, r: Rng): void {
   chatDayMut(d, r, moved);
   loansDayMut(d, r);
   dueEventsMut(d);
+  manualDropMut(d);
+  // What you do not revise, you slowly forget.
+  for (const c of d.academics.courses) c.knowledge = Math.max(0, c.knowledge - FORGET_PER_DAY);
+}
+
+/** Once practicals start, the lecturer drops the manual at the business centre. */
+function manualDropMut(d: GameState): void {
+  const key = `manual_${d.clock.year}_${d.clock.semester}`;
+  if (d.flags[key]) return;
+  const practical = d.academics.courses.find((c) => c.kind === 'practical' && c.meetings.length);
+  if (!practical) return;
+  const first = Math.min(...practical.meetings.map((m) => m.day));
+  if (d.clock.day < first - 1) return;
+  d.flags[key] = d.clock.dayCount;
+  postMut(d, 'class', getPerson(practical.lecturerId) ? practical.lecturerId : 'system', `The ${practical.code} practical manual is now at the Business Centre. Nobody enters my lab without it.`);
+  log(d, `The ${practical.code} manual has been dropped at the Business Centre.`);
 }
 
 /** End of a day (after the Night slot), before the clock moves. */

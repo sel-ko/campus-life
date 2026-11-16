@@ -11,8 +11,8 @@ import type { AmbitionId, BackgroundId } from '../../game/types';
 import { onlineConfigured } from '../../online/supabase';
 import { useGameStore } from '../../store/gameStore';
 import { useSettings } from '../../store/settingsStore';
-import type { PresetId } from '../../world/characters/look';
-import { CharacterChooser } from '../CharacterChooser';
+import type { CharacterLook } from '../../world/characters/look';
+import { CharacterCreator, baseLook, type Gender } from './CharacterCreator';
 import { Onboarding } from './Onboarding';
 import { BTN_GHOST, BTN_PRIMARY, CARD } from '../theme';
 
@@ -24,8 +24,10 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
   const resetNotice = useGameStore((s) => s.resetNotice);
   const dismissResetNotice = useGameStore((s) => s.dismissResetNotice);
   const [step, setStep] = useState<Step>('welcome');
+  const [showIntro, setShowIntro] = useState(false);
   const [name, setName] = useState('');
-  const [characterId, setCharacterId] = useState<PresetId>('m1');
+  const [gender, setGender] = useState<Gender>('male');
+  const [look, setLook] = useState<CharacterLook>(() => baseLook('male'));
   const [background, setBackground] = useState<BackgroundId>('average');
   const [choiceId, setChoiceId] = useState('computer_science');
   const [seed] = useState(() => (Math.random() * 2 ** 32) >>> 0 || 1);
@@ -53,7 +55,9 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
   function begin() {
     start({
       name: name.trim(),
-      characterId,
+      characterId: gender === 'female' ? 'f1' : 'm1',
+      gender,
+      look,
       background,
       choiceId,
       programmeId: result.programmeId,
@@ -66,35 +70,50 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
   }
 
   const shell = (children: React.ReactNode) => (
-    <main className="mx-auto flex min-h-full max-w-md flex-col gap-5 px-4 py-6">
+    <main className="pointer-events-auto mx-auto my-4 flex min-h-[calc(100%-2rem)] max-w-md flex-col gap-5 rounded-3xl border border-white/10 bg-[#14202B]/94 px-4 py-6 shadow-2xl backdrop-blur">
       {children}
       <p className="mt-auto pt-4 text-center text-xs text-muted">Unofficial fan-made game. Not affiliated with any real university.</p>
     </main>
   );
 
   if (step === 'welcome') {
+    if (showIntro) return <Onboarding onApply={() => setStep('details')} />;
     return (
-      <Onboarding
-        onApply={() => setStep('details')}
-        extra={
-          <>
-            {resetNotice && (
-              <div role="status" className="rounded-2xl border border-sun/50 bg-sun/10 p-3 text-sm">
-                <p className="font-semibold text-sun">The game has been rebuilt</p>
-                <p className="mt-1">Your old semester could not come along, so you start fresh. Sorry o!</p>
-                <button onClick={dismissResetNotice} className="mt-1 min-h-10 font-semibold underline">
-                  Okay
-                </button>
-              </div>
-            )}
+      <div className="pointer-events-none flex min-h-full flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <header className="pointer-events-auto mx-auto flex w-fit items-center gap-2 rounded-full bg-[#16181F]/90 px-4 py-2 shadow-lg">
+          <span className="text-lg" aria-hidden="true">
+            🎓
+          </span>
+          <span className="font-extrabold">Campus Life</span>
+        </header>
+        <section className="pointer-events-auto mx-auto flex w-full max-w-md flex-col gap-3 rounded-3xl border border-white/10 bg-[#14202B]/92 p-5 shadow-2xl backdrop-blur">
+          {resetNotice && (
+            <div role="status" className="rounded-2xl border border-sun/50 bg-sun/10 p-3 text-sm">
+              <p className="font-semibold text-sun">The game has been rebuilt</p>
+              <button onClick={dismissResetNotice} className="mt-1 min-h-10 font-semibold underline">
+                Okay
+              </button>
+            </div>
+          )}
+          <p className="text-xs font-semibold tracking-widest text-sun uppercase">Admission to university</p>
+          <h1 className="text-3xl font-extrabold">Your degree starts here</h1>
+          <p className="text-sm text-white/75">Drag to look around campus. To go into any building you need admission: apply, take the entrance test, and move into your hostel.</p>
+          <button onClick={() => setStep('details')} className="min-h-12 rounded-xl bg-sun text-lg font-bold text-night shadow-lg shadow-sun/20">
+            Apply for admission
+          </button>
+          <div className="flex justify-center gap-4">
+            <button onClick={() => setShowIntro(true)} className="min-h-10 text-sm font-semibold text-white/80 underline">
+              How it works
+            </button>
             {onlineConfigured() && (
-              <button onClick={onLeaderboard} className="min-h-10 self-center px-4 text-sm font-semibold text-sun underline">
-                See the leaderboard
+              <button onClick={onLeaderboard} className="min-h-10 text-sm font-semibold text-sun underline">
+                Leaderboard
               </button>
             )}
-          </>
-        }
-      />
+          </div>
+          <p className="text-center text-[11px] text-white/45">Unofficial fan-made game. Not affiliated with any real university.</p>
+        </section>
+      </div>
     );
   }
 
@@ -113,7 +132,15 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
             className="min-h-11 rounded-lg border border-line bg-panel px-3 text-ink placeholder:text-muted/70"
           />
         </label>
-        <CharacterChooser value={characterId} onChange={setCharacterId} />
+        <CharacterCreator
+          gender={gender}
+          look={look}
+          onGender={(g) => {
+            setGender(g);
+            setLook(baseLook(g));
+          }}
+          onLook={setLook}
+        />
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 font-semibold">Family background</legend>
           {BACKGROUND_IDS.map((id) => {

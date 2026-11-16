@@ -167,7 +167,7 @@ export function Onboarding({ onApply, extra }: { onApply: () => void; extra?: Re
 
   return (
     <main
-      className="relative flex min-h-full flex-col overflow-hidden bg-[radial-gradient(120%_80%_at_50%_0%,#2B4A6B_0%,#14202B_55%,#0E161E_100%)]"
+      className="pointer-events-auto relative flex min-h-full flex-col overflow-hidden bg-[radial-gradient(120%_80%_at_50%_0%,#2B4A6B_0%,#14202B_55%,#0E161E_100%)]"
       onTouchStart={(e) => (touch.current = e.touches[0]?.clientX ?? null)}
       onTouchEnd={(e) => {
         const start = touch.current;

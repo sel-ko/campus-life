@@ -2,8 +2,11 @@
 // - Pages: try the network first (so updates arrive), fall back to the cache.
 // - Built files in /assets/ have unique names, so cache-first is safe.
 // - Other websites (Supabase, PostHog, WhatsApp) are never cached.
-const CACHE = 'campus-life-v1';
-const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/favicon.png'];
+// Paths are relative to where the game is served (a domain root or a
+// subfolder such as GitHub Pages' /campus-life/).
+const CACHE = 'campus-life-v2';
+const HOME = new URL('./', self.location).pathname;
+const SHELL = ['./', './manifest.webmanifest', './icons/icon-192.png', './favicon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -28,15 +31,15 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('/', copy));
+          caches.open(CACHE).then((c) => c.put(HOME, copy));
           return res;
         })
-        .catch(() => caches.match('/')),
+        .catch(() => caches.match(HOME)),
     );
     return;
   }
 
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
+  if (url.pathname.startsWith(`${HOME}assets/`) || url.pathname.startsWith(`${HOME}icons/`)) {
     event.respondWith(
       caches.match(req).then(
         (hit) =>

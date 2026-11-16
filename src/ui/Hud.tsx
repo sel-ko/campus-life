@@ -7,12 +7,13 @@ import { campusEvent } from '../game/campus';
 import { naira } from '../game/format';
 import { journal } from '../game/journal';
 import { healthLabel } from '../game/needs';
-import { dayName, slotName , clockTime } from '../game/time';
+import { clockTime, slotName } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { DoorIcon, MoonIcon, SunIcon, SunriseIcon, SunsetIcon } from './icons';
 import { NeedsPanel, InfoStack } from './lifeUi';
 import { PILL } from './theme';
+import { todayLabel } from '../game/calendar';
 import { placeOpen } from '../game/status';
 import { BagSheet, bagItems } from './BagSheet';
 
@@ -100,13 +101,11 @@ export function TopBar({ game }: { game: GameState }) {
             onClick={() => setStatsOpen((o) => !o)}
             aria-expanded={statsOpen}
             className={`flex h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold ${PILL}`}
-            aria-label={`${clockTime(game.clock)}. Day ${game.clock.day}, ${slotName(game.clock)}. Show your needs`}
+            aria-label={`${clockTime(game.clock)}, ${todayLabel(game)}. Show your needs`}
           >
             <SlotIcon size={18} className="text-sun" />
             <span>{clockTime(game.clock)}</span>
-            <span className="text-xs text-muted">
-              {dayName(game.clock.day)} {slotName(game.clock)}
-            </span>
+            <span className="text-xs text-muted">{todayLabel(game)}</span>
           </button>
 
           <button onClick={() => setJournalOpen(true)} className={`relative flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold ${PILL}`} aria-label={`Journal: ${tasks.length} tasks`}>
@@ -127,7 +126,7 @@ export function TopBar({ game }: { game: GameState }) {
         {statsOpen && (
           <div className={`relative mx-auto flex w-full max-w-sm flex-col gap-2 rounded-3xl p-4 ${PILL}`}>
             <p className="text-sm font-semibold">
-              {game.academics.level}00 level · semester {game.clock.semester} · day {game.clock.day} of 14 · {slotName(game.clock)}
+              {game.academics.level}00 level · {game.clock.semester === 1 ? 'first' : 'second'} semester · {todayLabel(game)}
             </p>
             <NeedsPanel game={game} />
             <p className="text-xs text-muted">

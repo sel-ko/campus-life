@@ -76,9 +76,10 @@ export const MENUS: Record<string, string[]> = {
 
 /** Things shops sell. Provisions go in your locker. */
 export const SHOP_ITEMS: Record<string, ShopItem> = {
-  photocopy: { id: 'photocopy', name: 'Photocopies of credentials (2)', price: 100, pack: 2, draft: true },
+  photocopy: { id: 'photocopy', name: 'Photocopy of your credentials', price: 50, draft: true },
   passport: { id: 'passport', name: 'Passport photographs (4)', price: 600, pack: 4, draft: true },
-  receipt: { id: 'receipt', name: 'Printed acceptance receipt', price: 100, draft: true },
+  receipt: { id: 'receipt', name: 'Printed acceptance receipt and admission letter', price: 150, draft: true },
+  course_form: { id: 'course_form', name: 'Printed course registration form', price: 100, draft: true },
   manual: { id: 'manual', name: 'Practical manual', price: 2000, draft: true },
   padlock: { id: 'padlock', name: 'Padlock for your locker', price: 1500, draft: true },
   noodles: { id: 'noodles', name: 'Noodles (2 packs)', price: 500, pack: 2, food: { fills: 30, energy: 3, cook: true, needsWater: true }, draft: true },

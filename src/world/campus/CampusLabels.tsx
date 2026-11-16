@@ -31,7 +31,7 @@ export function CampusLabels() {
     // Names only when you are close; icons from further out.
     const close = cameraState.dist < 95;
     if (names.current) names.current.visible = close;
-    if (small.current) small.current.visible = !close;
+    if (small.current) small.current.visible = !close && cameraState.dist < 330;
   });
   const top = (buildingId: string): [number, number, number] => {
     const b = buildingById.get(buildingId)!;
@@ -42,15 +42,15 @@ export function CampusLabels() {
       {sections.map((s) => (
         <Label key={s.id} text={s.name} position={[(s.rect.x0 + s.rect.x1) / 2, 14, s.rect.z0 + 6]} size={1.25} />
       ))}
-      {/* Close up: emoji and name. Further out: just the emoji. */}
+      {/* Close up: the building's name. Further out: just its emoji. */}
       <group ref={names}>
         {PLOTS.map((p) => (
           <Label key={p.id} text="Plot for sale" position={[(p.rect.x0 + p.rect.x1) / 2, 4, (p.rect.z0 + p.rect.z1) / 2]} size={0.8} />
         ))}
         {[...labelled, ...pinned].map((p) => (
-          <Label key={p.id} text={`${placeEmoji(game, p.id)} ${p.name}`} position={top(p.buildingId)} dimmed={!!game && p.enterable && !placeHasSomethingNow(game, p.id)} />
+          <Label key={p.id} text={p.name} position={top(p.buildingId)} dimmed={!!game && p.enterable && !placeHasSomethingNow(game, p.id)} />
         ))}
-        {home && <Label text="🏠 Your room" position={[top(home.buildingId)[0], top(home.buildingId)[1] + 3, top(home.buildingId)[2]]} size={1.05} />}
+        {home && <Label text="Your room" position={[top(home.buildingId)[0], top(home.buildingId)[1] + 3, top(home.buildingId)[2]]} size={1.05} />}
       </group>
       <group ref={small}>
         {[...labelled, ...pinned].map((p) => (

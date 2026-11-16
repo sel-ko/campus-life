@@ -5,6 +5,7 @@ import { buildings, cellRect, COLS, isRoad, ROWS, sections, type Pt, type Rect }
 import { getCollege } from './courses';
 import { BUILDING_ROLES, type BuildingRole } from './campus-overrides';
 import { TOWN_ROLES } from './town';
+import { KEKE_ROLES } from './kekeStops';
 import raw from './campus-layout.json';
 
 export interface PlaceDef extends BuildingRole {
@@ -35,7 +36,7 @@ export const ENTERABLE: PlaceType[] = [
 const LABELLED: PlaceType[] = ['lecture_hall', 'admin_office', 'library', 'lab', 'clinic', 'field', 'busstop', 'gate', 'workplace', 'nightlife'];
 
 export const PLACES: PlaceDef[] = buildings.flatMap((b) => {
-  const role = BUILDING_ROLES[b.id] ?? TOWN_ROLES[b.id];
+  const role = BUILDING_ROLES[b.id] ?? TOWN_ROLES[b.id] ?? KEKE_ROLES[b.id];
   if (!role) return [];
   return [
     {

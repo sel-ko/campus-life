@@ -3,7 +3,7 @@ import { naira } from './game/format';
 import { slotName } from './game/time';
 import { useGameStore } from './store/gameStore';
 import { useSettings } from './store/settingsStore';
-import { AdmissionFlow } from './ui/admission/AdmissionFlow';
+import { Landing } from './ui/admission/Landing';
 import { LeaderboardScreen } from './ui/LeaderboardScreen';
 import { PlayScreen } from './ui/PlayScreen';
 import { SummaryScreen } from './ui/SummaryScreen';
@@ -32,7 +32,7 @@ function Screen() {
   }, [game]);
 
   if (showLeaderboard) return <LeaderboardScreen onBack={() => setShowLeaderboard(false)} />;
-  if (!game) return <AdmissionFlow onLeaderboard={() => setShowLeaderboard(true)} />;
+  if (!game) return <Landing onLeaderboard={() => setShowLeaderboard(true)} />;
   if (!started) {
     return (
       <main className="mx-auto flex min-h-full max-w-md flex-col gap-4 px-4 py-6">

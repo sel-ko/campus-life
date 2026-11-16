@@ -11,7 +11,7 @@ import { naira } from './format';
 import { clearanceFormDone, feePaid, spend } from './money';
 import { hashUnit, type Rng } from './rng';
 import { allocateRoomMut } from './hostel';
-import { isWeekend, weekday } from './time';
+import { clockMin, isWeekend, weekday } from './time';
 import type { Availability, DocId, GameState, OfficeId } from './types';
 
 export type VisitOutcome = 'signed' | 'not_on_seat' | 'come_back_tomorrow' | 'closed' | 'missing_doc' | 'need_other';
@@ -29,22 +29,43 @@ export function officerRel(d: GameState, id: OfficeId): number {
   return d.people[OFFICES[id].officerId]?.rel ?? 0;
 }
 
-/** People waiting at an office: same for everyone at the same time; long in clearance week. */
+/** Offices work 8:00 am to 4:00 pm on weekdays. */
+export const OFFICE_OPEN = 8 * 60;
+export const OFFICE_CLOSE = 16 * 60;
+
+/**
+ * People waiting at an office: the same for everyone at the same time. Early
+ * birds find almost nobody; mid-morning is the rush; clearance week is busier.
+ */
 export function officeQueue(d: GameState, id: OfficeId): number {
-  const base = Math.floor(hashUnit(`${d.clock.dayCount}:${d.clock.slot}:${id}`) * 7);
-  const rush = d.clock.year === 1 && d.clock.semester === 1 && d.clock.day <= 6 ? 6 : 0;
-  const morning = d.clock.slot === 0 ? 2 : 0;
-  return Math.max(0, base + rush + morning - Math.floor(officerRel(d, id) / 15));
+  const min = clockMin(d.clock);
+  const hour = Math.floor(min / 60);
+  const base = Math.floor(hashUnit(`${d.clock.dayCount}:${hour}:${id}`) * 4);
+  const rush = d.clock.year === 1 && d.clock.semester === 1 && d.clock.day <= 6 ? 3 : 0;
+  const timeOfDay = min < OFFICE_OPEN + 45 ? -3 : min < 12 * 60 ? 2 : 0;
+  return Math.max(0, base + rush + timeOfDay - Math.floor(officerRel(d, id) / 15));
+}
+
+/** Minutes a visit takes: the queue (about five minutes a person) and the desk. */
+export function officeMinutes(d: GameState, id: OfficeId): number {
+  return 15 + officeQueue(d, id) * 5;
 }
 
 export function officesOpen(d: GameState): boolean {
-  return !isWeekend(d.clock.day) && d.clock.slot <= 1;
+  const min = clockMin(d.clock);
+  return !isWeekend(d.clock.day) && d.clock.slot <= 1 && min >= OFFICE_OPEN && min < OFFICE_CLOSE;
+}
+
+/** Early on a weekday morning: the office will open at 8:00. */
+export function beforeOfficeHours(d: GameState): boolean {
+  return !isWeekend(d.clock.day) && d.clock.slot === 0 && clockMin(d.clock) < OFFICE_OPEN;
 }
 
 export function canVisitOffice(d: GameState, id: OfficeId): Availability {
   if (!d.clearance.active) return { ok: false, reason: 'Your clearance is done' };
   if (d.clearance.signed[id]) return { ok: false, reason: 'Already signed' };
   if (d.clock.slot === 3) return { ok: false, reason: 'Offices are locked at night' };
+  if (beforeOfficeHours(d)) return { ok: false, reason: 'Opens at 8:00 am' };
   return { ok: true };
 }
 

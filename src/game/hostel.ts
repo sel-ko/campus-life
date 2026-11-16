@@ -19,15 +19,22 @@ export function hasRoommateTrait(d: GameState, t: Trait): boolean {
 }
 
 /** Three roommates from the pool; with luck one friend from last session stays. */
+/** Hostel rooms are single-sex: roommates share the player's gender. */
+function sameGender(d: GameState, look: string): boolean {
+  const g = d.player.gender ?? (d.player.characterId.startsWith('f') ? 'female' : 'male');
+  return look.startsWith(g === 'female' ? 'f' : 'm');
+}
+
 export function drawRoommates(d: GameState, r: Rng): string[] {
-  const old = d.room.roommates;
+  const POOL = ROOMMATE_POOL.filter((p) => sameGender(d, p.look));
+  const old = d.room.roommates.filter((id) => POOL.some((p) => p.id === id));
   const keep: string[] = [];
   if (old.length && r.chance(KEEP_ROOMMATE_CHANCE)) {
     const friend = [...old].sort((a, b) => (d.people[b]?.rel ?? 0) - (d.people[a]?.rel ?? 0))[0]!;
     keep.push(friend);
   }
-  const fresh = r.shuffle(ROOMMATE_POOL.filter((p) => !keep.includes(p.id) && !old.includes(p.id))).map((p) => p.id);
-  const pool = fresh.length >= 3 - keep.length ? fresh : r.shuffle(ROOMMATE_POOL.map((p) => p.id).filter((id) => !keep.includes(id)));
+  const fresh = r.shuffle(POOL.filter((p) => !keep.includes(p.id) && !old.includes(p.id))).map((p) => p.id);
+  const pool = fresh.length >= 3 - keep.length ? fresh : r.shuffle(POOL.map((p) => p.id).filter((id) => !keep.includes(id)));
   return [...keep, ...pool.slice(0, 3 - keep.length)];
 }
 
@@ -71,6 +78,8 @@ export function dayOutagesMut(d: GameState, r: Rng): void {
 /** Morning: oversleeping, unless an early-rising roommate wakes you. */
 export function oversleepMut(d: GameState, r: Rng): void {
   if (d.flags.slept !== d.clock.dayCount - 1 || d.location.placeId !== d.room.placeId) return;
+  // An alarm was set: no oversleeping.
+  if (d.flags.alarm) return;
   // Nobody oversleeps on an exam or test morning: the alarm is set three times.
   const bigMorning = d.academics.courses.some((c) => (c.exam.day === d.clock.day && c.exam.slot === 0) || c.meetings.some((m) => m.test && m.day === d.clock.day && m.slot === 0));
   if (bigMorning || !r.chance(OVERSLEEP_CHANCE)) return;

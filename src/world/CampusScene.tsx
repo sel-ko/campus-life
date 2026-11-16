@@ -11,7 +11,8 @@ import { CampusGround } from './campus/CampusGround';
 import { CampusLabels } from './campus/CampusLabels';
 import { CampusScenery } from './campus/CampusScenery';
 import { CameraRig } from './CameraRig';
-import { presetLook } from './characters/look';
+import { lookOf, presetLook } from './characters/look';
+import { nextStep } from '../game/story';
 import { SLOT_LOOKS } from './lighting';
 import { Npcs } from './Npcs';
 import { Player } from './Player';
@@ -21,8 +22,13 @@ export default function CampusScene({ paused }: { paused: boolean }) {
   // The sky follows the game's time of day.
   const slot = SLOTS[useGameStore((s) => s.game?.clock.slot ?? 0)]!;
   const look = SLOT_LOOKS[slot];
-  const characterId = useGameStore((s) => s.game?.player.characterId ?? 'm1');
-  const look3d = useMemo(() => presetLook(characterId), [characterId]);
+  const player = useGameStore((s) => s.game?.player);
+  const look3d = useMemo(() => (player ? lookOf(player) : presetLook('m1')), [player]);
+  // A follow-up quest step floats over your head on the map too.
+  const questTag = useGameStore((s) => {
+    const n = s.game ? nextStep(s.game) : null;
+    return n?.sub ? n.label : null;
+  });
   // Battery saver: lower resolution, no edge smoothing, fewer students and trees.
   const quality = useSettings((s) => s.quality);
   const high = quality === 'high';
@@ -50,7 +56,7 @@ export default function CampusScene({ paused }: { paused: boolean }) {
       <hemisphereLight args={[look.hemiSky, look.hemiGround, look.hemiIntensity]} />
       <directionalLight position={look.sunPos} color={look.sunColor} intensity={look.sunIntensity} />
       {/* The player first, so the camera and students know where they start. */}
-      <Player look={look3d} />
+      {player && <Player look={look3d} questTag={questTag} />}
       <CameraRig start={[playerWorld.pos.x, playerWorld.pos.z]} />
       <CampusGround grass={look.grass} />
       <CampusBuildings />

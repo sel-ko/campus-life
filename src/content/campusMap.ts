@@ -7,12 +7,13 @@
 import planner from './campus-layout.json';
 import { BUILDING_ROLES, SECTION_NAMES } from './campus-overrides';
 import { TOWN_ITEMS, TOWN_ROADS, TOWN_ROLES, TOWN_SECTION } from './town';
+import { KEKE_ITEMS, KEKE_ROLES } from './kekeStops';
 
 /** The campus from the planner plus the town to the west (src/content/town.ts). */
 const raw = {
   ...planner,
   sections: [...planner.sections, TOWN_SECTION],
-  items: [...planner.items, ...TOWN_ITEMS],
+  items: [...planner.items, ...TOWN_ITEMS, ...KEKE_ITEMS],
   roads: [...planner.roads, ...TOWN_ROADS],
 };
 
@@ -381,7 +382,7 @@ export const buildings: MapBuilding[] = (() => {
   for (const n of tidy) totals.set(n, (totals.get(n) ?? 0) + 1);
   const seen = new Map<string, number>();
   return sorted.map((item, idx) => {
-    const role = BUILDING_ROLES[item.id] ?? TOWN_ROLES[item.id];
+    const role = BUILDING_ROLES[item.id] ?? TOWN_ROLES[item.id] ?? KEKE_ROLES[item.id];
     // campus-overrides.ts can draw a building as another kind (a classroom used as the Medical Centre).
     const kind = (role?.look ?? item.kind) as PlannerKind;
     const base = tidy[idx]!;

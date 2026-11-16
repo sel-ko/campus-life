@@ -86,6 +86,21 @@ analytics are just hidden.
 The anon key is designed to be public; row level security in `schema.sql` is
 what protects the data.
 
+## Deploy to GitHub Pages (free)
+
+The repository includes `.github/workflows/deploy.yml`. Every push to `main`
+runs the tests, builds the game and publishes it at
+`https://<owner>.github.io/<repo>/`.
+
+1. Push this project to the GitHub repository.
+2. In the repository: **Settings > Pages > Build and deployment > Source:
+   GitHub Actions** (once).
+3. Optional: add `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
+   `VITE_POSTHOG_KEY` and `VITE_POSTHOG_HOST` under **Settings > Secrets and
+   variables > Actions > Variables** for the leaderboard and analytics. These
+   are public keys only; never put a secret key here.
+4. Open **Actions** to watch the build; the link appears when it finishes.
+
 ## Deploy to Cloudflare Pages (free)
 
 1. Push this folder to a GitHub repository.

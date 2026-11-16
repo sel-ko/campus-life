@@ -19,7 +19,7 @@ import { drawCourseForm, downloadCanvas } from '../courseForm';
 import { LeaderboardScreen } from '../LeaderboardScreen';
 import { GAME_NAME } from '../site';
 import { VendorCard } from '../VendorSection';
-import { DayPlanView } from '../lifeUi';
+import { TimetableGrid } from '../lifeUi';
 import { PHONE } from '../../game/config';
 import { canBuyData } from '../../game/phone';
 import { getProgramme } from '../../content/courses';
@@ -164,7 +164,7 @@ function CoursesTab({ game, onRegister }: { game: GameState; onRegister: () => v
 function TimetableTab({ game }: { game: GameState }) {
   return (
     <div className="flex flex-col gap-3">
-      <DayPlanView game={game} />
+      <TimetableGrid game={game} />
       <Timetable game={game} examsOnly />
     </div>
   );

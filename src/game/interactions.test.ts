@@ -5,7 +5,7 @@ import { getFee } from './money';
 import { at, signAll, testGame } from './testkit';
 import type { GameState, PlaceType } from './types';
 
-const TARGETS = ['seat', 'lecturer', 'desk', 'counter', 'bed', 'locker', 'shelf', 'bench', 'stove', 'board', 'door', 'shower', 'toilet', 'person'];
+const TARGETS = ['seat', 'lecturer', 'desk', 'counter', 'bed', 'locker', 'shelf', 'bench', 'stove', 'board', 'door', 'shower', 'toilet', 'copier', 'camera', 'printer', 'charger', 'person'];
 
 function check(list: Interaction[]): void {
   for (const i of list) {

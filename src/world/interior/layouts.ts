@@ -502,6 +502,51 @@ function nightlife(venue: string | undefined): RoomLayout {
   };
 }
 
+/**
+ * The business centre: a photocopier and a printing desk on the back wall, a
+ * passport-photo corner with a backdrop and a camera, a charging station, the
+ * cashier's counter and a bench for the queue.
+ */
+function businessCentre(): RoomLayout {
+  const W = 12;
+  const D = 9;
+  const PI = Math.PI;
+  const queue = onBench(-1.6, D / 2 - 1.3, 2.4, PI, 3);
+  const wc = wcDoor(W, -2.4);
+  return {
+    w: W,
+    d: D,
+    floor: '#D9D2C2',
+    wall: '#F2EADB',
+    spawn: [0, D / 2 - 1],
+    crowd: [...queue, { x: -3.4, z: -2.6, rot: PI, pose: 'stand' }, { x: 1.4, z: 0.6, rot: PI, pose: 'chat' }],
+    fixtures: [
+      { key: 'copier', target: { type: 'copier' }, use: [-4.2, -2.6], solid: solidOf(-4.2, -D / 2 + 0.75, 1.1, 0.85), height: 1.1, act: { x: -4.2, z: -2.95, rot: PI, pose: 'type' }, people: [{ x: -3.3, z: -3.3, rot: -PI / 2, pose: 'chat' }] },
+      { key: 'printer', target: { type: 'printer' }, use: [-1.0, -2.5], solid: solidOf(-1.0, -D / 2 + 0.75, 1.7, 0.85), height: 1.1, act: { x: -1.0, z: -2.9, rot: PI, pose: 'type' } },
+      { key: 'camera', target: { type: 'camera' }, use: [-3.6, 1.2], solid: solidOf(-2.6, 1.2, 0.5, 0.5), height: 1.6, act: { x: -5.1, z: 1.2, rot: PI / 2, pose: 'sit', y: sitY(0.51) }, people: [{ x: -2.3, z: 1.6, rot: -PI / 2, pose: 'chat' }] },
+      { key: 'counter', target: { type: 'counter' }, use: [3.4, -1.6], solid: solidOf(3.4, -D / 2 + 1.4, 3, 0.8), height: 1.2, act: { x: 3.4, z: -1.9, rot: PI, pose: 'chat' }, people: [{ x: 3.4, z: -D / 2 + 0.6, rot: 0, pose: 'type' }] },
+      { key: 'charger', target: { type: 'charger' }, use: [4.4, 2.2], solid: solidOf(5.5, 2.2, 0.65, 1.45), height: 1.0, act: { x: 4.75, z: 2.2, rot: PI / 2, pose: 'read' }, people: [{ x: 4.7, z: 3.0, rot: PI / 2, pose: 'read' }] },
+      { key: 'bench', target: { type: 'bench' }, use: [-1.6, D / 2 - 2.3], solid: solidOf(-1.6, D / 2 - 1.3, 2.5, 0.5), height: 0.9, act: queue[0], people: queue.slice(1) },
+      { key: 'stool', use: [-5.1, 1.2], solid: solidOf(-5.1, 1.2, 0.4, 0.4), height: 0 },
+      wc.fixture,
+    ],
+    build: (p) => {
+      F.photocopier(p, { x: -4.2, z: -D / 2 + 0.75 });
+      F.printerDesk(p, { x: -1.0, z: -D / 2 + 0.75 });
+      F.photoBackdrop(p, { x: -W / 2 + 0.1, z: 1.2, rot: PI / 2 });
+      F.stool(p, { x: -5.1, z: 1.2 });
+      F.tripodCamera(p, { x: -2.6, z: 1.2, rot: -PI / 2 });
+      F.counter(p, { x: 3.4, z: -D / 2 + 1.4 }, 3, '#2E3A44', '#2F7FC1');
+      F.chargingStation(p, { x: 5.5, z: 2.2, rot: -PI / 2 });
+      F.bench(p, { x: -1.6, z: D / 2 - 1.3, rot: PI }, 2.4, '#5D6F7C');
+      F.poster(p, { x: 1.4, z: -D / 2 + 0.03 }, '#F2C230', 1.6);
+      F.wallClock(p, { x: 3.4, z: -D / 2 + 0.05 });
+      F.plant(p, { x: W / 2 - 0.8, z: D / 2 - 0.8 });
+      wc.build(p);
+    },
+  };
+}
+
 function shop(): RoomLayout {
   const L = eatery(false);
   return { ...L, floor: '#D9D2C2' };
@@ -567,7 +612,8 @@ function outdoors(): RoomLayout {
   };
 }
 
-export function roomLayout(type: PlaceType, opts: { venue?: string; offices?: string[] }): RoomLayout {
+export function roomLayout(type: PlaceType, opts: { venue?: string; offices?: string[]; business?: boolean }): RoomLayout {
+  if (opts.business) return businessCentre();
   switch (type) {
     case 'hostel_room':
       return dorm();

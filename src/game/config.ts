@@ -130,8 +130,8 @@ export const LATE_REGISTRATION_CLOSE = 11;
 // ---------- clearance ----------
 export const CLEARANCE_WEIGHTS = {
   signed: 0.7,
-  notOnSeat: 0.12,
-  comeBackTomorrow: 0.1,
+  notOnSeat: 0.07,
+  comeBackTomorrow: 0.05,
   needOther: 0.05,
   missingDoc: 0.05,
   closed: 0.03,
@@ -215,3 +215,6 @@ export const CHAT_LIMIT = 60;
 // ---------- hustles ----------
 export const ERRAND_PAY = 400;
 export const WASH_PLATES_PAY = 500;
+
+/** Knowledge lost each day in every course (what you do not revise, you forget). */
+export const FORGET_PER_DAY = 0.25;

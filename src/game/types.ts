@@ -472,6 +472,12 @@ export interface PlayerProfile {
   testAttempts: number;
   matric: string;
   ambition: AmbitionId;
+  /** Calendar year the degree started (for dates). */
+  startYear?: number;
+  /** Chosen at sign-up. */
+  gender?: 'male' | 'female';
+  /** The look built in the character creator (older saves use characterId). */
+  look?: import('../world/characters/look').CharacterLook;
 }
 
 export interface GameState {

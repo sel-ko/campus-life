@@ -5,7 +5,7 @@
 import { totalUnread } from '../game/chat';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
-import { presetLook } from '../world/characters/look';
+import { lookOf } from '../world/characters/look';
 import { MapIcon, UserIcon } from './icons';
 import { Portrait } from './Portrait';
 import { PILL } from './theme';
@@ -63,7 +63,7 @@ export function BottomBar({ game, showMap }: { game: GameState; showMap: boolean
           style={{ background: `conic-gradient(${n.energy > 30 ? '#34D399' : '#F87171'} ${n.energy * 3.6}deg, #3A3F4D 0)` }}
         >
           <span className="grid size-[50px] place-items-center overflow-hidden rounded-full bg-[#2B4558]">
-            <Portrait look={presetLook(game.player.characterId)} size={46} />
+            <Portrait look={lookOf(game.player)} size={46} />
           </span>
           {warn && <span className="absolute top-0 right-0 size-3.5 rounded-full border-2 border-night bg-red-400" />}
         </button>
