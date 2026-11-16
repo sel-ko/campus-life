@@ -60,7 +60,7 @@ export const BACKGROUNDS: Record<BackgroundId, Background> = {
     label: 'Broke',
     blurb: 'Your people try, but you will need a hustle.',
     startMoney: 8000,
-    allowance: 7000,
+    allowance: 5500,
     lateChance: 0.35,
     feeShare: 0.85,
   },
@@ -69,7 +69,7 @@ export const BACKGROUNDS: Record<BackgroundId, Background> = {
     label: 'Average',
     blurb: 'Fees are covered. Feeding money needs planning.',
     startMoney: 20000,
-    allowance: 11000,
+    allowance: 8500,
     lateChance: 0.2,
     feeShare: 1,
   },
@@ -150,14 +150,15 @@ export const MEDICAL_TEST_FEE = 3000;
 // ---------- academics ----------
 export const START_KNOWLEDGE = 5;
 export const KNOWLEDGE = {
-  lecture: 14,
+  lecture: 10,
   outsideFactor: 0.6,
-  readLibrary: 11,
-  readRoom: 8,
-  readDark: 3,
-  handout: 12,
-  notes: 8,
-  groupStudy: 10,
+  // Halved when the semester became a month (twice the days to read in).
+  readLibrary: 3.5,
+  readRoom: 2.5,
+  readDark: 1,
+  handout: 8,
+  notes: 3,
+  groupStudy: 4,
   posting: 10,
   illFactor: 0.5,
 };
@@ -219,4 +220,4 @@ export const ERRAND_PAY = 400;
 export const WASH_PLATES_PAY = 500;
 
 /** Knowledge lost each day in every course (what you do not revise, you forget). */
-export const FORGET_PER_DAY = 0.25;
+export const FORGET_PER_DAY = 0.6;

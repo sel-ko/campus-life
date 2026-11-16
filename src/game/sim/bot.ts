@@ -217,7 +217,7 @@ function slotAction(c0: Ctx): void {
   // Head home in the evening while kekes still run (night cabs are expensive).
   const room = getPlace(d.room.placeId)!;
   if (d.clock.slot === 2 && d.location.sectionId !== room.sectionId && !meetingsNow(d).length && !examsNow(d).length) go(c, room.id);
-  const attendRate = s === 'study' || s === 'balanced' ? 1 : s === 'hustle' ? 0.55 : 0.6;
+  const attendRate = s === 'study' || s === 'balanced' ? 1 : s === 'hustle' ? 0.78 : 0.75;
   for (const { course, meeting } of meetingsNow(d)) {
     if (meeting.test || b.chance(attendRate)) if (act(c, meeting.placeId, `attend:${course.code}`, meeting.test) && done()) return;
   }

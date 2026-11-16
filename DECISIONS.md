@@ -886,3 +886,12 @@ the code mentioned.
 208. **Online play (planned):** the game is meant to become multiplayer with
      live stats; when the single-player rules are solid, roommate NPCs will
      make way for real players.
+209. **Retuned for the month-long semester:** lectures teach 10 knowledge
+     (was 14), reading 3.5 in the library and 2.5 in your room (was 11 and
+     8), handouts 8, notes 3, group study 4; every course forgets 0.6 a day
+     if not revised; weekly upkeep is ₦5,500 (broke) and ₦8,500 (average).
+     The hustle bot now attends three classes in four (half meant being
+     barred everywhere once courses met every week). Quick check (40 seeds):
+     study and balanced earn mostly 2:1 (median 3.8 to 4.3), First Class is
+     rare, hustling earns a 2:2, and nearly everyone graduates now that home
+     pays the fees.
