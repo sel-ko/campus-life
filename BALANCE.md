@@ -38,43 +38,38 @@ _200 seeds per row, generated 2026-11-16._
 
 | Course | Strategy | Graduated | Withdrawn | CGPA p10 / median / p90 | First / 2:1 / 2:2 / 3rd / Pass | Ever broke | Times broke (avg) | Clearance days (avg) | Sessions (avg) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Computer Science (4y) | study | 69% | 22% | 3.91 / 4.10 / 4.23 | 0 / 134 / 4 / 0 / 0 | 33% | 4.9 | 7.0 | 5.0 |
-| Computer Science (4y) | hustle | 67% | 4% | 2.80 / 3.00 / 3.27 | 0 / 0 / 133 / 0 / 0 | 31% | 1.3 | 6.0 | 7.6 |
-| Computer Science (4y) | balanced | 74% | 21% | 3.79 / 4.07 / 4.21 | 0 / 139 / 8 / 0 / 0 | 33% | 4.1 | 7.1 | 5.0 |
-| Computer Science (4y) | random | 76% | 21% | 3.40 / 3.67 / 3.86 | 0 / 122 / 29 / 0 / 0 | 38% | 3.7 | 6.3 | 5.1 |
-| Mechanical Engineering (5y) | study | 68% | 16% | 3.89 / 4.04 / 4.18 | 0 / 134 / 1 / 0 / 0 | 33% | 5.2 | 4.9 | 6.2 |
-| Mechanical Engineering (5y) | hustle | 56% | 9% | 2.81 / 2.99 / 3.23 | 0 / 0 / 112 / 0 / 0 | 34% | 1.2 | 4.4 | 8.4 |
-| Mechanical Engineering (5y) | balanced | 74% | 18% | 3.83 / 4.04 / 4.19 | 0 / 137 / 10 / 0 / 0 | 33% | 4.0 | 5.2 | 6.1 |
-| Mechanical Engineering (5y) | random | 72% | 24% | 3.42 / 3.63 / 3.81 | 0 / 117 / 26 / 0 / 0 | 36% | 3.0 | 5.0 | 5.8 |
-| Medicine and Surgery (6y) | study | 69% | 11% | 4.30 / 4.42 / 4.53 | 29 / 105 / 3 / 0 / 0 | 33% | 5.4 | 5.0 | 7.2 |
-| Medicine and Surgery (6y) | hustle | 0% | 9% | 0.00 / 0.00 / 0.00 | 0 / 0 / 0 / 0 / 0 | 33% | 1.2 | 4.5 | 10.2 |
-| Medicine and Surgery (6y) | balanced | 83% | 10% | 3.72 / 4.37 / 4.48 | 11 / 149 / 5 / 0 / 0 | 33% | 3.6 | 5.3 | 7.0 |
-| Medicine and Surgery (6y) | random | 75% | 21% | 3.69 / 3.94 / 4.09 | 0 / 145 / 4 / 0 / 0 | 37% | 2.8 | 5.4 | 6.7 |
+| Computer Science (4y) | study | 100% | 0% | 3.50 / 3.87 / 4.01 | 0 / 180 / 20 / 0 / 0 | 11% | 0.2 | 3.2 | 4.5 |
+| Computer Science (4y) | hustle | 97% | 0% | 2.76 / 2.91 / 3.05 | 0 / 0 / 193 / 0 / 0 | 2% | 0.0 | 3.1 | 6.2 |
+| Computer Science (4y) | balanced | 100% | 0% | 3.58 / 3.75 / 3.89 | 0 / 192 / 8 / 0 / 0 | 2% | 0.0 | 3.3 | 4.5 |
+| Computer Science (4y) | random | 100% | 0% | 3.21 / 3.36 / 3.53 | 0 / 26 / 174 / 0 / 0 | 7% | 0.1 | 3.3 | 4.7 |
+| Mechanical Engineering (5y) | study | 100% | 0% | 3.30 / 3.88 / 4.04 | 0 / 154 / 46 / 0 / 0 | 21% | 0.4 | 3.1 | 5.5 |
+| Mechanical Engineering (5y) | hustle | 97% | 0% | 2.75 / 2.89 / 3.03 | 0 / 0 / 194 / 0 / 0 | 1% | 0.0 | 3.0 | 7.2 |
+| Mechanical Engineering (5y) | balanced | 100% | 0% | 3.63 / 3.78 / 3.91 | 0 / 197 / 3 / 0 / 0 | 1% | 0.0 | 3.2 | 5.4 |
+| Mechanical Engineering (5y) | random | 100% | 0% | 3.18 / 3.35 / 3.48 | 0 / 17 / 183 / 0 / 0 | 9% | 0.2 | 3.3 | 5.8 |
+| Medicine and Surgery (6y) | study | 100% | 0% | 3.99 / 4.30 / 4.39 | 2 / 197 / 1 / 0 / 0 | 10% | 0.3 | 3.1 | 6.2 |
+| Medicine and Surgery (6y) | hustle | 93% | 0% | 3.15 / 3.30 / 3.46 | 0 / 10 / 175 / 0 / 0 | 1% | 0.0 | 3.0 | 8.6 |
+| Medicine and Surgery (6y) | balanced | 100% | 0% | 4.11 / 4.22 / 4.31 | 0 / 200 / 0 / 0 / 0 | 1% | 0.0 | 3.2 | 6.3 |
+| Medicine and Surgery (6y) | random | 100% | 0% | 3.75 / 3.88 / 4.01 | 0 / 199 / 1 / 0 / 0 | 7% | 0.1 | 3.2 | 6.6 |
 
 <!-- sim-table -->
 
 ## Reading the table
 
-- **No strategy always wins.** Study gives the best grades, balanced
-  graduates most often (74 to 83%), random play still earns mostly 2:1s, and
-  always hustling earns 2:2s and the most money but does not survive
-  Medicine (0% in the latest run).
-- **First Class is reachable but rare** for the bots, and only in Medicine:
-  about 15% of study runs and 6% of balanced runs. On the 4- and 5-year
-  courses the bots peak around 4.2 (90th percentile), just short. The bots
-  are not clever readers (they skip assignments when lectures fill the day
-  and cannot plan around packed GST halls), so a focused human player does
-  better.
-- **Withdrawals** (10 to 24%) are mostly broke-family runs that fall behind
-  on food and fees in exam weeks. They rose a little when unrevised courses
-  started to fade (0.25 knowledge a day).
-- **Clearance** takes the bots 4 to 7 days on average: office visits are now
-  timed (about five minutes per person in the queue plus 15 at the desk), but
-  the bots still do only one office per part of the day and attend lectures
-  from week two. A player who starts at 8:00 with the right papers can
-  finish the form in one day.
-- **Hustling through Medicine** does not graduate: the course is long, the
-  postings demand attendance, and the hustle bot attends half its classes.
+- **Semesters are a month now** and home pays every fee, so almost every
+  bot graduates (93 to 100%) and nobody withdraws. The game is about the
+  class of degree, money for food and fun, and time.
+- **Study and balanced play earn a 2:1** (medians 3.75 to 4.3). First Class
+  is very rare for the bots (2 of 200 studious Medicine runs): a focused
+  human who reads every course, does every assignment and signs every form
+  on time does better.
+- **Random play** earns a 2:2 on the shorter courses and a 2:1 in Medicine.
+- **Hustling earns a 2:2** and takes longer (6 to 9 sessions), because the
+  hustle bot misses one class in four and reads little.
+- **Money:** 1 to 21% of runs go broke at some point (more for studious
+  bots, which hustle least).
+- **Clearance** takes the bots about 3 days (they do one office per part of
+  the day); a player who starts at 8:00 with the right papers can finish in
+  one.
 
 ## What the tuning changed
 
@@ -111,3 +106,7 @@ _200 seeds per row, generated 2026-11-16._
   costs ₦2,000 at the first exam.
 - Every course loses 0.25 knowledge a day if not revised (first tried at 0.5,
   which pushed withdrawals up to about 26%).
+- The semester became a month: lectures teach 10 knowledge (was 14), reading
+  3.5 / 2.5 (was 11 / 8), every course forgets 0.6 a day unrevised, weekly
+  upkeep ₦5,500 / ₦8,500 (broke / average), and the hustle bot attends three
+  classes in four.
