@@ -23,6 +23,9 @@ export const START_NEEDS: Needs = { energy: 85, hunger: 25, stress: 20, health: 
 export const PER_SLOT = { hunger: 7, energy: -3, hygiene: -7, bladder: 11 };
 /** Hygiene below this makes people keep their distance; bladder at 100 is an accident. */
 export const SMELLY_AT = 25;
+
+/** The phone: battery used each part of the day, data used, a data bundle. */
+export const PHONE = { start: { battery: 85, data: 1500 }, drainPerSlot: 6, idleData: 15, portalData: 40, chatData: 5, bundle: 1500, bundlePrice: 500, chargePerHour: 60, shopCharge: 100 };
 export const HUNGRY_AT = 80;
 export const STARVING_DRAIN = { energy: -5, stress: 3, health: -3 };
 export const TIRED_AT = 10;

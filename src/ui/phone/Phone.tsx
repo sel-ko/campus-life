@@ -6,11 +6,14 @@ import { PLACES } from '../../content/places';
 import { university } from '../../content/university';
 import { totalUnread } from '../../game/chat';
 import { journal } from '../../game/journal';
-import { dayName, slotName } from '../../game/time';
+import { clockTime, slotName } from '../../game/time';
+import { PHONE } from '../../game/config';
+import { naira } from '../../game/format';
+import { canBuyData } from '../../game/phone';
 import type { GameState } from '../../game/types';
 import { onlineConfigured } from '../../online/supabase';
 import { useGameStore, type PhoneApp } from '../../store/gameStore';
-import { FULL_DAY_NAMES, useNow } from '../clock';
+import { FULL_DAY_NAMES } from '../clock';
 import { BackIcon, BellIcon, CalendarIcon, ChatIcon, CloseIcon, MoonIcon, PinIcon, SlidersIcon, StoreIcon, SunIcon, TrophyIcon, UserIcon, WalletIcon } from '../icons';
 import { CalendarApp, ChatApp, LeaderboardApp, MarketApp, PeopleApp, PlacesApp, SchoolApp, SettingsApp, WalletApp } from './PhoneApps';
 
@@ -65,7 +68,6 @@ function HomeScreen({ game, onPickPlace }: { game: GameState; onPickPlace: (id: 
   const openPhone = useGameStore((s) => s.openPhone);
   const closePhone = useGameStore((s) => s.closePhone);
   const unread = totalUnread(game);
-  const now = useNow();
   const setJournalOpen = useGameStore((s) => s.setJournalOpen);
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState('');
@@ -86,9 +88,9 @@ function HomeScreen({ game, onPickPlace }: { game: GameState; onPickPlace: (id: 
         <section className="flex w-full shrink-0 snap-start flex-col gap-4 overflow-y-auto px-5 pt-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-7xl leading-none font-extrabold tracking-tight">{now.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' })}</p>
+              <p className="text-7xl leading-none font-extrabold tracking-tight">{clockTime(game.clock).replace(/ [ap]m$/, '')}</p>
               <p className="mt-2 text-sm text-white/85">
-                {FULL_DAY_NAMES[(now.getDay() + 6) % 7]} · in game: {dayName(game.clock.day)}, day {game.clock.day} of 14
+                {FULL_DAY_NAMES[(game.clock.day - 1) % 7]} · day {game.clock.day} of 14 · {slotName(game.clock).toLowerCase()}
               </p>
             </div>
             <div className="flex gap-2">
@@ -217,12 +219,21 @@ export function Phone({ game, onPickPlace }: { game: GameState; onPickPlace: (id
         className="relative flex h-full max-h-[800px] w-full max-w-[400px] flex-col overflow-hidden rounded-[48px] border-[10px] border-[#0B0C10] text-ink shadow-2xl"
         style={{ background: `linear-gradient(170deg, ${university.colours.primary} 0%, #22405A 45%, #3E5A6E 75%, #93A5AE 100%)` }}
       >
-        {/* Camera island */}
-        <div className="relative h-9 shrink-0">
+        {/* Camera island, with the time, data and battery either side. */}
+        <div className="relative flex h-9 shrink-0 items-center justify-between px-6 pt-1 text-xs font-semibold">
+          <span>{clockTime(game.clock).replace(/ [ap]m$/, '')}</span>
           <span className="absolute top-2.5 left-1/2 h-7 w-28 -translate-x-1/2 rounded-full bg-black" />
+          <span className="flex items-center gap-2">
+            <span className={game.phone.data <= 0 ? 'text-red-300' : ''}>{game.phone.data >= 1000 ? `${(game.phone.data / 1000).toFixed(1)} GB` : `${Math.round(game.phone.data)} MB`}</span>
+            <Battery level={game.phone.battery} />
+          </span>
         </div>
 
-        {app === 'home' ? (
+        {game.phone.battery <= 0 ? (
+          <DeadPhone />
+        ) : app !== 'home' && NEEDS_DATA.includes(app) && game.phone.data <= 0 ? (
+          <NoData game={game} onBack={() => openPhone('home')} />
+        ) : app === 'home' ? (
           <div className="min-h-0 flex-1">
             <HomeScreen game={game} onPickPlace={onPickPlace} />
           </div>
@@ -246,6 +257,57 @@ export function Phone({ game, onPickPlace }: { game: GameState; onPickPlace: (id
           <span className="h-1.5 w-32 rounded-full bg-white/80" />
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Apps that need to go online. */
+const NEEDS_DATA: PhoneApp[] = ['school', 'chat', 'market', 'leaderboard'];
+
+function Battery({ level }: { level: number }) {
+  const colour = level <= 15 ? '#F87171' : level <= 35 ? '#FBBF24' : '#E8F5E9';
+  return (
+    <span className="flex items-center gap-0.5" aria-label={`Battery ${Math.round(level)}%`}>
+      <span className="relative h-3 w-6 rounded-[3px] border border-white/80 p-px">
+        <span className="block h-full rounded-[1px]" style={{ width: `${Math.max(0, Math.min(100, level))}%`, background: colour }} />
+      </span>
+      <span className="h-1.5 w-0.5 rounded-r bg-white/80" />
+      <span className="ml-1">{Math.round(level)}%</span>
+    </span>
+  );
+}
+
+/** A flat battery: nothing works until you charge it. */
+function DeadPhone() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-black px-8 text-center">
+      <span className="text-5xl" aria-hidden="true">
+        🪫
+      </span>
+      <p className="text-lg font-bold">Your phone is dead</p>
+      <p className="text-sm text-white/70">Charge it in your room (if there is light) or at a business centre. No portal, no chats until then.</p>
+    </div>
+  );
+}
+
+/** No data: the app cannot load. A data bundle by USSD still works. */
+function NoData({ game, onBack }: { game: GameState; onBack: () => void }) {
+  const buyData = useGameStore((s) => s.buyData);
+  const can = canBuyData(game);
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-[#14202B]/90 px-8 text-center">
+      <span className="text-5xl" aria-hidden="true">
+        📵
+      </span>
+      <p className="text-lg font-bold">No internet connection</p>
+      <p className="text-sm text-white/70">You have run out of data. Buy a bundle with your bank's USSD code to log in again.</p>
+      <button disabled={!can.ok} onClick={buyData} className="min-h-11 rounded-xl bg-sun px-4 font-bold text-night disabled:opacity-40">
+        Dial *USSD#: {PHONE.bundle / 1000} GB for {naira(PHONE.bundlePrice)}
+      </button>
+      {!can.ok && <p className="text-xs text-red-300">{can.reason}</p>}
+      <button onClick={onBack} className="min-h-10 text-sm text-white/70 underline">
+        Back
+      </button>
     </div>
   );
 }

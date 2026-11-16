@@ -20,7 +20,7 @@ describe('hygiene and the bladder', () => {
     expect(list.find((i) => i.kind === 'bath')?.target.type).toBe('shower');
     const washed = performInteraction(d, d.room.placeId, 'bath');
     expect(washed.needs.hygiene).toBe(100);
-    expect(washed.clock).toEqual(d.clock); // quick: no slot used
+    expect(washed.clock.slot).toBe(d.clock.slot); // quick: no slot used, just minutes
     const relieved = performInteraction(washed, d.room.placeId, 'toilet');
     expect(relieved.needs.bladder).toBe(0);
   });

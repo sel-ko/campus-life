@@ -5,28 +5,20 @@ import { getAmbition } from '../content/ambitions';
 import { getCollege, getProgramme } from '../content/courses';
 import { getPerson, TRAIT_LABELS } from '../content/people';
 import { getPlace, placeName } from '../content/places';
-import { attendance, classOfDegree, currentCgpa } from '../game/academics';
-import { BACKGROUNDS, FREE_ABSENCES, SEMESTER_DAYS } from '../game/config';
+import { classOfDegree, currentCgpa } from '../game/academics';
+import { BACKGROUNDS, SEMESTER_DAYS } from '../game/config';
 import { naira } from '../game/format';
-import { healthLabel } from '../game/needs';
 import { slotName } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
-import { PRESETS, PRESET_IDS, presetLook } from '../world/characters/look';
-import { CheckIcon, CloseIcon } from './icons';
+import { presetLook } from '../world/characters/look';
+import { CloseIcon } from './icons';
 import { Portrait } from './Portrait';
 import { NeedsPanel } from './lifeUi';
 
 const H = 'mb-1.5 text-xs font-semibold tracking-wide text-muted uppercase';
 const BOX = 'rounded-2xl border border-white/10 bg-white/5 p-3';
 
-function Bar({ value, colour }: { value: number; colour: string }) {
-  return (
-    <span className="block h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-      <span className={`block h-full ${colour}`} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
-    </span>
-  );
-}
 
 /** Days 1-14 down, slots across... drawn as a grid: one row per daytime slot, one column per day. */
 function Heatmap({ game }: { game: GameState }) {
@@ -90,7 +82,7 @@ function Row({ slot, cells, colour }: { slot: number; cells: Array<{ day: number
 export function ProfileSheet({ game }: { game: GameState }) {
   const open = useGameStore((s) => s.profileOpen);
   const setOpen = useGameStore((s) => s.setProfileOpen);
-  const setCharacter = useGameStore((s) => s.setCharacter);
+  const openPhone = useGameStore((s) => s.openPhone);
   if (!open) return null;
 
   const p = game.player;
@@ -99,7 +91,6 @@ export function ProfileSheet({ game }: { game: GameState }) {
   const cgpa = currentCgpa(game);
   const passedUnits = a.transcript.flatMap((t) => t.courses).filter((c) => c.grade !== 'F').reduce((s, c) => s + c.units, 0);
   const amb = getAmbition(game.goals.ambition);
-  const n = game.needs;
   const unpaid = game.finance.fees.filter((f) => !f.paid);
 
   return (
@@ -154,62 +145,20 @@ export function ProfileSheet({ game }: { game: GameState }) {
           </div>
         </section>
 
-        <section>
-          <h3 className={H}>This semester's courses{a.registered ? '' : ' (not registered yet!)'}</h3>
-          <ul className="flex flex-col gap-1.5">
-            {a.courses.map((c) => {
-              const att = attendance(game, c);
-              const ca = (c.testScore ?? 0) + (c.assignment ?? 0);
-              return (
-                <li key={c.code} className={BOX}>
-                  <p className="flex justify-between gap-2 text-sm">
-                    <b>
-                      {c.code}
-                      {c.carryover ? ' (CO)' : ''}
-                    </b>
-                    <span className="text-xs text-muted">
-                      {c.units} units · {getPerson(c.lecturerId)?.name ?? ''}
-                    </span>
-                  </p>
-                  <p className="truncate text-xs text-muted">{c.title}</p>
-                  <div className="mt-1 grid grid-cols-[4.5rem_1fr_2.5rem] items-center gap-x-2 text-xs">
-                    <span>Knowledge</span>
-                    <Bar value={c.knowledge} colour="bg-sky-400" />
-                    <span className="text-right">{Math.round(c.knowledge)}</span>
-                    <span>Attendance</span>
-                    <Bar value={att.pct * 100} colour={att.pct < 0.75 ? 'bg-red-400' : 'bg-emerald-400'} />
-                    <span className="text-right">
-                      {att.attended}/{att.held}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted">
-                    Test {c.testScore ?? '–'}/15 · assignment {c.assignment ?? '–'}/10 · CA so far {ca}
-                    {c.exam.status === 'pending' ? ` · exam day ${c.exam.day} ${slotName(c.exam.slot).toLowerCase()}` : ` · exam ${c.exam.status}`}
-                    {att.pct < 0.75 && att.held - att.attended > FREE_ABSENCES && c.exam.status === 'pending' && !c.covered ? ' · ⚠ barred unless covered' : ''}
-                    {c.handout.status === 'bought' ? ' · has handout' : ''}
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        <section>
-          <h3 className={H}>Needs</h3>
-          <div className={`${BOX} grid grid-cols-[4.5rem_1fr_2.5rem] items-center gap-x-2 gap-y-1 text-xs`}>
-            <span>Energy</span>
-            <Bar value={n.energy} colour="bg-emerald-400" />
-            <span className="text-right">{Math.round(n.energy)}</span>
-            <span>Hunger</span>
-            <Bar value={n.hunger} colour="bg-amber-400" />
-            <span className="text-right">{Math.round(n.hunger)}</span>
-            <span>Stress</span>
-            <Bar value={n.stress} colour="bg-red-400" />
-            <span className="text-right">{Math.round(n.stress)}</span>
-            <span className="col-span-3 text-muted">
-              Feeling: <b className="text-ink">{healthLabel(game)}</b> · meals eaten {game.stats.meals} · times broke {game.stats.brokeTimes}
-            </span>
-          </div>
+        <section className="flex flex-wrap items-center gap-2">
+          {game.clearance.active ? (
+            <span className="rounded-full bg-white/8 px-3 py-1.5 text-sm text-muted">📚 Your courses open after clearance</span>
+          ) : (
+            <button
+              onClick={() => {
+                setOpen(false);
+                openPhone('school');
+              }}
+              className="rounded-full border border-sun/60 bg-sun/10 px-3 py-1.5 text-sm font-semibold text-sun"
+            >
+              📚 View courses ({a.courses.length}) →
+            </button>
+          )}
         </section>
 
         <section>
@@ -248,17 +197,6 @@ export function ProfileSheet({ game }: { game: GameState }) {
           </div>
         </section>
 
-        <section>
-          <h3 className={H}>Your look</h3>
-          <div className="grid grid-cols-4 gap-2">
-            {PRESET_IDS.map((id) => (
-              <button key={id} onClick={() => setCharacter(id)} aria-pressed={p.characterId === id} className={`relative flex flex-col items-center rounded-xl border-2 p-1 ${p.characterId === id ? 'border-sun' : 'border-transparent bg-white/5'}`}>
-                <Portrait look={PRESETS[id].look} size={48} />
-                {p.characterId === id && <CheckIcon size={14} className="absolute top-1 right-1 text-sun" />}
-              </button>
-            ))}
-          </div>
-        </section>
       </section>
     </div>
   );

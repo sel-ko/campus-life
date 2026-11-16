@@ -146,3 +146,39 @@ export function crowdLevel(d: GameState, placeId: string): number {
       return 0.2;
   }
 }
+
+/**
+ * Whether you can go in now. Offices and workplaces keep weekday hours,
+ * eateries and shops close at night, lecture halls are locked at night, night
+ * life keeps its own hours (and waits until your clearance form is signed).
+ * Your room, hostels, the library, clinics and fields are always open.
+ */
+export function placeOpen(d: GameState, placeId: string): { open: boolean; reason?: string } {
+  const place = getPlace(placeId);
+  if (!place || d.room.placeId === placeId) return { open: true };
+  const slot = d.clock.slot;
+  const weekend = isWeekend(d.clock.day);
+  const nextWeekday = weekend ? 'on Monday morning' : slot >= 2 ? 'tomorrow at 7:00 am' : '';
+  if (examsNow(d, placeId).length || meetingsNow(d, placeId).length) return { open: true };
+  switch (place.type) {
+    case 'admin_office':
+    case 'workplace':
+      return slot <= 1 && !weekend ? { open: true } : { open: false, reason: `Closed. Opens ${nextWeekday || 'tomorrow at 7:00 am'}` };
+    case 'restaurant':
+    case 'shop':
+      return slot === 3 ? { open: false, reason: 'Closed for the night. Opens at 7:00 am' } : { open: true };
+    case 'lecture_hall':
+    case 'lab':
+      return slot === 3 ? { open: false, reason: 'Locked for the night' } : { open: true };
+    case 'nightlife': {
+      if (stillClearing(d)) return { open: false, reason: 'Finish your clearance first' };
+      const v = place.venue;
+      if (v === 'club') return slot === 3 || (weekend && slot === 2) ? { open: true } : { open: false, reason: 'Opens at 8:00 pm' };
+      if (v === 'lounge') return slot >= 2 ? { open: true } : { open: false, reason: 'Opens at 4:00 pm' };
+      if (v === 'cinema') return slot >= 1 ? { open: true } : { open: false, reason: 'First show at 12:00 pm' };
+      return weekend && slot >= 1 ? { open: true } : { open: false, reason: 'Parties hold at weekends' };
+    }
+    default:
+      return { open: true };
+  }
+}

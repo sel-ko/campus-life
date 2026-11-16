@@ -101,6 +101,7 @@ describe('the portal', () => {
     // Skip to the day after the fresher deadline.
     passSlots(d, new Rng(9), 4 * 10);
     expect(d.clock.day).toBe(11);
+    d.phone.battery = 100; // ten days without charging would have killed it
     expect(getFee(d, 'late_reg')).toBeDefined();
     expect(canRegister(d).ok).toBe(false);
     getFee(d, 'late_reg')!.paid = true;

@@ -4,6 +4,7 @@ import { useGameStore } from '../store/gameStore';
 import { ErrorBoundary } from './ErrorBoundary';
 import { BottomBar } from './BottomBar';
 import { EventCard } from './EventCard';
+import { Notifications } from './Notifications';
 import { Hud, TopBar } from './Hud';
 import { InsideScreen } from './InsideScreen';
 import { JournalSheet } from './JournalSheet';
@@ -86,6 +87,7 @@ export function PlayScreen({ game }: { game: GameState }) {
       <ProfileSheet game={game} />
       <Phone game={game} onPickPlace={pickPlace} />
       <EventCard game={game} />
+      <Notifications game={game} />
       {game.phase === 'playing' && !game.pendingEvent && <Tour />}
     </div>
   );

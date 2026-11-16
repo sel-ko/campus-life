@@ -7,13 +7,14 @@ import { campusEvent } from '../game/campus';
 import { naira } from '../game/format';
 import { journal } from '../game/journal';
 import { healthLabel } from '../game/needs';
-import { dayName, slotName } from '../game/time';
+import { dayName, slotName , clockTime } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
-import { useNow } from './clock';
 import { DoorIcon, MoonIcon, SunIcon, SunriseIcon, SunsetIcon } from './icons';
-import { NeedsPanel, QuestChip } from './lifeUi';
+import { NeedsPanel, InfoStack } from './lifeUi';
 import { PILL } from './theme';
+import { placeOpen } from '../game/status';
+import { BagSheet, bagItems } from './BagSheet';
 
 const SLOT_ICONS = [SunriseIcon, SunIcon, SunsetIcon, MoonIcon];
 
@@ -52,15 +53,22 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
   return (
     <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3 pt-[calc(max(0.75rem,env(safe-area-inset-top))+3.25rem)] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
-        {!inside && <QuestChip game={game} />}
+        {!inside && <InfoStack game={game} />}
+        <Notice />
         <Toast game={game} />
       </div>
 
       <div className="flex flex-col items-center gap-3">
         {follow && !inside && nearby?.enterable && !walking && (
-          <button onClick={() => tapPlace(nearby.id, true)} className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-full bg-sun px-5 font-bold text-night shadow-lg">
-            <DoorIcon size={20} /> Enter {nearby.name}
-          </button>
+          placeOpen(game, nearby.id).open ? (
+            <button onClick={() => tapPlace(nearby.id, true)} className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-full bg-sun px-5 font-bold text-night shadow-lg">
+              <DoorIcon size={20} /> Enter {nearby.name}
+            </button>
+          ) : (
+            <p className={`flex min-h-12 items-center gap-2 rounded-full px-5 text-sm font-semibold ${PILL}`}>
+              🔒 {nearby.name}: {placeOpen(game, nearby.id).reason}
+            </p>
+          )
         )}
         {/* The bottom bar lives in BottomBar.tsx so it shows in rooms too. */}
         <div className="h-[60px]" />
@@ -76,7 +84,8 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
  */
 export function TopBar({ game }: { game: GameState }) {
   const [statsOpen, setStatsOpen] = useState(false);
-  const now = useNow();
+  const [bagOpen, setBagOpen] = useState(false);
+  const bagCount = bagItems(game).reduce((n, i) => n + i.count, 0);
   const openPhone = useGameStore((s) => s.openPhone);
   const setJournalOpen = useGameStore((s) => s.setJournalOpen);
   const wait = useGameStore((s) => s.wait);
@@ -91,10 +100,10 @@ export function TopBar({ game }: { game: GameState }) {
             onClick={() => setStatsOpen((o) => !o)}
             aria-expanded={statsOpen}
             className={`flex h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold ${PILL}`}
-            aria-label={`${now.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' })}. Day ${game.clock.day}, ${slotName(game.clock)}. Show your needs`}
+            aria-label={`${clockTime(game.clock)}. Day ${game.clock.day}, ${slotName(game.clock)}. Show your needs`}
           >
             <SlotIcon size={18} className="text-sun" />
-            <span>{now.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' })}</span>
+            <span>{clockTime(game.clock)}</span>
             <span className="text-xs text-muted">
               {dayName(game.clock.day)} {slotName(game.clock)}
             </span>
@@ -103,6 +112,10 @@ export function TopBar({ game }: { game: GameState }) {
           <button onClick={() => setJournalOpen(true)} className={`relative flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold ${PILL}`} aria-label={`Journal: ${tasks.length} tasks`}>
             <span aria-hidden="true">📓</span> {tasks.length}
             {urgent > 0 && <span className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{urgent}</span>}
+          </button>
+
+          <button onClick={() => setBagOpen(true)} className={`relative flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold ${PILL}`} aria-label={`School bag: ${bagCount} things`}>
+            <span aria-hidden="true">🎒</span> {bagCount}
           </button>
 
           <button onClick={() => openPhone('wallet')} className={`flex h-11 items-center rounded-full px-4 text-sm font-bold ${PILL}`} aria-label={`Money ${naira(game.money)}. Open wallet`}>
@@ -137,6 +150,24 @@ export function TopBar({ game }: { game: GameState }) {
             </button>
           </div>
         )}
+      {bagOpen && <BagSheet game={game} onClose={() => setBagOpen(false)} />}
+    </div>
+  );
+}
+
+/** A short message such as "Senate Building: Closed. Opens tomorrow at 7:00 am". */
+function Notice() {
+  const notice = useGameStore((s) => s.notice);
+  const setNotice = useGameStore((s) => s.setNotice);
+  useEffect(() => {
+    if (!notice) return;
+    const id = window.setTimeout(() => setNotice(null), 3500);
+    return () => window.clearTimeout(id);
+  }, [notice, setNotice]);
+  if (!notice) return null;
+  return (
+    <div role="status" className={`mx-auto max-w-sm rounded-2xl px-4 py-2 text-center text-sm font-semibold ${PILL}`}>
+      🔒 {notice}
     </div>
   );
 }

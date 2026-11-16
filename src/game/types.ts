@@ -51,7 +51,8 @@ export type Role =
   | 'doctor'
   | 'senior'
   | 'lecturer'
-  | 'roommate';
+  | 'roommate'
+  | 'family';
 export type HustleId = 'snacks' | 'typing' | 'tutoring' | 'pos' | 'business_centre';
 export type TravelMode = 'walk' | 'keke' | 'cab' | 'drive';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
@@ -65,6 +66,10 @@ export interface Clock {
   slot: number;
   /** Days since the game began; never resets. */
   dayCount: number;
+  /** Minutes since midnight on the game day (night runs past 24:00 to 7:00).
+   *  Missing means the start of the slot. Quick actions move it on; a slot
+   *  action moves on to the next slot. */
+  min?: number;
 }
 
 /** 0 to 100 each. Hunger: 0 is full, 100 is starving. Health is hidden. */
@@ -498,6 +503,8 @@ export interface GameState {
   goals: GoalState;
   week: WeekCounters;
   stats: Stats;
+  /** Your phone: battery (0 to 100) and data left (MB). */
+  phone: { battery: number; data: number };
   flags: Record<string, number>;
   /** This real-world week's campus-wide event. */
   campusWeek: { key: string; id: string } | null;

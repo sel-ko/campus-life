@@ -11,6 +11,9 @@ import { newGame } from '../engine';
 import { chooseEventMut, pendingEventDef } from '../events';
 import { canSetUp } from '../hustle';
 import { getInteractions, getMenu, performMut, travelMut } from '../interactions';
+import { addDataMut, canBuyData } from '../phone';
+import { PHONE } from '../config';
+import { spend } from '../money';
 import { canPay, canRegister, portalPayMut, portalRegisterMut } from '../money';
 import { Rng } from '../rng';
 import type { AmbitionId, GameState, HustleId, OfficeId } from '../types';
@@ -85,6 +88,12 @@ function chooseEvent(c: Ctx): void {
 /** Things that take no slot: fees, registration, food, documents. */
 function quickActions(c: Ctx): void {
   const { d } = c;
+  // Keep the phone alive: charge at home, buy data by USSD when it runs out.
+  if (d.phone.battery < 35 && d.location.placeId === d.room.placeId) performMut(d, c.r, d.room.placeId, 'charge');
+  if (d.phone.data < 150 && canBuyData(d).ok && d.money > 3000) {
+    spend(d, PHONE.bundlePrice);
+    addDataMut(d);
+  }
   if (c.s !== 'random' || c.b.chance(0.7)) {
     for (const f of d.finance.fees) if (canPay(d, f.id).ok) portalPayMut(d, c.r, f.id);
   }

@@ -7,10 +7,12 @@ import { PLACES, getPlace } from '../content/places';
 import { newGame } from '../game/engine';
 import {
   answerChat,
+  buyData,
   chooseEvent,
   dismissSummary,
   markChatRead,
   payFee,
+  payFeesInFull,
   performInteraction,
   registerCourses,
   setCharacter,
@@ -18,6 +20,7 @@ import {
   travel,
 } from '../game/interactions';
 import { loadSave } from '../game/save';
+import { placeOpen } from '../game/status';
 import type { NewGameSetup } from '../game/state';
 import type { FeeId, GameState, TravelMode } from '../game/types';
 import { waitSlot } from '../game/engine';
@@ -70,6 +73,11 @@ interface GameStore {
   wait: () => void;
   chooseEvent: (index: number) => void;
   payFee: (id: FeeId) => void;
+  payFeesInFull: () => void;
+  buyData: () => void;
+  /** A short message on screen ("The Senate Building is closed"). */
+  notice: string | null;
+  setNotice: (text: string | null) => void;
   registerCourses: () => void;
   answerChat: (threadId: string, messageId: number, index: number) => void;
   markChatRead: (threadId: string) => void;
@@ -146,7 +154,17 @@ export const useGameStore = create<GameStore>()(
         arrive: () => {
           const target = get().walkTargetId;
           if (!target) return;
-          set({ walkTargetId: null, riding: false, travelMode: null, rideStop: null, insidePlaceId: getPlace(target)?.enterable ? target : null });
+          const { game } = get();
+          const open = game ? placeOpen(game, target) : { open: true };
+          const place = getPlace(target);
+          set({
+            walkTargetId: null,
+            riding: false,
+            travelMode: null,
+            rideStop: null,
+            insidePlaceId: place?.enterable && open.open ? target : null,
+            notice: place?.enterable && !open.open ? `${place.name}: ${open.reason}` : get().notice,
+          });
         },
 
         cancelWalk: () => {
@@ -158,6 +176,11 @@ export const useGameStore = create<GameStore>()(
         enter: (placeId) => {
           const { game } = get();
           if (!game) return;
+          const open = placeOpen(game, placeId);
+          if (!open.open) {
+            set({ notice: `${getPlace(placeId)?.name ?? 'It'}: ${open.reason}`, travelSheetId: null });
+            return;
+          }
           // Walking in by joystick: moving inside a section is free; crossing costs a slot.
           const moved = game.location.placeId === placeId ? game : update(game, (g) => travel(g, placeId, 'walk'));
           set({ game: moved, insidePlaceId: placeId, travelSheetId: null, phoneApp: null, journalOpen: false });
@@ -179,6 +202,10 @@ export const useGameStore = create<GameStore>()(
         wait: () => apply(waitSlot),
         chooseEvent: (index) => apply((g) => chooseEvent(g, index)),
         payFee: (id) => apply((g) => payFee(g, id)),
+        payFeesInFull: () => apply(payFeesInFull),
+        buyData: () => apply(buyData),
+        notice: null,
+        setNotice: (notice) => set({ notice }),
         registerCourses: () => apply(registerCourses),
         answerChat: (threadId, messageId, index) => apply((g) => answerChat(g, threadId, messageId, index)),
         markChatRead: (threadId) => apply((g) => markChatRead(g, threadId)),

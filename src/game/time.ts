@@ -48,7 +48,9 @@ export interface ClockStep {
 
 /** Moves the clock on one slot; Night rolls into the next Morning and day 14
  *  Night into day 1 of the next semester (or session). */
-export function stepClock(c: Clock): ClockStep {
+export function stepClock(full: Clock): ClockStep {
+  // The new slot starts at its own start time.
+  const { min: _min, ...c } = full;
   if (c.slot < SLOTS.length - 1) return { clock: { ...c, slot: c.slot + 1 }, newDay: false, newSemester: false };
   if (c.day < SEMESTER_DAYS) {
     return { clock: { ...c, slot: 0, day: c.day + 1, dayCount: c.dayCount + 1 }, newDay: true, newSemester: false };
@@ -62,4 +64,43 @@ export function stepClock(c: Clock): ClockStep {
 
 export function describeClock(c: Clock): string {
   return `${dayName(c.day)} ${slotName(c)}, day ${c.day} of ${SEMESTER_DAYS}`;
+}
+
+// ---------- clock time (hours and minutes) ----------
+
+/** When each part of the day starts, in minutes since midnight. */
+export const SLOT_START = [7 * 60, 12 * 60, 16 * 60, 20 * 60];
+/** When each part ends (night ends at 7 a.m. the next day). */
+export const SLOT_END = [12 * 60, 16 * 60, 20 * 60, 31 * 60];
+
+/** Minutes since midnight now (possibly past 24:00 at night). */
+export function clockMin(c: Clock): number {
+  return c.min ?? SLOT_START[c.slot]!;
+}
+
+/** "9:20 am" for minutes since midnight. */
+export function formatTime(min: number): string {
+  const m = ((Math.round(min) % 1440) + 1440) % 1440;
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(mm).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+/** The game time on the clock, e.g. "9:20 am". */
+export function clockTime(c: Clock): string {
+  return formatTime(clockMin(c));
+}
+
+/** Minutes left in the current part of the day. */
+export function minutesLeftInSlot(c: Clock): number {
+  return SLOT_END[c.slot]! - clockMin(c);
+}
+
+/** "2 hrs 40 min", "45 min", "1 hr". */
+export function formatDuration(min: number): string {
+  const m = Math.max(1, Math.round(min));
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (!h) return `${r} min`;
+  return `${h} hr${h > 1 ? 's' : ''}${r ? ` ${r} min` : ''}`;
 }

@@ -4,7 +4,6 @@
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { realSlot, useNow } from '../ui/clock';
 import { SLOTS } from '../game/types';
 import { useSettings } from '../store/settingsStore';
 import { CampusBuildings, setCampusGlow } from './campus/CampusBuildings';
@@ -19,9 +18,8 @@ import { Player } from './Player';
 import { playerWorld } from './shared';
 
 export default function CampusScene({ paused }: { paused: boolean }) {
-  // The sky follows the player's real local time.
-  const now = useNow(60000);
-  const slot = SLOTS[realSlot(now)]!;
+  // The sky follows the game's time of day.
+  const slot = SLOTS[useGameStore((s) => s.game?.clock.slot ?? 0)]!;
   const look = SLOT_LOOKS[slot];
   const characterId = useGameStore((s) => s.game?.player.characterId ?? 'm1');
   const look3d = useMemo(() => presetLook(characterId), [characterId]);

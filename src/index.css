@@ -37,6 +37,31 @@ body {
 .float-up { animation: float-up 4.2s ease-out forwards; }
 @media (prefers-reduced-motion: reduce) { .float-up { animation: none; } }
 
-/* Scrolling lists without a scrollbar strip down the side. */
-.no-scrollbar { scrollbar-width: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
+/* Scrollbars in the game's own style: thin, rounded, a gold thumb on a dark
+   track, set in from the panel's rounded corners. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 184, 61, 0.55) rgba(255, 255, 255, 0.04);
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.04); border-radius: 999px; margin: 14px 0; }
+*::-webkit-scrollbar-thumb { background: rgba(245, 184, 61, 0.5); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background-color: rgba(245, 184, 61, 0.8); }
+*::-webkit-scrollbar-corner { background: transparent; }
+/* Kept for lists that just need the themed bar. */
+.no-scrollbar { scrollbar-gutter: auto; }
+
+/* Phone notifications slide down from the top. */
+@keyframes note-in {
+  from { opacity: 0; transform: translateY(-24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.note-in { animation: note-in 0.35s ease-out; }
+@media (prefers-reduced-motion: reduce) { .note-in { animation: none; } }
+
+/* Onboarding: students bob, cards slide in. */
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.bob { animation: bob 2.4s ease-in-out infinite; }
+@keyframes card-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.card-in { animation: card-in 0.35s ease-out; }
+@media (prefers-reduced-motion: reduce) { .bob, .card-in { animation: none; } }

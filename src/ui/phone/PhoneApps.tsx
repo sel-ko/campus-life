@@ -8,7 +8,7 @@ import { sections } from '../../content/campusMap';
 import { attendance, classOfDegree, currentCgpa } from '../../game/academics';
 import { BACKGROUNDS, DAY_NAMES, EXAM_DAYS, SEMESTER_DAYS, WEEKEND_DAYS } from '../../game/config';
 import { naira } from '../../game/format';
-import { canPay, canRegister, portalIsDown, registrationDeadline } from '../../game/money';
+import { canPay, canPayInFull, canRegister, portalIsDown, registrationDeadline } from '../../game/money';
 import { placeHasSomethingNow } from '../../game/interactions';
 import { slotName } from '../../game/time';
 import { SLOTS, type GameState } from '../../game/types';
@@ -20,6 +20,8 @@ import { LeaderboardScreen } from '../LeaderboardScreen';
 import { GAME_NAME } from '../site';
 import { VendorCard } from '../VendorSection';
 import { DayPlanView } from '../lifeUi';
+import { PHONE } from '../../game/config';
+import { canBuyData } from '../../game/phone';
 import { getProgramme } from '../../content/courses';
 
 const tab = (on: boolean) => `min-h-10 shrink-0 rounded-full px-3 text-sm font-semibold ${on ? 'bg-sun text-night' : 'bg-white/10'}`;
@@ -33,6 +35,7 @@ export function SchoolApp({ game }: { game: GameState }) {
   const [loggedIn, setLoggedIn] = useState(false);
   const [t, setT] = useState<SchoolTab>('fees');
   const payFee = useGameStore((s) => s.payFee);
+  const payFull = useGameStore((s) => s.payFeesInFull);
   const register = useGameStore((s) => s.registerCourses);
   const last = game.finance.lastPortal;
   const down = portalIsDown(game);
@@ -95,6 +98,15 @@ export function SchoolApp({ game }: { game: GameState }) {
                   <span className="text-sm font-bold text-emerald-300">PAID</span>
                 ) : pending ? (
                   <span className="text-xs font-semibold text-amber-300">Debited, not recorded</span>
+                ) : f.id === 'school1' && canPayInFull(game).ok ? (
+                  <span className="flex shrink-0 flex-col gap-1">
+                    <button disabled={!can.ok} onClick={() => payFee(f.id)} className="min-h-9 rounded-full bg-sun px-3 text-xs font-bold text-night disabled:opacity-40" title={can.ok ? '' : can.reason}>
+                      Pay this instalment
+                    </button>
+                    <button onClick={payFull} className="min-h-9 rounded-full border border-sun px-3 text-xs font-bold text-sun">
+                      Pay in full ({naira(f.amount + (game.finance.fees.find((x) => x.id === 'school2')?.amount ?? 0))})
+                    </button>
+                  </span>
                 ) : (
                   <button disabled={!can.ok} onClick={() => payFee(f.id)} className="min-h-10 rounded-full bg-sun px-4 text-sm font-bold text-night disabled:opacity-40" title={can.ok ? '' : can.reason}>
                     Pay
@@ -325,6 +337,25 @@ export function CalendarApp({ game }: { game: GameState }) {
 
 // ---------- Wallet ----------
 
+function DataCard({ game }: { game: GameState }) {
+  const buyData = useGameStore((s) => s.buyData);
+  const can = canBuyData(game);
+  return (
+    <section className={`${box} flex items-center gap-3`}>
+      <span className="text-2xl" aria-hidden="true">
+        📶
+      </span>
+      <span className="flex-1">
+        <span className="block font-semibold">Data: {game.phone.data >= 1000 ? `${(game.phone.data / 1000).toFixed(1)} GB` : `${Math.round(game.phone.data)} MB`} left</span>
+        <span className="block text-xs text-muted">The portal and chats need data. Battery {Math.round(game.phone.battery)}%.</span>
+      </span>
+      <button disabled={!can.ok} onClick={buyData} title={can.reason} className="min-h-10 shrink-0 rounded-full bg-sun px-3 text-sm font-bold text-night disabled:opacity-40">
+        +{PHONE.bundle / 1000} GB · {naira(PHONE.bundlePrice)}
+      </button>
+    </section>
+  );
+}
+
 export function WalletApp({ game }: { game: GameState }) {
   const bg = BACKGROUNDS[game.player.background];
   const owed = game.loans.filter((l) => l.playerOwes);
@@ -341,6 +372,7 @@ export function WalletApp({ game }: { game: GameState }) {
           Earned {naira(game.finance.earned)} · spent {naira(game.finance.spent)}
         </p>
       </div>
+      <DataCard game={game} />
       <section className={box}>
         <h3 className="mb-1 font-semibold">Hustles</h3>
         {game.hustle.owned.map((h) => (

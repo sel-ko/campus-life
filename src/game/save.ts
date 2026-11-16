@@ -18,10 +18,13 @@ export function loadSave(game: unknown): { game: GameState | null; wasReset: boo
   if (isCurrentSave(game)) {
     // Saves from before hygiene and bladder existed get them filled in.
     const needs = game.needs as Partial<GameState['needs']> | undefined;
+    let out = game;
     if (needs && (needs.hygiene === undefined || needs.bladder === undefined)) {
-      return { game: { ...game, needs: { ...game.needs, hygiene: needs.hygiene ?? 70, bladder: needs.bladder ?? 20 } }, wasReset: false };
+      out = { ...out, needs: { ...out.needs, hygiene: needs.hygiene ?? 70, bladder: needs.bladder ?? 20 } };
     }
-    return { game, wasReset: false };
+    // Saves from before the phone needed charging and data.
+    if (out.needs && !out.phone) out = { ...out, phone: { battery: 80, data: 1500 } };
+    return { game: out, wasReset: false };
   }
   return { game: null, wasReset: true };
 }

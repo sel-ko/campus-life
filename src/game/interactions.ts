@@ -43,20 +43,21 @@ import {
   visitOfficeMut,
 } from './clearance';
 import { answerMut, markReadMut } from './chat';
-import { BANK_LOAN, DRIVE_FUEL, FARES, HOSPITAL_TREATMENT, ORIENTATION_DAYS, TOWN_TRIP } from './config';
+import { BANK_LOAN, DRIVE_FUEL, FARES, HOSPITAL_TREATMENT, ORIENTATION_DAYS, PHONE, TOWN_TRIP } from './config';
 import { clamp, log, produce } from './draft';
 import { storyRewardsMut } from './story';
+import { addDataMut, canBuyData, chargeMut, overnightChargeMut, phoneProblem, usePhoneMut } from './phone';
 import { addRel, applyEffects } from './effects';
-import { advance } from './engine';
+import { addMinutes, advance } from './engine';
 import { chooseEventMut, maybeEventMut } from './events';
 import { checkObjectivesMut } from './goals';
 import { naira } from './format';
 import { canEatProvision, eatProvisionMut, payLevyMut } from './hostel';
 import { canHustle, canSetUp, errandsMut, hustleMut, setUpMut, washPlatesMut } from './hustle';
-import { clearanceFormDone, feePaid, portalPayMut, portalRegisterMut, resolveDebitMut, spend } from './money';
+import { clearanceFormDone, feePaid, portalPayFullMut, portalPayMut, portalRegisterMut, resolveDebitMut, spend } from './money';
 import { batheMut, canBathe, eatMut, napMut, sleepMut, toiletMut, TREATMENT, treatMut } from './needs';
 import { canTalk, doFavourMut, favoursFor, talkMut } from './people';
-import { isWeekend, slotName, stamp } from './time';
+import { SLOT_END, SLOT_START, isWeekend, minutesLeftInSlot, slotName, stamp } from './time';
 import type { FeeId, GameState, OfficeId, PlaceType, TravelMode } from './types';
 
 export type TargetType = 'seat' | 'lecturer' | 'desk' | 'counter' | 'bed' | 'locker' | 'shelf' | 'bench' | 'stove' | 'board' | 'door' | 'shower' | 'toilet' | 'person';
@@ -101,6 +102,7 @@ export type InteractionKind =
   | 'bank_loan'
   | 'bath'
   | 'toilet'
+  | 'charge'
   | 'wait';
 
 export interface Interaction {
@@ -160,6 +162,32 @@ const EFFECTS: Partial<Record<InteractionKind, string[]>> = {
   toilet: ['-Bladder'],
   wait: [],
 };
+
+/** How many minutes the quick things take (things that do not use up a part of the day). */
+export const QUICK_MINUTES: Partial<Record<InteractionKind, number>> = {
+  bath: 15,
+  toilet: 5,
+  eat: 20,
+  buy: 5,
+  cook: 35,
+  levy: 2,
+  talk: 10,
+  favour: 10,
+  setup: 30,
+  handout: 5,
+  bank_loan: 20,
+  charge: 60,
+};
+
+/** How long an action takes from now, in minutes (a slot action runs to the end of the part of the day). */
+export function actionMinutes(d: GameState, i: Interaction): number {
+  if (i.cost?.slots) {
+    let left = minutesLeftInSlot(d.clock);
+    for (let k = 1; k < i.cost.slots; k++) left += SLOT_END[(d.clock.slot + k) % 4]! - SLOT_START[(d.clock.slot + k) % 4]!;
+    return left;
+  }
+  return QUICK_MINUTES[i.kind] ?? 10;
+}
 
 /** Some actions leave you sweaty. */
 const HYGIENE_COST: Partial<Record<InteractionKind, number>> = { exercise: 25, party: 25, wash_plates: 15, hustle: 8, errands: 10, owambe: 15, campaign: 10 };
@@ -421,6 +449,10 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
             : no(`You need ${naira(item.price)}`)),
     });
   }
+  // Business centres charge phones for a small fee.
+  if (place.stock?.includes('photocopy')) {
+    add({ id: 'charge', kind: 'charge', label: `Charge your phone (${naira(PHONE.shopCharge)})`, detail: `Battery ${Math.round(d.phone?.battery ?? 100)}%`, target: { type: 'counter' }, cost: { money: PHONE.shopCharge }, ...((d.phone?.battery ?? 100) >= 100 ? no('Already full') : d.money < PHONE.shopCharge ? no(`You need ${naira(PHONE.shopCharge)}`) : yes) });
+  }
 
   // Hustles.
   for (const id of HUSTLE_ORDER) {
@@ -440,6 +472,7 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
       const bath = canBathe(d);
       add({ id: 'bath', kind: 'bath', label: d.room.water ? 'Take a bucket bath' : 'Bathe with sachet water', detail: `Hygiene ${Math.round(d.needs.hygiene)}%`, target: { type: 'shower' }, ...(d.needs.hygiene >= 95 ? no('You are already fresh') : ok(bath)) });
       add({ id: 'toilet', kind: 'toilet', label: 'Use the toilet', target: { type: 'toilet' }, ...(d.needs.bladder < 10 ? no('You do not need to go') : yes) });
+      add({ id: 'charge', kind: 'charge', label: 'Charge your phone', detail: `Battery ${Math.round(d.phone?.battery ?? 100)}%`, target: { type: 'desk' }, ...(!d.room.light ? no('No light in the hostel (NEPA)') : (d.phone?.battery ?? 100) >= 100 ? no('Already full') : yes) });
       add({ id: 'sleep', kind: 'sleep', label: 'Sleep till morning', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...(slot === 3 ? yes : no('Sleep is for the night; take a nap')) });
       add({ id: 'nap', kind: 'nap', label: 'Take a nap', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...(slot === 3 ? no('It is night: sleep properly') : yes) });
       for (const [item, count] of Object.entries(d.inventory)) {
@@ -617,7 +650,7 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
       else if (arg === 'vitamins') applyEffects(d, { health: 12 });
       else if (arg === 'haircut') applyEffects(d, { stress: -5 });
       else if (arg === 'laundry') applyEffects(d, { stress: -4 });
-      else if (arg === 'airtime') d.flags.data = d.clock.dayCount;
+      else if (arg === 'airtime') addDataMut(d);
       else if (arg === 'car') d.inventory.car = 1;
       else if (arg === 'phone_upgrade') {
         applyEffects(d, { stress: -10, rel: { coursemate: 2 } });
@@ -716,6 +749,10 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
     case 'bath':
       batheMut(d);
       break;
+    case 'charge':
+      if (i.cost?.money) spend(d, i.cost.money);
+      chargeMut(d, 1);
+      break;
     case 'toilet':
       if (i.cost?.money) spend(d, i.cost.money);
       toiletMut(d);
@@ -741,7 +778,9 @@ export function performMut(d: GameState, r: import('./rng').Rng, placeId: string
   if (i.kind === 'party' || i.kind === 'vip' || i.kind === 'owambe') d.flags.party_night = d.clock.dayCount;
   const slots = i.cost?.slots ?? 0;
   if (slots > 0 && i.kind !== 'wait') maybeEventMut(d, r, place.type, placeId);
-  advance(d, r, slots);
+  if (slots > 0) advance(d, r, slots);
+  else addMinutes(d, r, QUICK_MINUTES[i.kind] ?? 10);
+  if (i.kind === 'sleep' && isOwnRoom(d, placeId)) overnightChargeMut(d);
   checkClearanceDone(d);
   checkObjectivesMut(d);
   storyRewardsMut(d);
@@ -851,7 +890,29 @@ export function chooseEvent(state: GameState, index: number): GameState {
 }
 
 export function answerChat(state: GameState, threadId: string, messageId: number, index: number): GameState {
-  return produce(state, (d) => answerMut(d, threadId, messageId, index, (e) => applyEffects(d, e)));
+  return produce(state, (d) => {
+    if (phoneProblem(d)) return;
+    usePhoneMut(d, PHONE.chatData);
+    answerMut(d, threadId, messageId, index, (e) => applyEffects(d, e));
+  });
+}
+
+/** Data bundle by the bank's USSD code: works with no data, not with a dead phone. */
+export function buyData(state: GameState): GameState {
+  return produce(state, (d) => {
+    if (!canBuyData(d).ok) return;
+    spend(d, PHONE.bundlePrice);
+    addDataMut(d);
+    log(d, `Data bundle bought with *USSD#: +${PHONE.bundle} MB for ${naira(PHONE.bundlePrice)}.`);
+  });
+}
+
+export function payFeesInFull(state: GameState): GameState {
+  return produce(state, (d, r) => {
+    portalPayFullMut(d, r);
+    checkClearanceDone(d);
+    storyRewardsMut(d);
+  });
 }
 
 export function markChatRead(state: GameState, threadId: string): GameState {

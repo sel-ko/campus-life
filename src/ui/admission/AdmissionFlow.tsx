@@ -13,6 +13,7 @@ import { useGameStore } from '../../store/gameStore';
 import { useSettings } from '../../store/settingsStore';
 import type { PresetId } from '../../world/characters/look';
 import { CharacterChooser } from '../CharacterChooser';
+import { Onboarding } from './Onboarding';
 import { BTN_GHOST, BTN_PRIMARY, CARD } from '../theme';
 
 type Step = 'welcome' | 'details' | 'course' | 'test' | 'letter' | 'ambition';
@@ -72,33 +73,28 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
   );
 
   if (step === 'welcome') {
-    return shell(
-      <>
-        {resetNotice && (
-          <div role="status" className="rounded-2xl border border-sun/50 bg-sun/10 p-4 text-sm">
-            <p className="font-semibold text-sun">The game has been rebuilt</p>
-            <p className="mt-1">Campus Life is now a full degree, from admission to graduation. Your old semester could not come along, so you start fresh. Sorry o!</p>
-            <button onClick={dismissResetNotice} className="mt-2 min-h-11 font-semibold underline">
-              Okay
-            </button>
-          </div>
-        )}
-        <header className="flex flex-col gap-2 pt-6">
-          <p className="text-sm font-semibold tracking-wide text-sun">Admission to university</p>
-          <h1 className="text-5xl font-extrabold">Campus Life</h1>
-          <p className="text-muted">
-            From admission to graduation: clearance queues, the portal, carryovers, roommates, hustles and the dream of a First Class.
-          </p>
-        </header>
-        <button onClick={() => setStep('details')} className={BTN_PRIMARY}>
-          Apply for admission
-        </button>
-        {onlineConfigured() && (
-          <button onClick={onLeaderboard} className="min-h-11 self-center px-4 font-semibold text-sun underline">
-            See the leaderboard
-          </button>
-        )}
-      </>,
+    return (
+      <Onboarding
+        onApply={() => setStep('details')}
+        extra={
+          <>
+            {resetNotice && (
+              <div role="status" className="rounded-2xl border border-sun/50 bg-sun/10 p-3 text-sm">
+                <p className="font-semibold text-sun">The game has been rebuilt</p>
+                <p className="mt-1">Your old semester could not come along, so you start fresh. Sorry o!</p>
+                <button onClick={dismissResetNotice} className="mt-1 min-h-10 font-semibold underline">
+                  Okay
+                </button>
+              </div>
+            )}
+            {onlineConfigured() && (
+              <button onClick={onLeaderboard} className="min-h-10 self-center px-4 text-sm font-semibold text-sun underline">
+                See the leaderboard
+              </button>
+            )}
+          </>
+        }
+      />
     );
   }
 
@@ -126,9 +122,12 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
               <label key={id} className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3 ${background === id ? 'border-sun bg-panel' : 'border-line'}`}>
                 <input type="radio" name="bg" checked={background === id} onChange={() => setBackground(id)} className="mt-1 size-5 accent-sun" />
                 <span className="flex flex-col">
-                  <span className="font-semibold">{b.label}</span>
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="font-semibold">{b.label}</span>
+                    <span className="text-lg font-extrabold text-sun">{naira(b.startMoney)}</span>
+                  </span>
                   <span className="text-sm text-muted">
-                    {naira(b.startMoney)} to start, {naira(b.allowance)} allowance twice a semester. {b.blurb}
+                    Pocket money to start. {naira(b.allowance)} upkeep from Mum twice a semester; Dad sends {b.feeShare < 1 ? `${Math.round(b.feeShare * 100)}% of` : 'all'} the school fees. {b.blurb}
                   </span>
                 </span>
               </label>

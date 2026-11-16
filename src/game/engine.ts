@@ -8,13 +8,14 @@ import { ALLOWANCE_DAYS } from './config';
 import { dueEventsMut } from './events';
 import { checkMilestonesMut, electionMut, finalMilestonesMut, newWeekMut } from './goals';
 import { log, produce } from './draft';
+import { drainPhoneMut } from './phone';
 import { addLateFeeIfDue, allowanceDay, landLateAllowance, sendFeeMoney, sessionFees, weeklyData } from './money';
 import { dayOutagesMut, oversleepMut, reallocateMut, roommateNightMut } from './hostel';
 import { checkCollapse, hangoverMut, nightWithoutSleep, tickNeeds } from './needs';
 import { loansDayMut } from './people';
 import { Rng } from './rng';
 import { blankState, type NewGameSetup } from './state';
-import { slotName, stepClock } from './time';
+import { SLOT_END, SLOT_START, clockMin, slotName, stepClock } from './time';
 import type { GameState } from './types';
 
 // ---------- starting ----------
@@ -92,6 +93,7 @@ export function passSlot(d: GameState, r: Rng): void {
   if (d.phase !== 'playing') return;
   closeSlot(d);
   tickNeeds(d);
+  drainPhoneMut(d);
   checkCollapse(d);
   const before = d.clock;
   const step = stepClock(before);
@@ -121,6 +123,23 @@ export function advance(d: GameState, r: Rng, slots: number): void {
     log(d, `The ${slotName(d.clock).toLowerCase()} passed without you.`);
     passSlot(d, r);
   }
+}
+
+/**
+ * Quick things (a bath, a meal, a short ride) move the clock on by minutes.
+ * Running past the end of the part of the day passes it, with everything
+ * that comes with that.
+ */
+export function addMinutes(d: GameState, r: Rng, minutes: number): void {
+  if (minutes <= 0 || d.phase !== 'playing') return;
+  let t = clockMin(d.clock) + minutes;
+  let guard = 0;
+  while (t >= SLOT_END[d.clock.slot]! && d.phase === 'playing' && guard++ < 4) {
+    const over = t - SLOT_END[d.clock.slot]!;
+    advance(d, r, 1);
+    t = SLOT_START[d.clock.slot]! + over;
+  }
+  d.clock.min = t;
 }
 
 // ---------- public, pure ----------

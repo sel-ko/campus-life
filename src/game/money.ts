@@ -11,6 +11,7 @@ import {
   FRESHER_REGISTRATION_DEADLINE,
   LATE_REGISTRATION_CLOSE,
   PORTAL,
+  PHONE,
   REGISTRATION_DEADLINE,
 } from './config';
 import { modifiers } from './campus';
@@ -18,6 +19,7 @@ import { log, produce } from './draft';
 import { naira } from './format';
 import type { Rng } from './rng';
 import { stamp } from './time';
+import { addDataMut, debitAlertMut, feesFromHomeMut, phoneProblem, upkeepFromHomeMut, usePhoneMut } from './phone';
 import type { Availability, FeeId, FeeState, GameState, PortalOutcome } from './types';
 
 // ---------- fees ----------
@@ -120,6 +122,7 @@ export function sendFeeMoney(d: GameState): void {
   earn(d, total);
   const note = share < 1 ? ` They could only manage ${Math.round(share * 100)}%, so the rest is on you.` : '';
   log(d, `Your people sent ${naira(total)} for fees. Pay on the portal before it grows legs.${note}`);
+  feesFromHomeMut(d, total, share < 1);
 }
 
 /** Allowance day: it lands now, or late. */
@@ -133,6 +136,7 @@ export function allowanceDay(d: GameState, r: Rng): void {
   }
   earn(d, bg.allowance);
   log(d, `Allowance don land! +${naira(bg.allowance)}`);
+  upkeepFromHomeMut(d, bg.allowance);
 }
 
 export function landLateAllowance(d: GameState): void {
@@ -142,11 +146,15 @@ export function landLateAllowance(d: GameState): void {
   const total = due.reduce((s, a) => s + a.amount, 0);
   earn(d, total);
   log(d, `The late allowance finally landed: +${naira(total)}. Better late than never.`);
+  upkeepFromHomeMut(d, total);
 }
 
 /** Data for the phone, once a week (skipped if there is no money). */
 export function weeklyData(d: GameState): void {
-  if (spend(d, DATA_WEEKLY)) log(d, `Data subscription renewed: -${naira(DATA_WEEKLY)}.`);
+  if (spend(d, DATA_WEEKLY)) {
+    addDataMut(d);
+    log(d, `Data subscription renewed: -${naira(DATA_WEEKLY)}.`);
+  }
   else log(d, 'No money for data this week. You are on free mode and vibes.');
 }
 
@@ -176,6 +184,8 @@ export function canPay(d: GameState, id: FeeId): Availability {
   const fee = getFee(d, id);
   if (!fee) return { ok: false, reason: 'No such fee this session' };
   if (fee.paid) return { ok: false, reason: 'Already paid' };
+  const phone = phoneProblem(d);
+  if (phone) return { ok: false, reason: phone };
   if (d.finance.debits.some((x) => x.feeId === id)) return { ok: false, reason: 'Waiting for the Bursary to confirm your last payment' };
   if (fee.dueSemester > d.clock.semester) return { ok: false, reason: 'Not open until next semester' };
   if (d.money < fee.amount) return { ok: false, reason: `You need ${naira(fee.amount)}` };
@@ -187,6 +197,7 @@ export function portalPayMut(d: GameState, r: Rng, id: FeeId): PortalOutcome {
   if (!ok.ok) return portalSays(d, 'refused', ok.reason);
   if (portalIsDown(d)) return portalSays(d, 'down', 'The portal is still down. Try again in a while.');
   const fee = getFee(d, id)!;
+  usePhoneMut(d, PHONE.portalData);
   const risk = portalRisk(d, fee.dueSemester, fee.dueDay);
   const roll = r.next();
   if (roll < risk.down) {
@@ -194,6 +205,7 @@ export function portalPayMut(d: GameState, r: Rng, id: FeeId): PortalOutcome {
     return portalSays(d, 'down', '"Service temporarily unavailable." The portal is down. Try again later.');
   }
   spend(d, fee.amount);
+  debitAlertMut(d, fee.amount, fee.label);
   if (roll < risk.down + risk.unrecorded) {
     d.finance.debits.push({ id: `debit-${d.clock.dayCount}-${id}`, feeId: id, amount: fee.amount, visits: 0 });
     return portalSays(
@@ -205,6 +217,44 @@ export function portalPayMut(d: GameState, r: Rng, id: FeeId): PortalOutcome {
   fee.paid = true;
   onFeePaid(d, id);
   return portalSays(d, 'ok', `${fee.label} paid: ${naira(fee.amount)}. Receipt is ready to print.`);
+}
+
+/** School fees in one go: both instalments now (only in the first semester, with both unpaid). */
+export function canPayInFull(d: GameState): Availability {
+  const a = getFee(d, 'school1');
+  const b = getFee(d, 'school2');
+  if (!a || !b || a.paid || b.paid || d.clock.semester !== 1) return { ok: false, reason: 'Only before the first instalment is paid' };
+  if (d.finance.debits.some((x) => x.feeId === 'school1' || x.feeId === 'school2')) return { ok: false, reason: 'Waiting for the Bursary to confirm your last payment' };
+  const phone = phoneProblem(d);
+  if (phone) return { ok: false, reason: phone };
+  if (d.money < a.amount + b.amount) return { ok: false, reason: `You need ${naira(a.amount + b.amount)}` };
+  return { ok: true };
+}
+
+export function portalPayFullMut(d: GameState, r: Rng): PortalOutcome {
+  const ok = canPayInFull(d);
+  if (!ok.ok) return portalSays(d, 'refused', ok.reason);
+  if (portalIsDown(d)) return portalSays(d, 'down', 'The portal is still down. Try again in a while.');
+  const fees = [getFee(d, 'school1')!, getFee(d, 'school2')!];
+  const total = fees[0]!.amount + fees[1]!.amount;
+  usePhoneMut(d, PHONE.portalData);
+  const risk = portalRisk(d, fees[0]!.dueSemester, fees[0]!.dueDay);
+  const roll = r.next();
+  if (roll < risk.down) {
+    d.finance.portalDownUntil = stamp(d.clock) + 1;
+    return portalSays(d, 'down', '"Service temporarily unavailable." The portal is down. Try again later.');
+  }
+  spend(d, total);
+  debitAlertMut(d, total, 'School fees (full)');
+  if (roll < risk.down + risk.unrecorded) {
+    for (const f of fees) d.finance.debits.push({ id: `debit-${d.clock.dayCount}-${f.id}`, feeId: f.id, amount: f.amount, visits: 0 });
+    return portalSays(d, 'unrecorded', `Your bank sent a debit alert for ${naira(total)}, but the portal still says "School fees: NOT PAID". Take the alert to the Bursary.`);
+  }
+  for (const f of fees) {
+    f.paid = true;
+    onFeePaid(d, f.id);
+  }
+  return portalSays(d, 'ok', `School fees paid in full: ${naira(total)}. No second instalment to worry about.`);
 }
 
 /** What a confirmed payment unlocks straight away. */
@@ -250,6 +300,8 @@ export function clearanceFormDone(d: GameState): boolean {
 
 export function canRegister(d: GameState): Availability {
   if (d.academics.registered) return { ok: false, reason: 'Already registered' };
+  const phone = phoneProblem(d);
+  if (phone) return { ok: false, reason: phone };
   if (d.clearance.active && !clearanceFormDone(d)) return { ok: false, reason: 'Finish your clearance form first' };
   if (d.clock.day > LATE_REGISTRATION_CLOSE) return { ok: false, reason: 'Registration has closed for this semester' };
   if (d.clock.day > registrationDeadline(d) && !feePaid(d, 'late_reg')) {
@@ -277,6 +329,7 @@ export function portalRegisterMut(d: GameState, r: Rng): PortalOutcome {
   const ok = canRegister(d);
   if (!ok.ok) return portalSays(d, 'refused', ok.reason);
   if (portalIsDown(d)) return portalSays(d, 'down', 'The portal is still down. Try again in a while.');
+  usePhoneMut(d, PHONE.portalData);
   const risk = portalRisk(d, d.clock.semester, registrationDeadline(d));
   if (r.chance(risk.down)) {
     d.finance.portalDownUntil = stamp(d.clock) + 1;

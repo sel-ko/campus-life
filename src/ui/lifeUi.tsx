@@ -6,6 +6,7 @@ import { naira } from '../game/format';
 import { feelings, moodOf } from '../game/needs';
 import { PLAN_ICON, dayPlan } from '../game/planner';
 import { currentChapter } from '../game/story';
+import { journal } from '../game/journal';
 import { dayName, slotName } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
@@ -183,7 +184,7 @@ export function DayPlanView({ game, onlyToday = false }: { game: GameState; only
                       <span className={p.kind === 'exam' || p.kind === 'test' ? 'font-bold' : ''}>{p.text}</span>
                       {p.placeId && <span className="block text-xs text-muted">{placeName(p.placeId)}</span>}
                     </span>
-                    {p.done && <span aria-label="done">✓</span>}
+                    {(p.kind === 'class' || p.kind === 'test' || p.kind === 'exam') && p.note !== 'cancelled' && <AttendDot game={game} day={day} slot={p.slot} done={!!p.done} />}
                     {p.note === 'moved' && <span className="text-xs text-amber-300">moved</span>}
                   </li>
                 );
@@ -195,6 +196,62 @@ export function DayPlanView({ game, onlyToday = false }: { game: GameState; only
       <p className="text-xs text-muted">
         Now: {dayName(game.clock.day)}, {slotName(game.clock).toLowerCase()}.
       </p>
+    </div>
+  );
+}
+
+/** Class attendance at a glance: green attended, red missed, yellow on now. */
+function AttendDot({ game, day, slot, done }: { game: GameState; day: number; slot: number; done: boolean }) {
+  const t = day * 4 + slot;
+  const now = game.clock.day * 4 + game.clock.slot;
+  const state = done ? 'attended' : t === now ? 'on now' : t < now ? 'missed' : 'coming up';
+  const colour = done ? 'bg-emerald-400' : t === now ? 'bg-amber-300' : t < now ? 'bg-red-500' : 'bg-white/20';
+  return <span className={`mt-1 size-2.5 shrink-0 rounded-full ${colour}`} title={state} aria-label={state} />;
+}
+
+const GROUP_ICON: Record<string, string> = { today: '📘', clearance: '🗂️', money: '💸', study: '📚', health: '❤️', people: '🤝🏾', goals: '🏆' };
+
+/**
+ * The stack in the top-left corner: your quest, then the big things coming
+ * up (a class now, an exam tomorrow, a fee deadline, a dying phone). Tap one
+ * to go there.
+ */
+export function InfoStack({ game }: { game: GameState }) {
+  const tapPlace = useGameStore((s) => s.tapPlace);
+  const openPhone = useGameStore((s) => s.openPhone);
+  const leave = useGameStore((s) => s.leave);
+  const insideId = useGameStore((s) => s.insidePlaceId);
+  const items: Array<{ id: string; icon: string; text: string; placeId?: string; portal?: boolean; tone: 'red' | 'amber' }> = [];
+  if (game.phone.battery <= 15) items.push({ id: 'battery', icon: '🪫', text: game.phone.battery <= 0 ? 'Phone dead: charge it' : `Phone battery ${Math.round(game.phone.battery)}%: charge it`, placeId: game.room.placeId, tone: 'red' });
+  else if (game.phone.data <= 100) items.push({ id: 'data', icon: '📶', text: game.phone.data <= 0 ? 'No data: buy a bundle' : 'Data almost finished', tone: 'amber' });
+  const quest = currentChapter(game).steps.find((s) => !s.done);
+  for (const t of journal(game).filter((t) => t.urgent)) {
+    if (items.length >= 3) break;
+    if (quest && t.placeId && t.placeId === quest.placeId) continue;
+    items.push({ id: t.id, icon: GROUP_ICON[t.group] ?? '❗', text: t.text, placeId: t.placeId, portal: t.portal, tone: t.group === 'today' ? 'amber' : 'red' });
+  }
+  const go = (placeId?: string, portal?: boolean) => {
+    if (portal) openPhone('school');
+    else if (placeId && placeId !== insideId) {
+      leave();
+      tapPlace(placeId);
+    }
+  };
+  return (
+    <div className="flex flex-col items-start gap-1.5">
+      <QuestChip game={game} />
+      {items.map((i) => (
+        <button
+          key={i.id}
+          onClick={() => go(i.placeId, i.portal)}
+          className={`pointer-events-auto flex w-fit max-w-[min(20rem,calc(100vw-5rem))] items-center gap-2 rounded-2xl border px-3 py-1.5 text-left shadow-lg ${i.tone === 'red' ? 'border-red-400/40' : 'border-amber-300/40'} bg-[#16181F]/90`}
+        >
+          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10 text-sm" aria-hidden="true">
+            {i.icon}
+          </span>
+          <span className="line-clamp-2 text-xs font-semibold">{i.text}</span>
+        </button>
+      ))}
     </div>
   );
 }

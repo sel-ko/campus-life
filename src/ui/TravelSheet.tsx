@@ -5,7 +5,7 @@
 import { getPlace, sectionName } from '../content/places';
 import { naira } from '../game/format';
 import { getInteractions, travelOptions } from '../game/interactions';
-import { placeEmoji, placeStatus } from '../game/status';
+import { placeEmoji, placeOpen, placeStatus } from '../game/status';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 
@@ -74,7 +74,8 @@ export function TravelSheet({ game }: { game: GameState }) {
           </button>
         </div>
 
-        {things.length > 0 && (
+        {!placeOpen(game, id).open && <p className="mt-3 rounded-2xl bg-white/8 px-3 py-2 text-sm font-semibold">🔒 {placeOpen(game, id).reason}. You can still go there.</p>}
+        {things.length > 0 && placeOpen(game, id).open && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {things.map((t) => (
               <span key={t} className="rounded-full bg-white/8 px-2.5 py-1 text-xs">

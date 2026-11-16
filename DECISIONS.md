@@ -689,3 +689,57 @@ the code mentioned.
      road and takes longer (up to about 20 seconds); a keke drops you at the
      keke park nearest the place and you walk the rest; only a cab (or your
      car) takes you to the door.
+
+## Game clock, phone, family money, bag, journal, onboarding
+
+168. **The clock is game time now, not real time** (this replaces the
+     earlier "real time" choice). Parts of the day have hours: morning
+     7:00 to 12:00, afternoon 12:00 to 16:00, evening 16:00 to 20:00, night
+     20:00 to 7:00. Quick things move the clock on by their minutes (bath
+     15, toilet 5, eating 20, cooking 35, charging 60, a short ride 5 to
+     20...); running past the end of a part of the day passes it. Things
+     that take a part of the day run to its end, and the card says so:
+     "⏱ 2 hrs 40 min · till 12:00 pm". The sky follows the game time too.
+169. **The phone needs charging and data.** It loses 6% a part of the day;
+     a night's sleep in your room charges it if there is light, or charge
+     it at your desk (an hour) or at a business centre (₦100). Dead: no
+     apps. The portal, chats, the market and the leaderboard need data;
+     each portal visit uses 40 MB, a chat reply 5 MB, background apps 15 MB
+     a part of the day. 1.5 GB comes with the weekly allowance, or buy it
+     any time with the bank's USSD code (works without data). The phone
+     shows time, data and battery at the top.
+170. **Mum and Dad are in your contacts** with a Family chat and a Bank
+     alerts thread. You start with the pocket money shown on the start
+     screen; at once Dad sends the school fees (credit alert pops up from
+     the top, plus his message), and Mum sends upkeep on allowance days.
+     Fee payments send debit alerts.
+171. **School fees can be paid in full** (both instalments at once) in the
+     first semester, or by instalment as before.
+172. **School bag** (🎒 in the top bar): papers (photocopies, passport
+     photos, receipts, library card), books (manuals, handouts), food,
+     medicine and other things, with counts.
+173. **Closed buildings cannot be entered**: offices and workplaces keep
+     weekday hours (morning and afternoon), eateries and shops close at
+     night, lecture halls lock at night, night life keeps its own hours
+     and waits for clearance. The Enter button and the place card say when
+     it opens; you can still travel there.
+174. Map: from a distance buildings show only their emoji; names appear
+     when you zoom in close.
+175. **Journal** has three tabs: Quest (the chapter with Go buttons and
+     rewards), Timetable (the fortnight's day plans, with a green dot for
+     classes attended, red for missed, yellow for on now) and Tasks.
+176. **Info stack:** under the quest chip, up to three chips for the big
+     things coming up (a class now, an exam, a fee deadline, a dying phone
+     or no data); tap one to go there.
+177. Profile: needs at the top; the course list is replaced by a "View
+     courses" tag that opens the school app (only after clearance); you can
+     no longer change your character after choosing it.
+178. Scrollbars are themed (thin, rounded, gold thumb on a dark track)
+     instead of the browser's default.
+179. **Start page:** an interactive onboarding of five cards: open your
+     admission letter, keep a student's needs up (they fall live), stamp
+     the eight clearance offices, tap the phone for Dad's credit alert, and
+     see the four endings; then "Apply for admission". The family
+     background cards show the starting pocket money prominently.
+180. Bots charge their phones at home and buy data when low; the balance
+     table is about the same (BALANCE.md regenerated).

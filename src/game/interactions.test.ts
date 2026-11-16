@@ -61,7 +61,7 @@ describe('the interaction API, by place type', () => {
     d.needs.hunger = 80;
     const after = performInteraction(d, buka.id, 'eat:jollof');
     expect(after.needs.hunger).toBeLessThan(80);
-    expect(after.clock).toEqual(d.clock);
+    expect(after.clock.slot).toBe(d.clock.slot);
   });
 
   it('hostel_room: bed, locker, stove and desk in your own room only', () => {
@@ -146,13 +146,13 @@ describe('travel', () => {
     // A short keke hop costs half the fare and no time.
     const hop = travel(d, same.id, 'keke');
     expect(hop.money).toBe(d.money - near[1]!.cost.money!);
-    expect(hop.clock).toEqual(d.clock);
+    expect(hop.clock.slot).toBe(d.clock.slot);
     const far = PLACES.find((p) => p.sectionId !== d.location.sectionId && p.type === 'library')!;
     const modes = travelOptions(d, far.id).map((o) => o.mode);
     expect(modes).toEqual(['keke', 'cab', 'walk']);
     const byKeke = travel(d, far.id, 'keke');
     expect(byKeke.money).toBeLessThan(d.money);
-    expect(byKeke.clock).toEqual(d.clock);
+    expect(byKeke.clock.slot).toBe(d.clock.slot);
     expect(byKeke.location.placeId).toBe(far.id);
     const onFoot = travel(d, far.id, 'walk');
     expect(onFoot.money).toBe(d.money);

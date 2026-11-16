@@ -10,8 +10,9 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { getPerson } from '../content/people';
 import { getPlace, sectionName } from '../content/places';
 import { naira } from '../game/format';
-import { getInteractions, getOccupants, getQueueLength, isOwnRoom, officesAt, type Interaction, type InteractionKind, type TargetType } from '../game/interactions';
+import { QUICK_MINUTES, actionMinutes, getInteractions, getOccupants, getQueueLength, isOwnRoom, officesAt, type Interaction, type InteractionKind, type TargetType } from '../game/interactions';
 import { crowdLevel, placeEmoji, placeStatus } from '../game/status';
+import { SLOT_START, clockMin, formatDuration, formatTime } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { useSettings } from '../store/settingsStore';
@@ -21,7 +22,7 @@ import { roomLayout, type Target } from '../world/interior/layouts';
 import { SHOP_ITEMS } from '../content/food';
 import { ErrorBoundary } from './ErrorBoundary';
 import { FloatingJoystick, useJoystickHandlers } from './Joystick';
-import { DayPlanView, EffectChips, QuestChip } from './lifeUi';
+import { DayPlanView, EffectChips, InfoStack } from './lifeUi';
 import { usePageVisible } from './usePageVisible';
 import { hasWebGL } from './webgl';
 import { SHEET } from './theme';
@@ -76,6 +77,7 @@ const POSES: Partial<Record<InteractionKind, Pose>> = {
   office: 'chat',
   wait: 'sit',
   treat: 'lie',
+  charge: 'read',
 };
 
 /** What the screen says while you do it. */
@@ -107,58 +109,17 @@ const DOING: Partial<Record<InteractionKind, string>> = {
   office: 'At the desk',
   wait: 'Waiting',
   treat: 'With the doctor',
+  charge: 'Charging your phone',
 };
 
+/** How long the animation runs: longer things look longer. */
 function durationMs(i: Interaction): number {
   if (i.kind === 'sleep') return 5200;
   if (i.kind === 'nap' || i.kind === 'exam' || i.kind === 'test') return 4200;
-  if (i.cost?.slots) return 3400;
-  return i.kind === 'buy' || i.kind === 'levy' ? 1200 : 2200;
+  if (i.cost?.slots) return 3600;
+  return Math.min(3400, 900 + (QUICK_MINUTES[i.kind] ?? 10) * 45);
 }
 
-/** How long each thing takes, in plain words. */
-const DURATION: Partial<Record<InteractionKind, string>> = {
-  attend: '2 hrs',
-  test: '1 hr',
-  exam: '3 hrs',
-  orientation: '3 hrs',
-  read: '2 hrs',
-  assignment: '2 hrs',
-  handout: '2 min',
-  project: '3 hrs',
-  supervisor: '30 min',
-  plead: '30 min',
-  office: '20 min',
-  debit: '30 min',
-  issue: '30 min',
-  allocation: '20 min',
-  library: '15 min',
-  eat: '15 min',
-  buy: '2 min',
-  wash_plates: '3 hrs',
-  errands: '3 hrs',
-  sleep: 'Till morning',
-  nap: '2 hrs',
-  cook: '30 min',
-  levy: '1 min',
-  hustle: '4 hrs',
-  setup: '1 hr',
-  treat: '1 hr',
-  talk: '10 min',
-  favour: '10 min',
-  hangout: '3 hrs',
-  exercise: '1 hr',
-  campaign: '3 hrs',
-  party: '5 hrs',
-  vip: '5 hrs',
-  chill: '3 hrs',
-  movie: '2 hrs',
-  owambe: '4 hrs',
-  bank_loan: '30 min',
-  bath: '10 min',
-  toilet: '5 min',
-  wait: '3 hrs',
-};
 
 const EMOJI: Partial<Record<InteractionKind, string>> = {
   attend: '📘',
@@ -200,6 +161,7 @@ const EMOJI: Partial<Record<InteractionKind, string>> = {
   bank_loan: '🏦',
   bath: '🧼',
   toilet: '🚽',
+  charge: '🔌',
   wait: '⏳',
 };
 
@@ -212,7 +174,15 @@ const QUEUED: InteractionKind[] = ['office', 'debit', 'issue', 'allocation', 'pl
 /** About six minutes a person in the queue. */
 const queueText = (n: number) => (n > 0 ? `⏳ ${n} ahead · ~${Math.max(5, n * 6)} min` : '');
 
-function ActionRow({ i, onDo, queue = 0 }: { i: Interaction; onDo: (i: Interaction) => void; queue?: number }) {
+/** How long it takes, on the game clock: "20 min", or "2 hrs 40 min · till 12:00 pm". */
+function timeLabel(game: GameState, i: Interaction): string {
+  if (i.kind === 'sleep') return `Till ${formatTime(SLOT_START[0]!)}`;
+  const m = actionMinutes(game, i);
+  if (i.cost?.slots) return `${formatDuration(m)} · till ${formatTime(clockMin(game.clock) + m)}`;
+  return formatDuration(m);
+}
+
+function ActionRow({ i, onDo, queue = 0, time }: { i: Interaction; onDo: (i: Interaction) => void; queue?: number; time: string }) {
   const q = QUEUED.includes(i.kind) ? queueText(queue) : '';
   return (
     <li className={`rounded-2xl border border-white/10 bg-white/6 p-2.5 ${i.available ? '' : 'opacity-60'}`}>
@@ -224,7 +194,7 @@ function ActionRow({ i, onDo, queue = 0 }: { i: Interaction; onDo: (i: Interacti
           <p className="leading-tight font-semibold">{i.label.replace(/^Get your clearance form signed: /, 'Clearance: ')}</p>
           {i.detail && KEEP_DETAIL.includes(i.kind) && <p className="text-xs text-muted">{i.detail}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-1">
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold">⏱ {DURATION[i.kind] ?? '10 min'}</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold">⏱ {time}</span>
             {q && <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-200">{q}</span>}
             {i.cost?.money ? <span className="rounded-full bg-sun/20 px-2 py-0.5 text-[11px] font-bold text-sun">{naira(i.cost.money)}</span> : null}
             <EffectChips effects={i.effects} />
@@ -470,7 +440,7 @@ export function InsideScreen({ game }: { game: GameState }) {
         <div className="absolute inset-0 overflow-y-auto bg-[#0E161E] px-3 pt-28 pb-8">
           <ul className="mx-auto flex max-w-md flex-col gap-1.5">
             {interactions.map((i) => (
-              <ActionRow key={i.id} i={i} onDo={start} queue={queue} />
+              <ActionRow key={i.id} i={i} onDo={start} queue={queue} time={timeLabel(game, i)} />
             ))}
           </ul>
         </div>
@@ -497,7 +467,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                 </span>
               </span>
             </div>
-            <QuestChip game={game} />
+            <InfoStack game={game} />
           </div>
           <div className="pointer-events-auto flex shrink-0 flex-col items-end gap-1.5">
             <button onClick={() => setShowAll(true)} className="h-10 rounded-full bg-black/60 px-3 text-sm font-semibold text-white" aria-label="All actions">
@@ -564,7 +534,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                 {focusList.length ? (
                   <ul className="flex flex-col gap-1.5">
                     {focusList.map((i) => (
-                      <ActionRow key={i.id} i={i} onDo={start} queue={queue} />
+                      <ActionRow key={i.id} i={i} onDo={start} queue={queue} time={timeLabel(game, i)} />
                     ))}
                   </ul>
                 ) : (
@@ -593,7 +563,7 @@ export function InsideScreen({ game }: { game: GameState }) {
             {ownRoom && <Locker game={game} />}
             <ul className="mt-2 flex flex-col gap-1.5">
               {interactions.map((i) => (
-                <ActionRow key={i.id} i={i} onDo={start} queue={queue} />
+                <ActionRow key={i.id} i={i} onDo={start} queue={queue} time={timeLabel(game, i)} />
               ))}
             </ul>
           </section>
