@@ -11,7 +11,7 @@ import type { CollegeDef, CourseTuple, ProgrammeDef } from '../game/contentTypes
 export const COLLEGES: CollegeDef[] = [
   { id: 'chs', name: 'College of Health Sciences', short: 'Health Sciences', sectionId: 'ts' },
   { id: 'pharm', name: 'College of Pharmacy', short: 'Pharmacy', sectionId: 'ts' },
-  { id: 'law', name: 'Oba Erediauwa College of Law', short: 'Law', sectionId: 'ps' },
+  { id: 'law', name: 'College of Law', short: 'Law', sectionId: 'ps' },
   { id: 'eng', name: 'College of Engineering', short: 'Engineering', sectionId: 'ps' },
   { id: 'nas', name: 'College of Natural and Applied Sciences', short: 'Natural Sciences', sectionId: 'ps' },
   { id: 'cbms', name: 'College of Business and Management Studies', short: 'Business', sectionId: 'ps' },
@@ -466,7 +466,7 @@ export const PROGRAMMES: ProgrammeDef[] = [
     draft: true,
   },
 
-  // ---------------- Oba Erediauwa College of Law (2nd Campus) ----------------
+  // ---------------- College of Law (2nd Campus) ----------------
   {
     id: 'law',
     name: 'Law',

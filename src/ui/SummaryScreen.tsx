@@ -28,7 +28,7 @@ function card(game: GameState, s: Summary): ShareCardData | null {
         big: `${days} day${days === 1 ? '' : 's'}`,
         bigLabel: 'TO GET CLEARED',
         lines: [`${c.visits} office visits, ${c.wasted} wasted`, `Money spent: ${naira(c.spent)}`, '"Come back tomorrow" survived ✊'],
-        message: `I finished my Uni clearance in ${days} days with ${c.wasted} wasted office visits in Campus Life. Beat that! ${gameUrl()}`,
+        message: `I finished my clearance in ${days} days with ${c.wasted} wasted office visits in Campus Life. Beat that! ${gameUrl()}`,
       };
     }
     case 'semester': {
@@ -57,7 +57,7 @@ function card(game: GameState, s: Summary): ShareCardData | null {
         bigLabel: 'FINAL CGPA',
         badge: classOfDegree(cgpa),
         lines: [`${game.clock.year} sessions · ${amb.name}: ${won ? 'achieved' : 'not quite'}`, `Left school with ${naira(game.money)}`],
-        message: `I graduated from Uni in Campus Life with a ${classOfDegree(cgpa)} (CGPA ${cgpa.toFixed(2)})! ${gameUrl()}`,
+        message: `I graduated in Campus Life with a ${classOfDegree(cgpa)} (CGPA ${cgpa.toFixed(2)})! ${gameUrl()}`,
       };
     }
     default:

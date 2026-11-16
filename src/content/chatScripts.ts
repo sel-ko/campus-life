@@ -9,7 +9,7 @@ const s = (x: S): ChatScript => ({ ...x, id: `chat${++n}`, draft: true });
 
 export const CHAT_SCRIPTS: ChatScript[] = [
   // ---- admission ----
-  s({ trigger: 'admitted', thread: 'freshers', from: 'senior', text: 'Welcome to Uni Freshers 🎉 Read the pinned message before you ask questions. Clearance starts Monday.' }),
+  s({ trigger: 'admitted', thread: 'freshers', from: 'senior', text: 'Welcome to the Freshers group 🎉 Read the pinned message before you ask questions. Clearance starts Monday.' }),
   s({ trigger: 'admitted', thread: 'freshers', from: 'classmate', text: 'Please where is the Admissions Office? I have been walking since morning 😭' }),
   s({ trigger: 'admitted', thread: 'freshers', from: 'senior', text: 'Tip: carry extra passport photographs and photocopies everywhere. Trust me.', replies: [
     { label: 'Thank you, senior!', reply: 'Anytime. We move 💪', effects: { rel: { tega: 2 } } },

@@ -95,7 +95,7 @@ export function scriptMut(d: GameState, r: Rng, trigger: ChatTrigger, vars: Chat
 
 /** New game: the freshers' group and the class group. */
 export function setupChatMut(d: GameState, r: Rng): void {
-  ensureThread(d, 'freshers', 'Uni Freshers Group', 'group', ['me', 'tega', 'dami', 'osaze', 'tobi']);
+  ensureThread(d, 'freshers', 'Freshers Group', 'group', ['me', 'tega', 'dami', 'osaze', 'tobi']);
   ensureThread(d, 'class', classThreadTitle(d), 'group', ['me', ...CAST.filter((p) => ['course_rep', 'efiko', 'coursemate', 'hustle_partner'].includes(p.role)).map((p) => p.id)]);
   for (const script of CHAT_SCRIPTS.filter((s) => s.trigger === 'admitted')) {
     postMut(d, script.thread, sender(d, r, script, {}), script.text, { replies: script.replies?.map((x) => ({ ...x })), draft: true });

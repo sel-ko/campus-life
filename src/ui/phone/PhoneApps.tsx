@@ -5,7 +5,6 @@ import { HUSTLES } from '../../content/hustles';
 import { ALL_PEOPLE, getPerson } from '../../content/people';
 import { PLACES, getPlace, placeName, sectionName } from '../../content/places';
 import { sections } from '../../content/campusMap';
-import { university } from '../../content/university';
 import { attendance, classOfDegree, currentCgpa } from '../../game/academics';
 import { BACKGROUNDS, DAY_NAMES, EXAM_DAYS, SEMESTER_DAYS, WEEKEND_DAYS } from '../../game/config';
 import { naira } from '../../game/format';
@@ -40,7 +39,7 @@ export function SchoolApp({ game }: { game: GameState }) {
   if (!loggedIn) {
     return (
       <div className="flex flex-col gap-3 pt-4">
-        <p className="text-center text-lg font-bold">{university.shortName} Student Portal</p>
+        <p className="text-center text-lg font-bold">Student Portal</p>
         <label className="flex flex-col gap-1 text-sm">
           Matric number
           <input readOnly value={game.player.matric} className="min-h-11 rounded-lg border border-white/20 bg-black/30 px-3" />
@@ -245,7 +244,7 @@ export function ChatApp({ game }: { game: GameState }) {
     end.current?.scrollIntoView({ block: 'end' });
   }, [open, count, markRead]);
 
-  const name = (id: string) => (id === 'system' ? 'Uni' : (getPerson(id)?.name.split(' ')[0] ?? id));
+  const name = (id: string) => (id === 'system' ? 'School' : (getPerson(id)?.name.split(' ')[0] ?? id));
 
   if (!thread) {
     return (
@@ -520,7 +519,7 @@ export function SettingsApp({ game }: { game: GameState }) {
       <section className="flex flex-col gap-1 text-sm text-muted">
         <h3 className="text-xs font-semibold tracking-wide uppercase">About</h3>
         <p>{GAME_NAME} · version 0.3</p>
-        <p>Unofficial fan-made game, not affiliated with {university.shortName}.</p>
+        <p>Unofficial fan-made game. Not affiliated with any real university.</p>
       </section>
     </div>
   );

@@ -51,7 +51,7 @@ export const BUILDING_ROLES: Record<string, BuildingRole> = {
   'library-1': { name: 'University Library', type: 'library', mainLibrary: true, hustles: ['tutoring'] },
   'lecture-2': { name: 'Main Auditorium', type: 'lecture_hall', gst: true },
   'lecture-gujw05': { name: 'Arts and Social Sciences Theatre', type: 'lecture_hall', colleges: ['cass'] },
-  'classroom-5': { name: 'Oba Erediauwa Law Block', type: 'lecture_hall', colleges: ['law'] },
+  'classroom-5': { name: 'Law Block', type: 'lecture_hall', colleges: ['law'] },
   'classroom-6': { name: 'Engineering Block A', type: 'lecture_hall', colleges: ['eng'] },
   'classroom-7': { name: 'Engineering Block B', type: 'lecture_hall', colleges: ['eng'] },
   'classroom-8': { name: 'Business School Block', type: 'lecture_hall', colleges: ['cbms', 'cass'] },

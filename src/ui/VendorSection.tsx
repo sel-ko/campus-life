@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { placeName, type PlaceDef } from '../content/places';
-import { university } from '../content/university';
 import { naira } from '../game/format';
 import { track } from '../online/analytics';
 import { fetchVendors, onlineConfigured, type Vendor } from '../online/supabase';
@@ -15,7 +14,7 @@ function orderMessage(vendor: Vendor, homeId: string): string {
 }
 
 function advertiseMessage(location: PlaceDef): string {
-  return `Hello! I'd like to advertise my business at ${location.name} in ${GAME_NAME} (${university.shortName}). How much is a stall?`;
+  return `Hello! I'd like to advertise my business at ${location.name} in ${GAME_NAME}. How much is a stall?`;
 }
 
 export function VendorCard({ vendor, homeId }: { vendor: Vendor; homeId: string }) {

@@ -110,7 +110,9 @@ export function ProfileSheet({ game }: { game: GameState }) {
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-xl font-bold">{p.name}</h2>
-            <p className="truncate text-sm text-muted">{p.matric}</p>
+            <p className="truncate text-sm text-muted">
+              {p.matric} · entrance test taken {p.testAttempts ?? 1}×
+            </p>
             <p className="truncate text-sm">
               {prog.name} · {a.level}00 level{a.spillover ? ' (spill-over)' : a.repeating ? ' (repeating)' : ''}
             </p>

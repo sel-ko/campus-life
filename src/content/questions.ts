@@ -17,7 +17,7 @@ export const QUESTIONS: Question[] = [
   q('general', 'What colours are on the Nigerian flag?', ['Green and white', 'Green and yellow', 'Red and white', 'Green, white and red'], 0),
   q('general', "What is Nigeria's currency?", ['Cedi', 'Naira', 'Rand', 'Shilling'], 1),
   q('general', 'What is the capital of Edo State?', ['Asaba', 'Auchi', 'Benin City', 'Warri'], 2),
-  q('general', 'The university town is in which state?', ['Delta', 'Ondo', 'Edo', 'Kogi'], 2),
+  q('general', 'How many local government areas does Nigeria have?', ['36', '574', '774', '1,000'], 2),
   q('general', 'What is the title of the traditional ruler of the Benin Kingdom?', ['Emir', 'Obi', 'Oba', 'Ooni'], 2),
   q('general', 'Where was crude oil first found in commercial quantity in Nigeria, in 1956?', ['Oloibiri', 'Bonny', 'Escravos', 'Port Harcourt'], 0),
   q('general', "What is Nigeria's national motto?", ['One Nigeria, One Destiny', 'Unity and Faith, Peace and Progress', 'Peace, Unity and Freedom', 'Faith and Hope'], 1),

@@ -88,7 +88,7 @@ function HomeScreen({ game, onPickPlace }: { game: GameState; onPickPlace: (id: 
             <div>
               <p className="text-7xl leading-none font-extrabold tracking-tight">{now.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit' })}</p>
               <p className="mt-2 text-sm text-white/85">
-                {FULL_DAY_NAMES[(now.getDay() + 6) % 7]} · in game: {dayName(game.clock.day)}, day {game.clock.day} of 14 · {university.shortName}
+                {FULL_DAY_NAMES[(now.getDay() + 6) % 7]} · in game: {dayName(game.clock.day)}, day {game.clock.day} of 14
               </p>
             </div>
             <div className="flex gap-2">

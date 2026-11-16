@@ -53,7 +53,7 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
 
   ctx.fillStyle = accent;
   ctx.font = `800 40px ${FONT}`;
-  ctx.fillText(`${university.shortName} · ${GAME_NAME.toUpperCase()}`, cx, 110);
+  ctx.fillText(GAME_NAME.toUpperCase(), cx, 110);
   ctx.fillStyle = '#B4C2CC';
   fit(ctx, data.kicker, 700, 38, 940);
   ctx.fillText(data.kicker, cx, 170);
@@ -95,5 +95,5 @@ export function drawShareCard(canvas: HTMLCanvasElement, data: ShareCardData): v
   ctx.fillText(url, cx, 1238);
   ctx.fillStyle = '#7F8F9A';
   ctx.font = `500 24px ${FONT}`;
-  ctx.fillText(`Unofficial fan-made game, not affiliated with ${university.shortName}`, cx, 1310);
+  ctx.fillText('Unofficial fan-made game. Not affiliated with any real university.', cx, 1310);
 }

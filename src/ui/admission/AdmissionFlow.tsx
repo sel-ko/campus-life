@@ -4,13 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { AMBITIONS } from '../../content/ambitions';
 import { COLLEGES, PROGRAMMES, getCollege, getProgramme } from '../../content/courses';
 import { sectionName } from '../../content/places';
-import { university } from '../../content/university';
 import { admissionLetter, decideAdmission, drawTest, matricNumber, scoreTest } from '../../game/admission';
 import { BACKGROUNDS, FEES, FRESHER_LECTURES_START } from '../../game/config';
 import { naira } from '../../game/format';
 import type { AmbitionId, BackgroundId } from '../../game/types';
 import { onlineConfigured } from '../../online/supabase';
 import { useGameStore } from '../../store/gameStore';
+import { useSettings } from '../../store/settingsStore';
 import type { PresetId } from '../../world/characters/look';
 import { CharacterChooser } from '../CharacterChooser';
 import { BTN_GHOST, BTN_PRIMARY, CARD } from '../theme';
@@ -28,9 +28,13 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
   const [background, setBackground] = useState<BackgroundId>('average');
   const [choiceId, setChoiceId] = useState('computer_science');
   const [seed] = useState(() => (Math.random() * 2 ** 32) >>> 0 || 1);
-  const questions = useMemo(() => drawTest(seed), [seed]);
+  // Each retake draws a fresh set of questions.
+  const [attempt, setAttempt] = useState(1);
+  const questions = useMemo(() => drawTest(seed + attempt * 104729), [seed, attempt]);
   const [answers, setAnswers] = useState<Array<number | null>>(() => questions.map(() => null));
   const [qIndex, setQIndex] = useState(0);
+  const testsTaken = useSettings((s) => s.testsTaken);
+  const countTest = useSettings((s) => s.countTest);
   const [ambition, setAmbition] = useState<AmbitionId>('first_class');
   const year = new Date().getFullYear();
 
@@ -53,6 +57,7 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
       choiceId,
       programmeId: result.programmeId,
       admissionScore: score,
+      testAttempts: attempt,
       ambition,
       seed,
       startYear: year,
@@ -62,7 +67,7 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
   const shell = (children: React.ReactNode) => (
     <main className="mx-auto flex min-h-full max-w-md flex-col gap-5 px-4 py-6">
       {children}
-      <p className="mt-auto pt-4 text-center text-xs text-muted">Unofficial fan-made game, not affiliated with {university.shortName}.</p>
+      <p className="mt-auto pt-4 text-center text-xs text-muted">Unofficial fan-made game. Not affiliated with any real university.</p>
     </main>
   );
 
@@ -79,7 +84,7 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
           </div>
         )}
         <header className="flex flex-col gap-2 pt-6">
-          <p className="text-sm font-semibold tracking-wide text-sun">{university.fullName}</p>
+          <p className="text-sm font-semibold tracking-wide text-sun">Admission to university</p>
           <h1 className="text-5xl font-extrabold">Campus Life</h1>
           <p className="text-muted">
             From admission to graduation: clearance queues, the portal, carryovers, roommates, hustles and the dream of a First Class.
@@ -191,7 +196,7 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
     return shell(
       <>
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Entrance test</h2>
+          <h2 className="text-xl font-bold">Entrance test {attempt > 1 && <span className="text-sm font-semibold text-sun">· attempt {attempt}</span>}</h2>
           <span className="text-sm text-muted">
             {qIndex + 1} of {questions.length}
           </span>
@@ -213,7 +218,11 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
         </div>
         <button
           disabled={chosen == null}
-          onClick={() => (qIndex < questions.length - 1 ? setQIndex(qIndex + 1) : setStep('letter'))}
+          onClick={() => {
+            if (qIndex < questions.length - 1) return setQIndex(qIndex + 1);
+            countTest();
+            setStep('letter');
+          }}
           className={BTN_PRIMARY}
         >
           {qIndex < questions.length - 1 ? 'Next question' : 'Submit the test'}
@@ -226,7 +235,7 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
     return shell(
       <>
         <article className="rounded-2xl bg-[#FBF7EC] p-5 font-serif text-[#1E2A33] shadow-xl">
-          <p className="text-center text-xs font-bold tracking-widest uppercase">{university.fullName}</p>
+          <p className="text-center text-xs font-bold tracking-widest uppercase">Letter of admission</p>
           <p className="text-center text-xs">Office of the Registrar · Admissions</p>
           <hr className="my-3 border-[#1E2A33]/20" />
           <p className="text-sm">Matric No: {letter.matric}</p>
@@ -251,10 +260,26 @@ export function AdmissionFlow({ onLeaderboard }: { onLeaderboard: () => void }) 
           <p className="mt-4 text-sm">Congratulations,</p>
           <p className="text-sm italic">The Registrar (fictional)</p>
         </article>
-        <p className="text-center text-sm text-muted">You have been added to the Uni Freshers group chat.</p>
+        <p className="text-center text-sm text-muted">
+          Entrance test attempts: <b className="text-ink">{attempt}</b> in this application · <b className="text-ink">{testsTaken}</b> in total on this phone
+        </p>
+        {!letter.admittedToChoice && (
+          <button
+            onClick={() => {
+              setAttempt(attempt + 1);
+              setAnswers(Array.from({ length: questions.length }, () => null));
+              setQIndex(0);
+              setStep('test');
+            }}
+            className={BTN_GHOST}
+          >
+            Retake the test for {letter.firstChoice}
+          </button>
+        )}
         <button onClick={() => setStep('ambition')} className={BTN_PRIMARY}>
-          Accept the offer
+          {letter.admittedToChoice ? 'Accept the offer' : `Accept ${letter.programme} instead`}
         </button>
+        <p className="text-center text-sm text-muted">Accepting adds you to the Freshers group chat.</p>
       </>,
     );
   }

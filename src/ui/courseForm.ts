@@ -1,6 +1,5 @@
 // Draws the semester's course form as a PNG for "Download course form".
 import { getCollege, getProgramme } from '../content/courses';
-import { university } from '../content/university';
 import { totalUnits } from '../game/curriculum';
 import type { GameState } from '../game/types';
 
@@ -18,7 +17,7 @@ export function drawCourseForm(game: GameState): HTMLCanvasElement {
   ctx.fillStyle = '#111';
   ctx.textAlign = 'center';
   ctx.font = '700 40px serif';
-  ctx.fillText(university.fullName.toUpperCase(), W / 2, 90);
+  ctx.fillText('COURSE REGISTRATION', W / 2, 90);
   ctx.font = '600 30px serif';
   ctx.fillText(`COURSE REGISTRATION FORM · ${game.academics.level}00 LEVEL · SEMESTER ${game.clock.semester}`, W / 2, 140);
   ctx.font = '400 20px sans-serif';

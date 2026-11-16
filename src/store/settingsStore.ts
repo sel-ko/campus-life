@@ -9,6 +9,9 @@ export type Quality = 'high' | 'battery';
 interface SettingsStore {
   quality: Quality;
   setQuality: (q: Quality) => void;
+  /** Entrance tests taken on this device, across every game. */
+  testsTaken: number;
+  countTest: () => void;
 }
 
 export const useSettings = create<SettingsStore>()(
@@ -16,6 +19,8 @@ export const useSettings = create<SettingsStore>()(
     (set) => ({
       quality: 'high',
       setQuality: (quality) => set({ quality }),
+      testsTaken: 0,
+      countTest: () => set((s) => ({ testsTaken: s.testsTaken + 1 })),
     }),
     { name: 'campus-life-settings', version: 1 },
   ),

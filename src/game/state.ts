@@ -15,6 +15,8 @@ export interface NewGameSetup {
   choiceId: string;
   programmeId: string;
   admissionScore: number;
+  /** Entrance test attempts in this admission (1 if not given). */
+  testAttempts?: number;
   ambition: AmbitionId;
   seed: number;
   /** Real year the game started, for the matric number. */
@@ -48,6 +50,7 @@ export function blankState(s: NewGameSetup): GameState {
       programmeId: s.programmeId,
       firstChoiceId: s.choiceId,
       admissionScore: s.admissionScore,
+      testAttempts: s.testAttempts ?? 1,
       matric: matricNumber(s.programmeId, s.seed, s.startYear),
       ambition: s.ambition,
     },

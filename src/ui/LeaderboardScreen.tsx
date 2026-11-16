@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { university } from '../content/university';
 import { fetchLeaderboard, type LeaderboardRow } from '../online/supabase';
 
 type Tab = 'department' | 'school';
@@ -58,7 +57,7 @@ export function LeaderboardScreen({
             departmentId ? '' : 'col-span-2'
           }`}
         >
-          All of {university.shortName}
+          Everyone
         </button>
       </div>
 

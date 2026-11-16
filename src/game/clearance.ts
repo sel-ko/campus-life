@@ -196,7 +196,7 @@ export function checkClearanceDone(d: GameState): void {
   c.endDay = d.clock.dayCount;
   c.spent = d.finance.spent - c.spent;
   d.summaries.push({ kind: 'clearance' });
-  log(d, `Clearance done in ${clearanceDays(d)} days! You are now officially a student. Welcome to Uni.`);
+  log(d, `Clearance done in ${clearanceDays(d)} days! You are now officially a student. Welcome to the university.`);
 }
 
 export function clearanceDays(d: GameState): number {

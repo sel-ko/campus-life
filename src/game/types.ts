@@ -458,6 +458,8 @@ export interface PlayerProfile {
   /** The course they applied for (may differ if they missed the cut-off). */
   firstChoiceId: string;
   admissionScore: number;
+  /** How many times the entrance test was taken before accepting the offer. */
+  testAttempts: number;
   matric: string;
   ambition: AmbitionId;
 }
