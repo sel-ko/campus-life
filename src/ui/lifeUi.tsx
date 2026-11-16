@@ -130,6 +130,7 @@ export function QuestChip({ game }: { game: GameState }) {
   const done = ch.steps.filter((s) => s.done).length;
   if (!next) return null;
   const go = () => {
+    setOpen(false);
     if (next.portal) openPhone('school');
     else if (next.placeId) {
       if (insideId === next.placeId) return;

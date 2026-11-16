@@ -2,13 +2,13 @@
 // must do, in order. The first chapter is the fresher's first days (freshen
 // up, eat, then the long clearance walk); later chapters follow each semester
 // to graduation. Pure: worked out from the state every time, nothing saved.
-import { mainBuka, mainLibrary } from '../content/places';
-import { clearanceSteps, officePlaceId, signedCount } from './clearance';
-import { OFFICE_ORDER } from '../content/offices';
+import { mainBuka, mainLibrary, placeName } from '../content/places';
+import { blockedBy, clearanceSteps, officeName, officePlaceId, signedCount } from './clearance';
+import { DOC_NAMES, OFFICES, OFFICE_ORDER } from '../content/offices';
 import { canRegister, feesDueNow, registrationDeadline } from './money';
 import { addMoney } from './money';
 import { log } from './draft';
-import type { GameState } from './types';
+import type { DocId, GameState } from './types';
 
 export interface StoryStep {
   id: string;
@@ -33,13 +33,13 @@ export interface Chapter {
 }
 
 const DOC_SHOP = 'business-9';
+const PLURAL: Record<DocId, string> = { photocopy: 'photocopies of your credentials', passport: 'passport photographs', receipt: 'receipts' };
 
 function fresherChapter(d: GameState): Chapter {
   const c = d.clearance;
   const clr = clearanceSteps(d);
   const step = (id: string) => clr.find((s) => s.id === id)!;
   const signed = signedCount(d);
-  const nextOffice = OFFICE_ORDER.find((o) => !c.signed[o]);
   const haveDocs = (d.inventory.photocopy ?? 0) + (d.inventory.passport ?? 0) > 0 || signed > 0;
   return {
     id: 'fresher',
@@ -51,14 +51,21 @@ function fresherChapter(d: GameState): Chapter {
       { id: 'eat', reward: 300, label: 'Eat something', done: d.stats.meals > 0 || signed > 0, placeId: mainBuka().id, hint: 'The buka, or cook in your room' },
       { id: 'acceptance', label: 'Pay the acceptance fee', done: step('acceptance').done, portal: true, hint: 'Phone → School app → Fees' },
       { id: 'docs', label: 'Buy photocopies, passports and a receipt', done: haveDocs, placeId: DOC_SHOP, hint: 'Every office wants paper' },
-      {
-        id: 'signatures',
-        reward: 2000,
-        label: `Collect clearance signatures (${signed}/${OFFICE_ORDER.length})`,
-        done: signed === OFFICE_ORDER.length,
-        placeId: nextOffice ? officePlaceId(d, nextOffice) : undefined,
-        hint: 'Offices open mornings and afternoons on weekdays',
-      },
+      // The clearance route: one office at a time, in order, each with what to bring.
+      ...OFFICE_ORDER.map((o, i): StoryStep => {
+        const office = OFFICES[o];
+        const bring = (Object.entries(office.docs) as Array<[DocId, number]>).map(([doc, n]) => (n > 1 ? `${n} ${PLURAL[doc]}` : `1 ${DOC_NAMES[doc]}`)).join(', ');
+        const blocked = blockedBy(d, o);
+        const placeId = officePlaceId(d, o);
+        return {
+          id: `office_${o}`,
+          reward: i === OFFICE_ORDER.length - 1 ? 1500 : 200,
+          label: `${i === 0 ? 'Start clearance at the' : 'Signature:'} ${officeName(o)} (${placeName(placeId)})`,
+          done: c.signed[o],
+          placeId,
+          hint: [blocked, bring && `Bring ${bring}`, office.fee ? `Fee ${office.fee.toLocaleString('en-NG')} naira` : '', 'Open weekday mornings and afternoons'].filter(Boolean).join(' · '),
+        };
+      }),
       { id: 'fees', label: 'Pay school fees, dues and the hostel fee', done: step('school1').done && step('dues').done && step('hostel').done, portal: true },
       { id: 'allocation', label: 'Collect your hostel allocation', done: c.allocation, placeId: step('allocation').placeId },
       { id: 'library', reward: 500, label: 'Register at the library', done: c.library, placeId: mainLibrary().id, hint: 'Bring one passport photograph' },

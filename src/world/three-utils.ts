@@ -235,8 +235,9 @@ export function mergeWithVertexColours(parts: Parts): { smooth: THREE.BufferGeom
 const labelCache = new Map<string, { texture: THREE.CanvasTexture; aspect: number }>();
 
 /** A rounded name tag drawn on a canvas, used as a sprite texture. */
-export function labelTexture(text: string): { texture: THREE.CanvasTexture; aspect: number } {
-  let entry = labelCache.get(text);
+export function labelTexture(text: string, accent = false): { texture: THREE.CanvasTexture; aspect: number } {
+  const key = accent ? `accent:${text}` : text;
+  let entry = labelCache.get(key);
   if (entry) return entry;
   const scale = 2;
   const font = `700 ${28 * scale}px system-ui, "Segoe UI", Roboto, sans-serif`;
@@ -249,7 +250,7 @@ export function labelTexture(text: string): { texture: THREE.CanvasTexture; aspe
   canvas.width = w;
   canvas.height = h;
   ctx.font = font;
-  ctx.fillStyle = 'rgba(20, 32, 43, 0.88)';
+  ctx.fillStyle = accent ? '#F5B83D' : 'rgba(20, 32, 43, 0.88)';
   const r = h / 2;
   ctx.beginPath();
   ctx.moveTo(r, 0);
@@ -258,7 +259,7 @@ export function labelTexture(text: string): { texture: THREE.CanvasTexture; aspe
   ctx.arcTo(0, h, 0, 0, r);
   ctx.arcTo(0, 0, w, 0, r);
   ctx.fill();
-  ctx.fillStyle = '#F2EEE3';
+  ctx.fillStyle = accent ? '#14202B' : '#F2EEE3';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, w / 2, h / 2 + 2 * scale);
@@ -266,7 +267,7 @@ export function labelTexture(text: string): { texture: THREE.CanvasTexture; aspe
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 1;
   entry = { texture, aspect: w / h };
-  labelCache.set(text, entry);
+  labelCache.set(key, entry);
   return entry;
 }
 

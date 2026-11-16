@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { ErrorBoundary } from './ErrorBoundary';
+import { BottomBar } from './BottomBar';
 import { EventCard } from './EventCard';
 import { Hud } from './Hud';
 import { InsideScreen } from './InsideScreen';
@@ -10,6 +11,7 @@ import { FloatingJoystick, useJoystickHandlers } from './Joystick';
 import { Phone } from './phone/Phone';
 import { PlacesApp } from './phone/PhoneApps';
 import { ProfileSheet } from './ProfileSheet';
+import { Tour } from './Tour';
 import { TravelSheet } from './TravelSheet';
 import { usePageVisible } from './usePageVisible';
 import { hasWebGL } from './webgl';
@@ -78,10 +80,12 @@ export function PlayScreen({ game }: { game: GameState }) {
       <FloatingJoystick />
       <TravelSheet game={game} />
       <InsideScreen game={game} />
+      <BottomBar game={game} showMap={showMap} />
       <JournalSheet game={game} />
       <ProfileSheet game={game} />
       <Phone game={game} onPickPlace={pickPlace} />
       <EventCard game={game} />
+      {game.phase === 'playing' && !game.pendingEvent && <Tour />}
     </div>
   );
 }

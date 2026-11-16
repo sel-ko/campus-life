@@ -789,20 +789,22 @@ export function travelOptions(d: GameState, toPlaceId: string): TravelOption[] {
   const walkSlots = far ? TOWN_TRIP.walkSlots : 1;
   const walk: TravelOption = across
     ? { mode: 'walk', label: 'Walk there', detail: far ? 'Free, but the long road takes two slots' : 'Free, but it takes the whole slot', cost: { slots: walkSlots }, available: true }
-    : { mode: 'walk', label: 'Walk there', detail: 'Free and quick: same area', cost: {}, available: true };
-  if (!across) return [walk];
-  const keke = fare(d, 'keke', far);
-  const cab = fare(d, 'cab', far);
+    : { mode: 'walk', label: 'Walk there', detail: 'Free: it is close by', cost: {}, available: true };
+  // Short hops inside one part of campus cost half the fare.
+  const hop = across ? 1 : 0.5;
+  const keke = Math.round((fare(d, 'keke', far) * hop) / 50) * 50;
+  const cab = Math.round((fare(d, 'cab', far) * hop) / 50) * 50;
   const options: TravelOption[] = [];
   if (d.inventory.car) {
     options.push({ mode: 'drive', label: 'Drive your car', detail: `${naira(DRIVE_FUEL)} of fuel`, cost: { money: DRIVE_FUEL }, ...(d.money < DRIVE_FUEL ? no(`You need ${naira(DRIVE_FUEL)} for fuel`) : yes) });
   }
-  options.push(
-    { mode: 'keke', label: 'Take a keke', detail: `${naira(keke)} · from the keke park`, cost: { money: keke }, ...(d.clock.slot === 3 ? no('No kekes at night') : d.money < keke ? no(`You need ${naira(keke)}`) : yes) },
-    { mode: 'cab', label: 'Call a cab', detail: `${naira(cab)} · door to door${d.clock.slot === 3 ? ' (night rides run)' : ''}`, cost: { money: cab }, ...(d.money < cab ? no(`You need ${naira(cab)}`) : yes) },
-    walk,
-  );
-  return options;
+  const ride = across ? '' : ' · a short hop';
+  const rides: TravelOption[] = [
+    { mode: 'keke', label: 'Take a keke', detail: `${naira(keke)}${ride || ' · from the keke park'}`, cost: { money: keke }, ...(d.clock.slot === 3 ? no('No kekes at night') : d.money < keke ? no(`You need ${naira(keke)}`) : yes) },
+    { mode: 'cab', label: 'Call a cab', detail: `${naira(cab)} · door to door${ride}${d.clock.slot === 3 ? ' (night rides run)' : ''}`, cost: { money: cab }, ...(d.money < cab ? no(`You need ${naira(cab)}`) : yes) },
+  ];
+  // Close by, walking is the sensible first choice; far away, riding is.
+  return across ? [...options, ...rides, walk] : [walk, ...options, ...rides];
 }
 
 /** Moves the player on a draft. Returns false if that way is not possible. */
@@ -813,14 +815,14 @@ export function travelMut(d: GameState, r: import('./rng').Rng, toPlaceId: strin
   if (!opt || !opt.available) return false;
   const across = to.sectionId !== d.location.sectionId;
   d.location = { placeId: toPlaceId, sectionId: to.sectionId };
-  if (!across) return true;
+  if (!across && mode === 'walk') return true;
   if (mode === 'keke' || mode === 'cab' || mode === 'drive') {
     spend(d, opt.cost.money ?? 0);
     if (mode === 'keke') d.stats.kekeRides += 1;
     else if (mode === 'cab') d.stats.cabRides += 1;
     d.flags.arrived = stamp(d.clock);
     log(d, `${mode === 'keke' ? 'Keke' : mode === 'cab' ? 'Cab' : 'You drove'} to ${to.name}: ${naira(opt.cost.money ?? 0)}.`);
-    maybeEventMut(d, r, 'busstop', toPlaceId);
+    if (across) maybeEventMut(d, r, 'busstop', toPlaceId);
     return true;
   }
   d.stats.longWalks += 1;

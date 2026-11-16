@@ -4,21 +4,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { getPlace } from '../content/places';
 import { campusEvent } from '../game/campus';
-import { totalUnread } from '../game/chat';
 import { naira } from '../game/format';
 import { journal } from '../game/journal';
 import { healthLabel } from '../game/needs';
 import { dayName, slotName } from '../game/time';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
-import { presetLook } from '../world/characters/look';
 import { useNow } from './clock';
-import { DoorIcon, MapIcon, MoonIcon, SunIcon, SunriseIcon, SunsetIcon, UserIcon } from './icons';
-import { Portrait } from './Portrait';
+import { DoorIcon, MoonIcon, SunIcon, SunriseIcon, SunsetIcon } from './icons';
 import { NeedsPanel, QuestChip } from './lifeUi';
 import { PILL } from './theme';
 
-const ACTIVE = 'bg-[#3A2F5C] text-white';
 const SLOT_ICONS = [SunriseIcon, SunIcon, SunsetIcon, MoonIcon];
 
 function Toast({ game }: { game: GameState }) {
@@ -42,29 +38,13 @@ function Toast({ game }: { game: GameState }) {
   );
 }
 
-function HomeIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />
-    </svg>
-  );
-}
 
-function MiniPhone() {
-  return (
-    <span className="block h-8 w-5 rotate-[-12deg] rounded-[6px] border-2 border-[#0B0C10] bg-gradient-to-b from-[#7C5CFF] to-[#2C1F66] shadow-md">
-      <span className="mx-auto mt-0.5 block h-0.5 w-2 rounded-full bg-black/60" />
-    </span>
-  );
-}
 
 export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
   const [statsOpen, setStatsOpen] = useState(false);
   const now = useNow();
   const cameraMode = useGameStore((s) => s.cameraMode);
-  const setCameraMode = useGameStore((s) => s.setCameraMode);
   const openPhone = useGameStore((s) => s.openPhone);
-  const setProfileOpen = useGameStore((s) => s.setProfileOpen);
   const setJournalOpen = useGameStore((s) => s.setJournalOpen);
   const nearbyId = useGameStore((s) => s.nearbyPlaceId);
   const inside = useGameStore((s) => s.insidePlaceId !== null);
@@ -73,16 +53,13 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
   const wait = useGameStore((s) => s.wait);
   const nearby = nearbyId ? getPlace(nearbyId) : undefined;
   const SlotIcon = SLOT_ICONS[game.clock.slot]!;
-  const unread = totalUnread(game);
   const tasks = journal(game);
   const urgent = tasks.filter((t) => t.urgent).length;
-  const n = game.needs;
-  const warn = n.energy <= 20 || n.hunger >= 80 || n.stress >= 80 || n.hygiene <= 20 || n.bladder >= 80 || game.ill;
   const week = campusEvent(game);
   const follow = showMap && cameraMode === 'follow';
 
   return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="pointer-events-none absolute inset-0 mx-auto flex w-full max-w-[440px] flex-col justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <button
@@ -108,8 +85,9 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
           </button>
         </div>
 
+        {statsOpen && <div className="pointer-events-auto fixed inset-0" onClick={() => setStatsOpen(false)} aria-hidden="true" />}
         {statsOpen && (
-          <div className={`mx-auto flex w-full max-w-sm flex-col gap-2 rounded-3xl p-4 ${PILL}`}>
+          <div className={`relative mx-auto flex w-full max-w-sm flex-col gap-2 rounded-3xl p-4 ${PILL}`}>
             <p className="text-sm font-semibold">
               {game.academics.level}00 level · semester {game.clock.semester} · day {game.clock.day} of 14 · {slotName(game.clock)}
             </p>
@@ -124,7 +102,12 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
                 <b>This week on campus: {week.title}.</b> {week.text}
               </p>
             )}
-            <button onClick={wait} className="min-h-11 rounded-xl border border-white/20 text-sm font-semibold">
+            <button
+              onClick={() => {
+                setStatsOpen(false);
+                wait();
+              }}
+              className="min-h-11 rounded-xl border border-white/20 text-sm font-semibold">
               Let the {slotName(game.clock).toLowerCase()} pass
             </button>
           </div>
@@ -139,51 +122,8 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
             <DoorIcon size={20} /> Enter {nearby.name}
           </button>
         )}
-        <div className="flex w-full items-center justify-between gap-2">
-          <button
-            onClick={() => setProfileOpen(true)}
-            aria-label={`${game.player.name}: your profile. Energy ${Math.round(n.energy)}`}
-            className="pointer-events-auto relative grid size-[60px] shrink-0 place-items-center rounded-full shadow-lg shadow-black/30"
-            style={{ background: `conic-gradient(${n.energy > 30 ? '#34D399' : '#F87171'} ${n.energy * 3.6}deg, #3A3F4D 0)` }}
-          >
-            <span className="grid size-[50px] place-items-center overflow-hidden rounded-full bg-[#2B4558]">
-              <Portrait look={presetLook(game.player.characterId)} size={46} />
-            </span>
-            {warn && <span className="absolute top-0 right-0 size-3.5 rounded-full border-2 border-night bg-red-400" />}
-          </button>
-
-          <nav className={`flex h-14 min-w-0 flex-1 items-center justify-between gap-1 rounded-full p-1.5 ${PILL}`} aria-label="Map controls">
-            <button onClick={() => tapPlace(game.room.placeId)} aria-label="Go to your room" className="grid h-11 flex-1 place-items-center rounded-full text-muted">
-              <HomeIcon />
-            </button>
-            {showMap &&
-              (
-                [
-                  ['follow', 'Me', UserIcon],
-                  ['overview', 'Map', MapIcon],
-                ] as const
-              ).map(([mode, label, Icon]) => {
-                const active = cameraMode === mode;
-                return (
-                  <button
-                    key={mode}
-                    onClick={() => setCameraMode(mode)}
-                    aria-pressed={active}
-                    aria-label={mode === 'follow' ? 'Close-up on me' : 'Whole campus map'}
-                    className={`flex h-11 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-semibold ${active ? `${ACTIVE} flex-[1.6]` : 'flex-1 text-muted'}`}
-                  >
-                    <Icon size={20} />
-                    {active && <span>{label}</span>}
-                  </button>
-                );
-              })}
-          </nav>
-
-          <button onClick={() => openPhone('home')} aria-label={`Phone${unread ? `, ${unread} unread messages` : ''}`} className={`relative grid size-[60px] shrink-0 place-items-center rounded-full ${PILL}`}>
-            <MiniPhone />
-            {unread > 0 && <span className="absolute -top-0.5 -right-0.5 grid min-w-6 place-items-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">{unread > 99 ? '99+' : unread}</span>}
-          </button>
-        </div>
+        {/* The bottom bar lives in BottomBar.tsx so it shows in rooms too. */}
+        <div className="h-[60px]" />
       </div>
     </div>
   );

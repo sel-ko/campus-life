@@ -614,3 +614,35 @@ the code mentioned.
      panels for ideas and copied no names, art or text.
 148. Simulator bots now use toilets and bathe; the balance table is about
      the same as before (BALANCE.md regenerated).
+
+## Getting around, the map, and a first-time tour
+
+149. **Every building offers keke, cab and walk.** Close by, walking is
+     free and quick and listed first; a keke or cab hop inside one part of
+     campus costs half the usual fare and no time. Across campus it is as
+     before (fares, or a slot on foot; two to town).
+150. **Clearance is a route.** The fresher chapter lists the eight offices
+     in order, starting with "Start clearance at the Admissions Office
+     (building name)", each with what to bring, any fee, and what blocks it.
+     Each signature pays ₦200 from home, the last one ₦1,500.
+151. **Map pins:** named places show an emoji with their name; other places
+     you can go into show an emoji pin when you zoom in; your room is marked
+     "🏠 Your room"; a bouncing gold pin sits over the place your story
+     wants you next.
+152. **Tapping a building opens a place card:** emoji, name, where it is,
+     what is happening there now, what you can do inside, and three big
+     buttons: Keke, Cab, Walk (with prices). Picking one closes the card.
+153. **Zooming out from your character turns the view into the map**
+     (past a set distance): the joystick goes away and dragging pans, from
+     where you were. "Me" brings the close-up back.
+154. **The bottom bar is always on screen**, on the map and inside rooms,
+     and is always phone-sized (440 px wide at most, centred on big
+     screens); the top bar matches. Inside rooms the action cards sit above
+     it. Home takes you to your room; Me and Map leave the room.
+155. **Panels close themselves after a choice:** the place card after you
+     pick a ride, the action card after an action (it stays shut until you
+     walk to something else), the quest list after "Go", the needs panel
+     and stats panel when you tap outside them or let time pass.
+156. **First-time tour:** seven cards (welcome, walking, doing things, your
+     story, your needs, the bottom bar, getting around), shown once on this
+     device; Settings on the phone has "Show the tour again".

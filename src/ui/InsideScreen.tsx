@@ -28,6 +28,7 @@ import { DayPlanView, EffectChips, NeedsPanel, NeedsStrip, QuestChip, StatusPill
 import { usePageVisible } from './usePageVisible';
 import { hasWebGL } from './webgl';
 import { SHEET } from './theme';
+import { BOTTOM_BAR_SPACE } from './BottomBar';
 
 const InteriorScene = lazy(() => import('../world/interior/InteriorScene'));
 
@@ -205,6 +206,8 @@ export function InsideScreen({ game }: { game: GameState }) {
   const now = useNow();
   const [selected, setSelected] = useState<Target | null>(null);
   const [near, setNear] = useState<Target | null>(null);
+  // After doing something, its card stays closed until you walk to something else.
+  const [dismissed, setDismissed] = useState<Target | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [showNeeds, setShowNeeds] = useState(false);
   const [doing, setDoing] = useState<Doing | null>(null);
@@ -239,6 +242,7 @@ export function InsideScreen({ game }: { game: GameState }) {
     const after = useGameStore.getState().game;
     setDoing(null);
     setSelected(null);
+    setDismissed(d.i.target);
     setProgress(0);
     if (before && after && after !== before) {
       const last = after.log[after.log.length - 1];
@@ -281,7 +285,8 @@ export function InsideScreen({ game }: { game: GameState }) {
     setDoing({ i, activity: { target: i.target, pose: POSES[i.kind] ?? 'stand', stage: 'walk' }, startedAt: null, ms: durationMs(i) });
   }
 
-  const focus = doing ? null : (selected ?? near);
+  const sameTarget = (a: Target | null, b: Target | null) => !!a && !!b && a.type === b.type && (a.id ?? '') === (b.id ?? '');
+  const focus = doing ? null : (selected ?? (near && !sameTarget(near, dismissed) ? near : null));
   const focusList = focus ? interactions.filter((i) => matches(i, focus)) : [];
   const ownRoom = isOwnRoom(game, placeId);
   const showTimetable = !!focus && focus.type === 'board' && ownRoom;
@@ -317,7 +322,10 @@ export function InsideScreen({ game }: { game: GameState }) {
                 characterId={game.player.characterId}
                 selected={selected}
                 onSelect={(t) => !doingRef.current && setSelected(t)}
-                onNear={setNear}
+                onNear={(t) => {
+                  setNear(t);
+                  setDismissed((x) => (x && t && x.type === t.type && (x.id ?? '') === (t.id ?? '') ? x : null));
+                }}
                 activity={doing?.activity ?? null}
                 onArrive={() => setDoing((d) => (d && !d.startedAt ? { ...d, activity: { ...d.activity, stage: 'act' }, startedAt: performance.now() } : d))}
                 onCancel={() => setDoing((d) => (d && d.startedAt === null ? null : d))}
@@ -343,7 +351,7 @@ export function InsideScreen({ game }: { game: GameState }) {
       <div className={`pointer-events-none absolute inset-0 bg-[#060B18] transition-opacity duration-[2500ms] ${sleeping ? 'opacity-70' : 'opacity-0'}`} />
 
       {/* Top: back, the place and what is happening, your status. */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 px-3 pt-[max(0.6rem,env(safe-area-inset-top))]">
+      <header className="pointer-events-none absolute inset-x-0 top-0 mx-auto flex w-full max-w-[440px] flex-col gap-2 px-3 pt-[max(0.6rem,env(safe-area-inset-top))]">
         <div className="flex items-start gap-2">
           <button onClick={leave} disabled={!!doing?.startedAt} className="pointer-events-auto grid size-10 shrink-0 place-items-center rounded-full bg-black/60 text-white disabled:opacity-40" aria-label="Leave the building">
             <BackIcon />
@@ -369,17 +377,15 @@ export function InsideScreen({ game }: { game: GameState }) {
               <button onClick={() => setJournalOpen(true)} className="grid size-10 place-items-center rounded-full bg-black/60" aria-label="Journal">
                 📓
               </button>
-              <button onClick={() => openPhone('home')} className="grid size-10 place-items-center rounded-full bg-black/60" aria-label="Phone">
-                📱
-              </button>
               <button onClick={() => setShowAll(true)} className="h-10 rounded-full bg-black/60 px-3 text-sm font-semibold text-white" aria-label="All actions">
                 ⋯
               </button>
             </div>
           </div>
         </div>
+        {showNeeds && <div className="pointer-events-auto fixed inset-0" onClick={() => setShowNeeds(false)} aria-hidden="true" />}
         {showNeeds && (
-          <div className="pointer-events-auto mx-auto w-full max-w-sm rounded-3xl border border-white/10 bg-[#14202B]/95 p-3">
+          <div className="pointer-events-auto relative mx-auto w-full max-w-sm rounded-3xl border border-white/10 bg-[#14202B]/95 p-3">
             <NeedsPanel game={game} />
           </div>
         )}
@@ -392,8 +398,8 @@ export function InsideScreen({ game }: { game: GameState }) {
 
       {/* Bottom: the activity in progress, or what you can do here. */}
       {can3d && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="pointer-events-auto mx-auto max-w-md">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3" style={{ paddingBottom: BOTTOM_BAR_SPACE }}>
+          <div className="pointer-events-auto mx-auto max-w-[440px]">
             {doing ? (
               <section className="flex items-center gap-3 rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 shadow-2xl">
                 <div className="min-w-0 flex-1">

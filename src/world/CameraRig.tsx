@@ -1,6 +1,8 @@
 // The camera, with two modes:
 // - follow ("Me"): close on the player; the joystick moves them.
 // - overview ("Map"): fits the whole campus; one finger drags to pan.
+// Pinching out far from your character in close-up switches to the map view
+// (the joystick goes away and dragging pans), keeping the spot you were on.
 // In both: pinch zooms, twisting two fingers turns the view round, and moving
 // two fingers up or down tilts it (mouse: wheel zooms, right-drag or
 // Shift-drag turns and tilts). Pressing Me or Map straightens the view.
@@ -15,6 +17,8 @@ const DEFAULT_TILT = THREE.MathUtils.degToRad(60); // angle above the ground
 const TILT_MIN = THREE.MathUtils.degToRad(22);
 const TILT_MAX = THREE.MathUtils.degToRad(88);
 const FOLLOW = { start: 75, min: 25, max: 180 };
+/** Zoom out past this in close-up and the view becomes the pannable map. */
+const TO_MAP = 140;
 const TAP_SLOP = 8; // pixels a finger can wobble and still count as a tap
 
 /** Distance at which the whole campus fits on screen at a tilt. */
@@ -35,13 +39,22 @@ export function CameraRig({ start }: { start: [number, number] }) {
 
   const view = useRef({ x: playerWorld.pos.x || start[0], z: playerWorld.pos.z || start[1], dist: FOLLOW.start, yaw: 0, tilt: DEFAULT_TILT });
   const goal = useRef({ followDist: FOLLOW.start, overviewDist: 0, ox: 0, oz: 0, yaw: 0, tilt: DEFAULT_TILT });
+  /** Set when pinching out switched to the map: keep the view where it is. */
+  const zoomedOut = useRef(false);
 
   // Changing mode straightens the view; the map view fits the whole campus.
   useEffect(() => {
     const g = goal.current;
+    if (mode === 'overview' && zoomedOut.current) {
+      zoomedOut.current = false;
+      return;
+    }
     g.yaw = Math.round(view.current.yaw / (Math.PI * 2)) * Math.PI * 2;
     g.tilt = DEFAULT_TILT;
-    if (mode !== 'overview') return;
+    if (mode !== 'overview') {
+      g.followDist = Math.min(g.followDist, FOLLOW.start * 1.3);
+      return;
+    }
     const b = campusBounds();
     g.ox = (b.minX + b.maxX) / 2;
     g.oz = (b.minZ + b.maxZ) / 2;
@@ -67,8 +80,19 @@ export function CameraRig({ start }: { start: [number, number] }) {
     const maxOverview = () => fitDistance(camera as THREE.PerspectiveCamera, el.clientWidth, el.clientHeight) * 1.05;
     const setDist = (d: number) => {
       const g = goal.current;
-      if (modeRef.current === 'follow') g.followDist = THREE.MathUtils.clamp(d, FOLLOW.min, FOLLOW.max);
-      else g.overviewDist = THREE.MathUtils.clamp(d, 40, maxOverview());
+      if (modeRef.current === 'follow') {
+        g.followDist = THREE.MathUtils.clamp(d, FOLLOW.min, FOLLOW.max);
+        if (d > TO_MAP) {
+          // Zoomed right out from your character: become the map, right here.
+          g.ox = playerWorld.pos.x;
+          g.oz = playerWorld.pos.z;
+          g.overviewDist = THREE.MathUtils.clamp(d, 40, maxOverview());
+          zoomedOut.current = true;
+          modeRef.current = 'overview';
+          if (two) two.startDist = (g.overviewDist * Math.max(pair()?.dist ?? 1, 1)) / Math.max(two.dist, 1);
+          useGameStore.getState().setCameraMode('overview');
+        }
+      } else g.overviewDist = THREE.MathUtils.clamp(d, 40, maxOverview());
     };
     const currentGoalDist = () => (modeRef.current === 'follow' ? goal.current.followDist : goal.current.overviewDist);
     const turn = (dYaw: number, dTilt: number) => {

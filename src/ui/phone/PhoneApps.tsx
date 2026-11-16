@@ -490,6 +490,15 @@ export function SettingsApp({ game }: { game: GameState }) {
         </p>
         <button
           onClick={() => {
+            useSettings.getState().setTourDone(false);
+            useGameStore.getState().closePhone();
+          }}
+          className="min-h-11 rounded-2xl border border-white/20 font-semibold"
+        >
+          Show the tour again
+        </button>
+        <button
+          onClick={() => {
             if (window.confirm('Start over? Your whole degree so far will be lost.')) reset();
           }}
           className="min-h-11 rounded-2xl border border-red-400/60 font-semibold text-red-300"

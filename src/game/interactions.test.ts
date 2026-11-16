@@ -140,7 +140,13 @@ describe('travel', () => {
     signAll(d);
     getFee(d, 'acceptance')!.paid = true;
     const same = PLACES.find((p) => p.sectionId === d.location.sectionId && p.id !== d.location.placeId)!;
-    expect(travelOptions(d, same.id)).toHaveLength(1);
+    const near = travelOptions(d, same.id);
+    expect(near.map((o) => o.mode)).toEqual(['walk', 'keke', 'cab']);
+    expect(near[0]!.cost).toEqual({});
+    // A short keke hop costs half the fare and no time.
+    const hop = travel(d, same.id, 'keke');
+    expect(hop.money).toBe(d.money - near[1]!.cost.money!);
+    expect(hop.clock).toEqual(d.clock);
     const far = PLACES.find((p) => p.sectionId !== d.location.sectionId && p.type === 'library')!;
     const modes = travelOptions(d, far.id).map((o) => o.mode);
     expect(modes).toEqual(['keke', 'cab', 'walk']);

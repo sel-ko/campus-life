@@ -12,6 +12,9 @@ interface SettingsStore {
   /** Entrance tests taken on this device, across every game. */
   testsTaken: number;
   countTest: () => void;
+  /** The first-time tour has been seen (or skipped). */
+  tourDone: boolean;
+  setTourDone: (done: boolean) => void;
 }
 
 export const useSettings = create<SettingsStore>()(
@@ -21,6 +24,8 @@ export const useSettings = create<SettingsStore>()(
       setQuality: (quality) => set({ quality }),
       testsTaken: 0,
       countTest: () => set((s) => ({ testsTaken: s.testsTaken + 1 })),
+      tourDone: false,
+      setTourDone: (tourDone) => set({ tourDone }),
     }),
     { name: 'campus-life-settings', version: 1 },
   ),
