@@ -2,6 +2,9 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+// Node's process, without adding @types/node just for this one line.
+declare const process: { env: Record<string, string | undefined> };
+
 // One config for both the app build (Vite) and the tests (Vitest).
 export default defineConfig({
   // Served from a domain root by default; GitHub Pages serves the game from
