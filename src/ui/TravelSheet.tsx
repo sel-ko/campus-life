@@ -5,7 +5,7 @@ import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { SHEET } from './theme';
 
-const ICONS = { keke: '🛺', cab: '🚕', walk: '🚶' } as const;
+const ICONS = { keke: '🛺', cab: '🚕', walk: '🚶', drive: '🚗' } as const;
 
 export function TravelSheet({ game }: { game: GameState }) {
   const id = useGameStore((s) => s.travelSheetId);

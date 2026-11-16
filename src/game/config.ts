@@ -96,6 +96,13 @@ export const BROKE_BELOW = 1000;
 
 // ---------- travel ----------
 export const FARES = { keke: 150, cab: 700 };
+/** Trips to or from the town: fares are dearer and walking takes two slots. */
+export const TOWN_TRIP = { fareFactor: 2.5, walkSlots: 2 };
+/** Driving your own car: fuel per trip between sections. */
+export const DRIVE_FUEL = 300;
+/** Bank loan: amount received, amount to repay, and days. */
+export const BANK_LOAN = { amount: 20000, repay: 24000, days: 14 };
+export const HOSPITAL_TREATMENT = 3000;
 /** Kekes stop running at night. */
 export const KEKE_NIGHT = false;
 

@@ -3,7 +3,7 @@
 // Instanced, so all of them are three draw calls.
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { CELL, COLS, ROWS, buildings, cellRect, isRoad } from '../../content/campusMap';
+import { CELL, COLS, ROWS, buildings, cellOf, cellRect, isRoad, mapBounds, sections } from '../../content/campusMap';
 import { cylinder, ico, seededRandom } from '../three-utils';
 
 const LEAF_COLOURS = ['#3F8F4A', '#4FA35A', '#2F7A3E', '#5CAF4E', '#6B9E3A'];
@@ -39,15 +39,33 @@ function scatter(): { trees: Spot[]; bushes: Spot[] } {
       }
     }
   }
-  // Empty squares on the map (a few trees) and the bush around it (many).
+  // Town parks: trees round the edges, leaving the lawn and fountain open.
+  for (const b of buildings.filter((k) => k.kind === 'park')) {
+    const p = b.plot;
+    for (let x = p.x0 + 3; x < p.x1 - 2; x += 6) {
+      for (let z = p.z0 + 3; z < p.z1 - 2; z += 6) {
+        const edge = x < p.x0 + 8 || x > p.x1 - 8 || z < p.z0 + 8 || z > p.z1 - 8;
+        if (edge && rand() < 0.8) trees.push({ x: x + (rand() - 0.5) * 2, z: z + (rand() - 0.5) * 2, s: 0.8 + rand() * 0.4 });
+      }
+    }
+  }
+  // Empty squares on the map (a few trees) and the bush around it (many),
+  // including the open land between the campus and the town.
   const MARGIN = 12;
-  for (let x = -MARGIN; x < COLS + MARGIN; x++) {
+  const town = sections.find((t) => t.id === 'town');
+  const inTown = (x: number, y: number) => {
+    if (!town) return false;
+    const r = cellRect(x, y, 1, 1);
+    return r.x0 >= town.rect.x0 && r.x1 <= town.rect.x1 && r.z0 >= town.rect.z0 && r.z1 <= town.rect.z1;
+  };
+  const firstCol = cellOf(mapBounds.x0 + 1, 0)[0] - MARGIN;
+  for (let x = firstCol; x < COLS + MARGIN; x++) {
     for (let y = -MARGIN; y < ROWS + MARGIN; y++) {
       if (taken.has(`${x},${y}`) || isRoad(x, y)) continue;
       // Keep a clear verge beside roads.
       if (isRoad(x - 1, y) || isRoad(x + 1, y) || isRoad(x, y - 1) || isRoad(x, y + 1)) continue;
       const inside = x >= 0 && y >= 0 && x < COLS && y < ROWS;
-      const chance = inside ? 0.18 : 0.7;
+      const chance = inTown(x, y) ? 0.06 : inside ? 0.18 : x < 0 ? 0.45 : 0.7;
       if (rand() > chance) continue;
       const r = cellRect(x, y, 1, 1);
       const count = inside ? 1 : 1 + Math.floor(rand() * 2);

@@ -117,6 +117,14 @@ export function nightWithoutSleep(d: GameState): void {
   log(d, 'You did not sleep last night. Your eyes are red like palm oil.');
 }
 
+/** Morning after a party: a hangover. */
+export function hangoverMut(d: GameState): void {
+  if (d.flags.partied !== d.clock.dayCount - 1) return;
+  d.needs.energy = clamp(d.needs.energy - 15);
+  d.needs.health = clamp(d.needs.health - 3);
+  log(d, 'Hangover. Your head is a talking drum and the sun is too bright.');
+}
+
 export const TREATMENT = { medicalCentre: 1500, sickBay: 800 };
 
 export function treatMut(d: GameState, price: number): void {

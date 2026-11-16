@@ -153,3 +153,53 @@ describe('travel', () => {
     expect(onFoot.clock.slot).toBe(d.clock.slot + 1);
   });
 });
+
+describe('the town', () => {
+  const placeOf = (pred: (p: (typeof PLACES)[number]) => boolean) => PLACES.find(pred)!;
+
+  it('is far: dearer rides, a two-slot walk, or your own car', () => {
+    const d = structuredClone(testGame());
+    signAll(d);
+    const club = placeOf((p) => p.venue === 'club');
+    expect(club.sectionId).toBe('town');
+    const opts = travelOptions(d, club.id);
+    expect(opts.find((o) => o.mode === 'walk')!.cost.slots).toBe(2);
+    expect(opts.find((o) => o.mode === 'keke')!.cost.money).toBeGreaterThan(150);
+    expect(opts.some((o) => o.mode === 'drive')).toBe(false);
+    d.inventory.car = 1;
+    expect(travelOptions(d, club.id)[0]!.mode).toBe('drive');
+    const walked = travel(d, club.id, 'walk');
+    expect(walked.clock.slot).toBe(d.clock.slot + 2);
+  });
+
+  it('has night life that opens at night', () => {
+    const d = structuredClone(testGame());
+    const club = placeOf((p) => p.venue === 'club');
+    expect(getInteractions(d, club.id).find((i) => i.id === 'party')?.available).toBe(false);
+    at(d, 3, 3);
+    d.money = 50000;
+    expect(getInteractions(d, club.id).find((i) => i.id === 'party')?.available).toBe(true);
+    const after = performInteraction(d, club.id, 'party');
+    expect(after.needs.stress).toBeLessThan(d.needs.stress + 1);
+    expect(after.flags.partied).toBe(d.clock.dayCount);
+    const owambe = placeOf((p) => p.venue === 'event_centre');
+    expect(getInteractions(at(structuredClone(d), 6, 1), owambe.id).find((i) => i.id === 'owambe')?.available).toBe(true);
+  });
+
+  it('lends money at the bank, to be paid back with interest', () => {
+    const d = at(structuredClone(testGame()), 3, 0);
+    const bank = placeOf((p) => !!p.bank);
+    const after = performInteraction(d, bank.id, 'bank_loan');
+    expect(after.money).toBe(d.money + 20000);
+    expect(after.loans.find((l) => l.personId === 'bank_officer')?.amount).toBe(24000);
+    expect(getInteractions(after, bank.id).find((i) => i.id === 'bank_loan')?.available).toBe(false);
+  });
+
+  it('sells a car that then appears as a travel option', () => {
+    const d = at(structuredClone(testGame()), 3, 1);
+    d.money = 200000;
+    const shop = placeOf((p) => !!p.stock?.includes('car'));
+    const after = performInteraction(d, shop.id, 'buy:car');
+    expect(after.inventory.car).toBe(1);
+  });
+});

@@ -423,6 +423,40 @@ export const EVENTS: EventDef[] = [
     c('Skip it', 'You will see the pictures on Instagram.', { stress: 2 }),
   ]),
 
+  // ---------------- night life ----------------
+  ev('nl_bouncer', 'campus', { places: ['nightlife'], slots: ['Night'] }, 'The bouncer', 'The bouncer looks at your shoes and says "not tonight".', [
+    c('Slip him ₦1,000', 'The rope lifted like magic.', { money: -1000, stress: -3 }, { cost: 1000 }),
+    c('Go to the lounge instead', 'Quieter, cheaper, and the music was better anyway.', { stress: -4 }),
+  ]),
+  ev('nl_phone', 'campus', { places: ['nightlife'], slots: ['Night'] }, 'Where is my phone?', 'In the middle of the dance floor you reach for your phone. It is not there.', [
+    c('Search the whole club', 'Found it under a chair, screen cracked, still alive.', { energy: -8, stress: 6 }),
+    c("Call it from a friend's phone", 'Somebody answered: "Na me pick am, come collect for gate." Bless them.', { stress: 3, rel: { coursemate: 2 } }),
+  ]),
+  ev('nl_drinks', 'campus', { places: ['nightlife'], slots: ['Evening', 'Night'] }, 'One more round?', 'Your friends are shouting "one more round!" again.', [
+    c('Order water and dance', 'You were the only sober one. You saw everything.', { money: -300, stress: -4 }),
+    c('One more round', 'It was not one more round.', { money: -2500, health: -5, stress: -6 }, { cost: 2500 }),
+  ]),
+  ev('nl_crush', 'friends', { places: ['nightlife'], relAbove: ['love_interest', 25] }, 'Unexpected', 'Ejiro is here too, and waving at you across the room.', [
+    c('Go and dance', 'Best night of the semester.', { rel: { ejiro: 8 }, stress: -10, energy: -6 }),
+    c('Wave back and stay cool', 'Mysterious. Maybe too mysterious.', { rel: { ejiro: 2 } }),
+  ]),
+  ev('nl_hostel_party', 'campus', { places: ['hostel_room'], slots: ['Night'], semesters: [1, 2] }, 'Hostel party', 'There is a birthday party on the next floor with a loud speaker and suya.', [
+    c('Join for an hour', 'Suya, gist and dancing in slippers.', { stress: -10, energy: -8, hunger: -10, roommates: 2 }),
+    c('Plug your ears and sleep', 'Sleep, but with bass.', { energy: 2 }),
+  ]),
+  ev('nl_owambe_invite', 'friends', { days: [4, 6] }, 'Owambe invite', "Damilola's cousin is getting married in town this weekend. 'Come and chop!'", [
+    c('Say you will come', 'Asoebi not bought, but appetite ready.', { rel: { dami: 4 }, setFlag: 'owambe_invite' }),
+    c('Say you have to read', 'Damilola sighed. "Na you sabi."', { knowledge: 1 }),
+  ]),
+  ev('nl_cab_night', 'travel', { places: ['busstop'], slots: ['Night'] }, 'Night ride', 'The cab driver wants double fare because "night don reach".', [
+    c('Pay it', 'Safe home is worth it.', { money: -700 }),
+    c('Bargain hard', 'You agreed on a price, eventually.', { money: -300, stress: 4 }),
+  ]),
+  ev('nl_movie_date', 'friends', { places: ['nightlife'], relAbove: ['love_interest', 40] }, 'Popcorn', 'Ejiro asks if you want to share popcorn.', [
+    c('Share and whisper about the plot', 'The film was bad. The company was great.', { money: -800, rel: { ejiro: 6 }, stress: -6 }),
+    c('Say you are watching the film', 'Okay, film critic.', { rel: { ejiro: -2 } }),
+  ]),
+
   // ---------------- campus life ----------------
   ev('cam_strike', 'campus', {}, 'Strike rumour', 'Rumour: "Strike is coming next week!"', [
     c('Pack your books', 'There was no strike. You lost reading time.', { knowledge: -2, stress: -3 }),

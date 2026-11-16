@@ -4,6 +4,7 @@ import type { OfficeId, PlaceType } from '../game/types';
 import { buildings, cellRect, COLS, isRoad, ROWS, sections, type Pt, type Rect } from './campusMap';
 import { getCollege } from './courses';
 import { BUILDING_ROLES, type BuildingRole } from './campus-overrides';
+import { TOWN_ROLES } from './town';
 import raw from './campus-layout.json';
 
 export interface PlaceDef extends BuildingRole {
@@ -27,12 +28,13 @@ export const ENTERABLE: PlaceType[] = [
   'clinic',
   'shop',
   'workplace',
+  'nightlife',
 ];
 
-const LABELLED: PlaceType[] = ['lecture_hall', 'admin_office', 'library', 'lab', 'clinic', 'field', 'busstop', 'gate', 'workplace'];
+const LABELLED: PlaceType[] = ['lecture_hall', 'admin_office', 'library', 'lab', 'clinic', 'field', 'busstop', 'gate', 'workplace', 'nightlife'];
 
 export const PLACES: PlaceDef[] = buildings.flatMap((b) => {
-  const role = BUILDING_ROLES[b.id];
+  const role = BUILDING_ROLES[b.id] ?? TOWN_ROLES[b.id];
   if (!role) return [];
   return [
     {

@@ -20,6 +20,7 @@ export type PlaceType =
   | 'clinic'
   | 'shop'
   | 'workplace'
+  | 'nightlife'
   | 'residence'
   | 'field'
   | 'busstop'
@@ -52,7 +53,7 @@ export type Role =
   | 'lecturer'
   | 'roommate';
 export type HustleId = 'snacks' | 'typing' | 'tutoring' | 'pos' | 'business_centre';
-export type TravelMode = 'walk' | 'keke' | 'cab';
+export type TravelMode = 'walk' | 'keke' | 'cab' | 'drive';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 /** Where we are in the degree. `year` counts sessions played (a repeated

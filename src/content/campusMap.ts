@@ -4,8 +4,17 @@
 //
 // Units: metres. One planner square is 10 m. The map is centred on 0, 0,
 // with x running east and z running south (north is up on the planner).
-import raw from './campus-layout.json';
+import planner from './campus-layout.json';
 import { BUILDING_ROLES, SECTION_NAMES } from './campus-overrides';
+import { TOWN_ITEMS, TOWN_ROADS, TOWN_ROLES, TOWN_SECTION } from './town';
+
+/** The campus from the planner plus the town to the west (src/content/town.ts). */
+const raw = {
+  ...planner,
+  sections: [...planner.sections, TOWN_SECTION],
+  items: [...planner.items, ...TOWN_ITEMS],
+  roads: [...planner.roads, ...TOWN_ROADS],
+};
 
 export type Pt = [number, number];
 export interface Rect {
@@ -30,7 +39,22 @@ export type PlannerKind =
   | 'clinic'
   | 'busstop'
   | 'gate'
-  | 'trees';
+  | 'trees'
+  | 'bungalow'
+  | 'duplex'
+  | 'penthouse'
+  | 'park'
+  | 'mall'
+  | 'carshop'
+  | 'fuel'
+  | 'bank'
+  | 'hotel'
+  | 'cinema'
+  | 'club'
+  | 'hospital'
+  | 'eventcentre'
+  | 'supermarket'
+  | 'phonestore';
 
 interface RawItem {
   id: string;
@@ -94,6 +118,22 @@ const PLANNER_DEFAULT_FLOORS: Record<PlannerKind, number> = {
   busstop: 0,
   gate: 0,
   trees: 0,
+  // Town kinds always use the floors given in town.ts.
+  bungalow: -1,
+  duplex: -1,
+  penthouse: -1,
+  park: -1,
+  mall: -1,
+  carshop: -1,
+  fuel: -1,
+  bank: -1,
+  hotel: -1,
+  cinema: -1,
+  club: -1,
+  hospital: -1,
+  eventcentre: -1,
+  supermarket: -1,
+  phonestore: -1,
 };
 
 /** Floors chosen when the planner default was left alone, so heights vary. */
@@ -259,7 +299,23 @@ function bodyOf(plot: Rect, blocks: Block[]): Rect {
  * and classroom plots, split into several separate blocks.
  */
 function blocksFor(id: string, kind: PlannerKind, plot: Rect, floors: number, seed: number): Block[] {
-  if (['field', 'trees', 'busstop', 'gate', 'market'].includes(kind)) return [];
+  if (['field', 'trees', 'busstop', 'gate', 'market', 'park', 'fuel'].includes(kind)) return [];
+  // The mall keeps its southern third free for the car park.
+  if (kind === 'mall') {
+    const d = plot.z1 - plot.z0;
+    return [{ rect: { x0: plot.x0 + 2, z0: plot.z0 + 2, x1: plot.x1 - 2, z1: plot.z1 - d * 0.38 }, floors, seed }];
+  }
+  // Car showroom: a glass box at the back, the forecourt in front.
+  if (kind === 'carshop') {
+    const d = plot.z1 - plot.z0;
+    return [{ rect: { x0: plot.x0 + 2, z0: plot.z0 + 2, x1: plot.x1 - 2, z1: plot.z0 + d * 0.5 }, floors, seed }];
+  }
+  // Homes sit back from the fence with a compound in front.
+  if (kind === 'bungalow' || kind === 'duplex') {
+    const w = plot.x1 - plot.x0;
+    const d = plot.z1 - plot.z0;
+    return [{ rect: { x0: plot.x0 + w * 0.18, z0: plot.z0 + 3, x1: plot.x1 - w * 0.18, z1: plot.z0 + d * 0.62 }, floors, seed }];
+  }
   const small = plot.x1 - plot.x0 <= CELL + 0.01 && plot.z1 - plot.z0 <= CELL + 0.01;
   // A margin that varies by building, but never leaves less than 6 m of building.
   // Single-square shops are 5 m kiosks with alleys between them.
@@ -325,7 +381,7 @@ export const buildings: MapBuilding[] = (() => {
   for (const n of tidy) totals.set(n, (totals.get(n) ?? 0) + 1);
   const seen = new Map<string, number>();
   return sorted.map((item, idx) => {
-    const role = BUILDING_ROLES[item.id];
+    const role = BUILDING_ROLES[item.id] ?? TOWN_ROLES[item.id];
     // campus-overrides.ts can draw a building as another kind (a classroom used as the Medical Centre).
     const kind = (role?.look ?? item.kind) as PlannerKind;
     const base = tidy[idx]!;
@@ -370,7 +426,16 @@ export const buildings: MapBuilding[] = (() => {
   }
 })();
 
-/** The map's full extent in metres. */
-export const mapBounds: Rect = { x0: -OX, z0: -OZ, x1: OX, z1: OZ };
+/** The map's full extent in metres: the planner grid plus the town and its road. */
+export const mapBounds: Rect = (() => {
+  const r: Rect = { x0: -OX, z0: -OZ, x1: OX, z1: OZ };
+  for (const s of sections) {
+    r.x0 = Math.min(r.x0, s.rect.x0);
+    r.z0 = Math.min(r.z0, s.rect.z0);
+    r.x1 = Math.max(r.x1, s.rect.x1);
+    r.z1 = Math.max(r.z1, s.rect.z1);
+  }
+  return r;
+})();
 
 export const buildingById = new Map(buildings.map((b) => [b.id, b]));

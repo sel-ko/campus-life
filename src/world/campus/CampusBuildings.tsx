@@ -214,7 +214,63 @@ const PALETTES: Partial<Record<PlannerKind, Palette>> = {
     floorH: [3.2, 3.4],
   },
   buka: { walls: ['#F0B85A', '#E9C48A'], trims: ['#C2462E', '#2E8B57'], styles: ['shop'], floorH: [3.2, 3.4] },
+  // ---- town ----
+  bungalow: { walls: ['#F4EFE6', '#F2E2C4', '#E8D5C0', '#DCE8C4', '#F6D2B8'], trims: ['#7A4E2D', '#2E6B4E', '#8B2E2E', '#1F3F66'], styles: ['punched', 'tall'], floorH: [3.2, 3.4] },
+  duplex: { walls: ['#F7F3EA', '#E3E9EE', '#F0E0C8', '#EBD9E6'], trims: ['#2A2F36', '#7A4E2D', '#2F5D8A', '#9C6A2E'], styles: ['tall', 'punched'], floorH: [3.2, 3.5] },
+  penthouse: { walls: ['#9FC3DA', '#B9C7D2', '#A8D0CC', '#C6CFE0'], trims: ['#2A2F36', '#E7ECEF', '#1F3F66'], styles: ['ribbon'], floorH: [3.3, 3.5] },
+  mall: { walls: ['#E9E4DA', '#DDE6EE'], trims: ['#D9482B', '#1F4E9C'], styles: ['shop'], floorH: [5, 5.5] },
+  carshop: { walls: ['#E7ECEF', '#D7E1EA'], trims: ['#C0202E', '#1B2A37'], styles: ['shop'], floorH: [5, 5.5] },
+  bank: { walls: ['#EDE6D8', '#E0E6EA'], trims: ['#0F5C46', '#1F3F66'], styles: ['tall'], floorH: [3.8, 4] },
+  hotel: { walls: ['#F4EFE6', '#EADCCB', '#D9E3EA'], trims: ['#8C6A2E', '#1F3F66'], styles: ['punched', 'tall'], floorH: [3.2, 3.4] },
+  cinema: { walls: ['#2B2340', '#3A2D4F'], trims: ['#F5B83D', '#E0407A'], styles: ['louvre'], floorH: [5, 5.5] },
+  club: { walls: ['#1E1B2E', '#25213A', '#14262E'], trims: ['#FF3EA5', '#3EE0FF', '#B4FF3E'], styles: ['louvre'], floorH: [4, 4.4] },
+  hospital: { walls: ['#F7F7F2', '#EAF4EE'], trims: ['#1F6FB5', '#D7263D'], styles: ['ribbon', 'punched'], floorH: [3.6, 3.8] },
+  eventcentre: { walls: ['#F2E2C4', '#EFD3D3', '#E5DCF2'], trims: ['#8E3B8A', '#C98A12'], styles: ['tall'], floorH: [6, 6.5] },
+  supermarket: { walls: ['#E9F2E4', '#F2F0E6'], trims: ['#2E8B57', '#E8742A'], styles: ['shop'], floorH: [4.2, 4.5] },
+  phonestore: { walls: ['#1B2A37', '#F4EFE6', '#2E3A8C'], trims: ['#3EE0FF', '#F2C230', '#E8742A'], styles: ['shop'], floorH: [3.4, 3.6] },
 };
+
+const CAR_COLOURS = ['#C0202E', '#1F4E9C', '#E7ECEF', '#1B1E22', '#9AA3AD', '#F2C230', '#2E8B57', '#6A4C93'];
+
+/** A small car: body, cabin, windows and wheels. `alongX`: it points east-west. */
+function car(acc: Acc, x: number, z: number, alongX: boolean, colour: string) {
+  const [hl, hw] = alongX ? [2.1, 0.9] : [0.9, 2.1];
+  box(acc, x - hl, 0.35, z - hw, x + hl, 1.0, z + hw, colour);
+  const [cl, cw] = alongX ? [1.2, 0.8] : [0.8, 1.2];
+  box(acc, x - cl, 1.0, z - cw, x + cl, 1.55, z + cw, '#2C3A47', colour);
+  const wheel = (wx: number, wz: number) => box(acc, wx - 0.35, 0, wz - 0.35, wx + 0.35, 0.6, wz + 0.35, '#1B1E22');
+  if (alongX) for (const [dx, dz] of [[-1.3, -0.9], [1.3, -0.9], [-1.3, 0.9], [1.3, 0.9]] as const) wheel(x + dx, z + dz);
+  else for (const [dx, dz] of [[-0.9, -1.3], [0.9, -1.3], [-0.9, 1.3], [0.9, 1.3]] as const) wheel(x + dx, z + dz);
+}
+
+/** A low wall round a plot, with a gate gap on the road side. */
+function fence(acc: Acc, b: MapBuilding, colour: string) {
+  const p = b.plot;
+  const t = 0.25;
+  const h = 1.8;
+  const r = { x0: p.x0 + 0.6, z0: p.z0 + 0.6, x1: p.x1 - 0.6, z1: p.z1 - 0.6 };
+  const gap = 2.2;
+  const seg = (x0: number, z0: number, x1: number, z1: number) => box(acc, x0, 0, z0, x1, h, z1, colour, '#B5543C');
+  const cx = (r.x0 + r.x1) / 2;
+  const cz = (r.z0 + r.z1) / 2;
+  const s = b.doorSide;
+  if (s === 's') {
+    seg(r.x0, r.z1 - t, cx - gap, r.z1);
+    seg(cx + gap, r.z1 - t, r.x1, r.z1);
+  } else seg(r.x0, r.z1 - t, r.x1, r.z1);
+  if (s === 'n') {
+    seg(r.x0, r.z0, cx - gap, r.z0 + t);
+    seg(cx + gap, r.z0, r.x1, r.z0 + t);
+  } else seg(r.x0, r.z0, r.x1, r.z0 + t);
+  if (s === 'w') {
+    seg(r.x0, r.z0, r.x0 + t, cz - gap);
+    seg(r.x0, cz + gap, r.x0 + t, r.z1);
+  } else seg(r.x0, r.z0, r.x0 + t, r.z1);
+  if (s === 'e') {
+    seg(r.x1 - t, r.z0, r.x1, cz - gap);
+    seg(r.x1 - t, cz + gap, r.x1, r.z1);
+  } else seg(r.x1 - t, r.z0, r.x1, r.z1);
+}
 
 const pick = <T,>(list: T[], seed: number): T => list[seed % list.length]!;
 function shadeHex(hex: string, f: number): string {
@@ -267,6 +323,16 @@ function buildBlock(wallAcc: Record<WindowStyle, Acc>, plain: Acc, b: MapBuildin
     }
   }
 
+  // Homes: a stepped roof (stacked slabs) instead of a flat one.
+  if (b.kind === 'bungalow' || b.kind === 'duplex') {
+    const roof = pick(['#8B2E2E', '#3D4A57', '#7A4E2D', '#2E5E4E'], s >>> 3);
+    for (let i = 0; i < 4; i++) {
+      const k = 0.9 - i * 0.22;
+      const iw = ((r.x1 - r.x0) * (1 - k)) / 2;
+      const id = ((r.z1 - r.z0) * (1 - k)) / 2;
+      box(plain, r.x0 + iw - 0.8 + i * 0.6, roofY + i * 0.55, r.z0 + id - 0.8 + i * 0.6, r.x1 - iw + 0.8 - i * 0.6, roofY + (i + 1) * 0.55, r.z1 - id + 0.8 - i * 0.6, shadeHex(roof, 0.85 + i * 0.05), roof);
+    }
+  } else {
   // Flat roof with a parapet.
   const roofColour = b.kind === 'apartment' ? trim : shadeHex(wall, 0.72);
   box(plain, roofRect.x0 - 0.3, roofY, roofRect.z0 - 0.3, roofRect.x1 + 0.3, roofY + 0.35, roofRect.z1 + 0.3, shadeHex(roofColour, 0.9), roofColour);
@@ -276,6 +342,8 @@ function buildBlock(wallAcc: Record<WindowStyle, Acc>, plain: Acc, b: MapBuildin
   box(plain, roofRect.x0 - 0.3, roofY, roofRect.z1 + 0.3 - P, roofRect.x1 + 0.3, ph, roofRect.z1 + 0.3, shadeHex(wall, 0.85));
   box(plain, roofRect.x0 - 0.3, roofY, roofRect.z0 - 0.3, roofRect.x0 - 0.3 + P, ph, roofRect.z1 + 0.3, shadeHex(wall, 0.85));
   box(plain, roofRect.x1 + 0.3 - P, roofY, roofRect.z0 - 0.3, roofRect.x1 + 0.3, ph, roofRect.z1 + 0.3, shadeHex(wall, 0.85));
+  }
+  const roofColour = b.kind === 'apartment' ? trim : shadeHex(wall, 0.72);
 
   const w = r.x1 - r.x0;
   const d = r.z1 - r.z0;
@@ -413,6 +481,98 @@ function buildBlock(wallAcc: Record<WindowStyle, Acc>, plain: Acc, b: MapBuildin
     }
   }
 
+  switch (b.kind) {
+    case 'bungalow':
+    case 'duplex': {
+      // Veranda on pillars, a fence round the compound and a car inside it.
+      front(0.15, 0.85, 2.2, PLINTH + 2.9, PLINTH + 3.15, shadeHex(trim, 1));
+      for (const t of [0.16, 0.5, 0.84]) front(t - 0.015, t + 0.015, 0.3, PLINTH, PLINTH + 2.9, '#F4EFE6', 1.9);
+      if (b.kind === 'duplex') front(0.2, 0.8, 1.4, PLINTH + floorH - 0.1, PLINTH + floorH + 0.15, CONCRETE);
+      fence(plain, b, shadeHex(wall, 0.9));
+      const p = b.plot;
+      if (blk === b.blocks[0]) car(plain, (p.x0 + p.x1) / 2 + ((s % 3) - 1) * 3, p.z1 - 4, true, pick(CAR_COLOURS, s));
+      break;
+    }
+    case 'penthouse': {
+      // A glass crown and a rooftop pool.
+      const inset = Math.min(2, w / 5, d / 5);
+      walls(wallAcc.ribbon, { x0: r.x0 + inset, z0: r.z0 + inset, x1: cx, z1: r.z1 - inset }, roofY + 0.35, roofY + 0.35 + floorH, 1, 4.5, '#DDEFF7');
+      box(plain, cx + 0.8, roofY + 0.35, r.z0 + inset, r.x1 - inset, roofY + 0.6, r.z1 - inset, '#38A8D8');
+      for (let f = 2; f < floors; f += 3) front(0.1, 0.9, 1.1, PLINTH + f * floorH - 0.1, PLINTH + f * floorH + 0.12, '#E7ECEF');
+      break;
+    }
+    case 'mall': {
+      // Big sign, entrance canopy, and the car park in front.
+      front(0.2, 0.8, 0.4, top - 2.5, top + 1.5, trim, 0.1);
+      front(0.35, 0.65, 3.5, PLINTH + 3.5, PLINTH + 3.8, '#E7ECEF');
+      const p = b.plot;
+      box(plain, p.x0 + 2, 0, r.z1 + 1, p.x1 - 2, 0.1, p.z1 - 1.5, '#4A5058');
+      for (let x = p.x0 + 4; x < p.x1 - 3; x += 3) box(plain, x, 0.1, r.z1 + 2, x + 0.15, 0.13, r.z1 + 7, '#F4EFE6');
+      let i = 0;
+      for (let x = p.x0 + 5.5; x < p.x1 - 4; x += 6) car(plain, x, r.z1 + 4.5, false, pick(CAR_COLOURS, s + i++));
+      break;
+    }
+    case 'carshop': {
+      // Forecourt of cars for sale, with flag poles.
+      const p = b.plot;
+      box(plain, p.x0 + 1.5, 0, r.z1 + 0.5, p.x1 - 1.5, 0.1, p.z1 - 1, '#B9C0C8');
+      let i = 0;
+      for (let x = p.x0 + 5; x < p.x1 - 3; x += 5.5) car(plain, x, r.z1 + 5.5, false, CAR_COLOURS[i++ % CAR_COLOURS.length]!);
+      for (const x of [p.x0 + 2, p.x1 - 2]) {
+        box(plain, x - 0.08, 0, p.z1 - 2, x + 0.08, 7, p.z1 - 1.85, '#9AA3AD');
+        box(plain, x + 0.08, 5.6, p.z1 - 2, x + 1.6, 6.8, p.z1 - 1.95, trim);
+      }
+      front(0.1, 0.9, 0.3, top + 0.3, top + 1.6, trim, 0);
+      break;
+    }
+    case 'bank':
+    case 'hotel': {
+      front(0.3, 0.7, 3, PLINTH + 3, PLINTH + 3.3, trim);
+      for (const t of [0.32, 0.68]) front(t - 0.015, t + 0.015, 0.4, PLINTH, PLINTH + 3, '#F4EFE6', 2.6);
+      front(0.25, 0.75, 0.3, top + 0.4, top + 1.8, trim, 0);
+      break;
+    }
+    case 'cinema': {
+      // Lit marquee and poster boards.
+      front(0.1, 0.9, 1.6, PLINTH + 3.4, PLINTH + 4.6, '#F5B83D');
+      for (const t of [0.15, 0.4, 0.6, 0.85]) front(t - 0.07, t + 0.07, 0.15, PLINTH + 0.8, PLINTH + 3, pick(['#E0407A', '#3EE0FF', '#F2C230', '#8E3B8A'], Math.round(t * 10)), 0.05);
+      break;
+    }
+    case 'club': {
+      // Neon strips round the walls and a rope line at the door.
+      for (const y of [PLINTH + 1, top - 0.6]) box(plain, r.x0 - 0.12, y, r.z0 - 0.12, r.x1 + 0.12, y + 0.18, r.z1 + 0.12, trim);
+      front(0.2, 0.8, 0.4, top + 0.4, top + 1.6, pick(['#FF3EA5', '#3EE0FF'], s), 0);
+      for (const t of [0.3, 0.7]) front(t - 0.02, t + 0.02, 0.15, 0, 1.1, '#C9A227', 2.5);
+      front(0.3, 0.7, 0.08, 0.95, 1.05, '#B0182E', 2.53);
+      break;
+    }
+    case 'hospital': {
+      front(0.2, 0.8, 4, PLINTH + 3, PLINTH + 3.3, trim);
+      const y = top - 2;
+      front(0.47, 0.53, 0.15, y - 1.1, y + 1.1, '#D7263D', 0.05);
+      front(0.4, 0.6, 0.15, y - 0.35, y + 0.35, '#D7263D', 0.05);
+      // An ambulance in the bay.
+      const p = b.plot;
+      box(plain, p.x1 - 7, 0.35, p.z1 - 3.4, p.x1 - 2.5, 2.4, p.z1 - 1.4, '#F4F4F0');
+      box(plain, p.x1 - 7.02, 1.3, p.z1 - 3.42, p.x1 - 2.48, 1.55, p.z1 - 1.38, '#D7263D');
+      break;
+    }
+    case 'eventcentre': {
+      // Bunting across the front and a canopy.
+      front(0.1, 0.9, 3.5, PLINTH + 4, PLINTH + 4.3, trim);
+      for (let i = 0; i < 8; i++) front(0.1 + i * 0.1, 0.15 + i * 0.1, 0.1, top - 1.2, top - 0.6, ['#F2C230', '#D9482B', '#2E8B57', '#3E7CC9'][i % 4]!, 0.05);
+      break;
+    }
+    case 'supermarket':
+    case 'phonestore': {
+      front(0.05, 0.95, 2, PLINTH + 3, PLINTH + 3.25, trim);
+      front(0.15, 0.85, 0.3, top + 0.3, top + 1.4, trim, 0);
+      break;
+    }
+    default:
+      break;
+  }
+
   // Square water tanks on stands on some apartment and classroom roofs.
   if (['apartment', 'classroom', 'faculty'].includes(b.kind) && feature(5)) {
     const tx = feature(6) ? roofRect.x0 + 2.5 : roofRect.x1 - 2.5;
@@ -491,6 +651,42 @@ function buildMarket(plain: Acc, b: MapBuilding) {
       i++;
     }
   }
+}
+
+/** A town park: lawn, crossing paths, a fountain and benches (trees come from the scenery). */
+function buildPark(plain: Acc, b: MapBuilding) {
+  const p = b.plot;
+  const r = { x0: p.x0 + 1, z0: p.z0 + 1, x1: p.x1 - 1, z1: p.z1 - 1 };
+  box(plain, r.x0, 0, r.z0, r.x1, 0.1, r.z1, '#5DBA66');
+  const cx = (r.x0 + r.x1) / 2;
+  const cz = (r.z0 + r.z1) / 2;
+  box(plain, cx - 1.5, 0.1, r.z0, cx + 1.5, 0.14, r.z1, '#D8CBB0');
+  box(plain, r.x0, 0.1, cz - 1.5, r.x1, 0.14, cz + 1.5, '#D8CBB0');
+  box(plain, cx - 4, 0.1, cz - 4, cx + 4, 0.6, cz + 4, '#C9C2B4');
+  box(plain, cx - 3.4, 0.6, cz - 3.4, cx + 3.4, 0.65, cz + 3.4, '#38A8D8');
+  box(plain, cx - 0.5, 0.6, cz - 0.5, cx + 0.5, 2.6, cz + 0.5, '#E7ECEF');
+  for (const [dx, dz] of [[-7, -2.5], [7, 2.5], [-2.5, 7], [2.5, -7]] as const) {
+    const along = Math.abs(dx) > Math.abs(dz);
+    if (along) box(plain, cx + dx - 1.2, 0, cz + dz - 0.35, cx + dx + 1.2, 0.5, cz + dz + 0.35, '#8B5E3C');
+    else box(plain, cx + dx - 0.35, 0, cz + dz - 1.2, cx + dx + 0.35, 0.5, cz + dz + 1.2, '#8B5E3C');
+  }
+}
+
+/** Filling station: canopy on pillars, pumps, and a small shop. */
+function buildFuel(plain: Acc, b: MapBuilding) {
+  const p = b.plot;
+  box(plain, p.x0 + 1, 0, p.z0 + 1, p.x1 - 1, 0.12, p.z1 - 1, '#9AA3AD');
+  const cx = (p.x0 + p.x1) / 2;
+  const cz = (p.z0 + p.z1) / 2 + 1;
+  for (const [dx, dz] of [[-6, -3], [6, -3], [-6, 3], [6, 3]] as const) box(plain, cx + dx - 0.25, 0, cz + dz - 0.25, cx + dx + 0.25, 4.6, cz + dz + 0.25, '#E7ECEF');
+  box(plain, cx - 8, 4.6, cz - 4.5, cx + 8, 5.3, cz + 4.5, '#E7ECEF', '#D7263D');
+  box(plain, cx - 8.05, 4.75, cz - 4.55, cx + 8.05, 5.1, cz + 4.55, '#D7263D');
+  for (const dx of [-3, 3]) {
+    box(plain, cx + dx - 0.5, 0, cz - 0.4, cx + dx + 0.5, 1.7, cz + 0.4, '#F2C230');
+    box(plain, cx + dx - 0.6, 0, cz - 1.2, cx + dx + 0.6, 0.25, cz + 1.2, '#C9C2B4');
+  }
+  box(plain, p.x0 + 2, 0, p.z0 + 1.5, p.x0 + 8, 3.2, p.z0 + 5, '#F4EFE6', '#D7263D');
+  car(plain, cx + 3, cz + 2.4, true, '#1F4E9C');
 }
 
 /** Keke stop: shelter, bench, sign, and parked kekes. */
@@ -589,6 +785,8 @@ function buildAll(): Built {
     else if (b.kind === 'market') buildMarket(plain, b);
     else if (b.kind === 'busstop') buildKekeStop(plain, b);
     else if (b.kind === 'gate') buildGate(plain, b);
+    else if (b.kind === 'park') buildPark(plain, b);
+    else if (b.kind === 'fuel') buildFuel(plain, b);
     else {
       // The block nearest the door point gets the door.
       let doorBlock = 0;

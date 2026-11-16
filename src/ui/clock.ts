@@ -2,10 +2,20 @@
 // show the player's actual local time.
 import { useEffect, useState } from 'react';
 
+/** Development only: `?hour=13` pretends it is 1 p.m. (to check the sky). */
+function current(): Date {
+  const d = new Date();
+  if (import.meta.env.DEV) {
+    const hour = new URLSearchParams(window.location.search).get('hour');
+    if (hour !== null) d.setHours(Number(hour));
+  }
+  return d;
+}
+
 export function useNow(intervalMs = 15000): Date {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState(current);
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), intervalMs);
+    const id = window.setInterval(() => setNow(current()), intervalMs);
     return () => window.clearInterval(id);
   }, [intervalMs]);
   return now;

@@ -28,6 +28,7 @@ const TYPE_LABEL: Record<PlaceType, string> = {
   clinic: 'Clinic',
   shop: 'Shop',
   workplace: 'Workplace',
+  nightlife: 'Night life',
   residence: 'Residence',
   field: 'Sports',
   busstop: 'Keke park',

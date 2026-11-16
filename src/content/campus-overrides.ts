@@ -42,6 +42,12 @@ export interface BuildingRole {
   medicalCentre?: boolean;
   /** The main library (registration). */
   mainLibrary?: boolean;
+  /** Night life: what kind of venue. */
+  venue?: 'club' | 'lounge' | 'cinema' | 'event_centre';
+  /** Gives small student loans. */
+  bank?: boolean;
+  /** A big hospital (dearer, treats more). */
+  hospital?: boolean;
 }
 
 export const BUILDING_ROLES: Record<string, BuildingRole> = {

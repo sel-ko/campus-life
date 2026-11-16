@@ -43,7 +43,7 @@ import {
   visitOfficeMut,
 } from './clearance';
 import { answerMut, markReadMut } from './chat';
-import { FARES, ORIENTATION_DAYS } from './config';
+import { BANK_LOAN, DRIVE_FUEL, FARES, HOSPITAL_TREATMENT, ORIENTATION_DAYS, TOWN_TRIP } from './config';
 import { clamp, log, produce } from './draft';
 import { addRel, applyEffects } from './effects';
 import { advance } from './engine';
@@ -92,6 +92,12 @@ export type InteractionKind =
   | 'hangout'
   | 'exercise'
   | 'campaign'
+  | 'party'
+  | 'vip'
+  | 'chill'
+  | 'movie'
+  | 'owambe'
+  | 'bank_loan'
   | 'wait';
 
 export interface Interaction {
@@ -179,6 +185,13 @@ export function getOccupants(d: GameState, placeId: string): Occupant[] {
   }
   if (place.medicalCentre || place.type === 'clinic') add('doctor', { type: 'desk' });
   if (place.menu === 'buka') add('mama_blessing', { type: 'counter' });
+  if (place.bank && slot <= 1) add('bank_officer', { type: 'desk' });
+  if (place.type === 'nightlife' && slot >= 2) {
+    add('dami', { type: 'bench' });
+    add('osaze', { type: 'bench' });
+    if (place.venue === 'club') add('tega', { type: 'counter' });
+    if (place.venue === 'cinema' || place.venue === 'lounge') add('ejiro', { type: 'seat' });
+  }
   if (place.type === 'library' && slot >= 1) add('ify', { type: 'shelf' });
   if (place.type === 'library' && slot === 1) add('ejiro', { type: 'bench' });
   if (place.type === 'field' && slot === 2) {
@@ -323,7 +336,13 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
       label: `Buy ${item.name.toLowerCase()}`,
       target: { type: 'counter' },
       cost: { money: item.price },
-      ...(needsAcceptance ? no('Pay the acceptance fee first') : item.id === 'padlock' && d.room.padlock ? no('You already have one') : d.money >= item.price ? yes : no(`You need ${naira(item.price)}`)),
+      ...(needsAcceptance
+        ? no('Pay the acceptance fee first')
+        : (item.id === 'padlock' && d.room.padlock) || (item.id === 'car' && d.inventory.car)
+          ? no('You already have one')
+          : d.money >= item.price
+            ? yes
+            : no(`You need ${naira(item.price)}`)),
     });
   }
 
@@ -356,7 +375,7 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
 
   // Clinics.
   if (place.type === 'clinic') {
-    const price = place.medicalCentre ? TREATMENT.medicalCentre : TREATMENT.sickBay;
+    const price = place.hospital ? HOSPITAL_TREATMENT : place.medicalCentre ? TREATMENT.medicalCentre : TREATMENT.sickBay;
     add({ id: 'treat', kind: 'treat', label: `See the doctor (${naira(price)})`, detail: d.ill ? 'You are sick' : 'A check-up and some drugs', target: { type: 'desk' }, cost: { ...SLOT, money: price }, ...(d.needs.health >= 90 && !d.ill ? no('You are healthy') : yes) });
   }
 
@@ -368,6 +387,42 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
     if (d.goals.ambition === 'su_president') {
       add({ id: 'campaign', kind: 'campaign', label: 'Campaign: posters and handshakes', detail: '₦1,000', target: { type: 'board' }, cost: { ...SLOT, money: 1000 }, ...(d.money >= 1000 && slot <= 2 ? yes : no(slot > 2 ? 'Nobody is around' : 'You need ₦1,000')) });
     }
+  }
+
+  // Night life.
+  if (place.type === 'nightlife') {
+    const weekend = isWeekend(d.clock.day);
+    const night = slot === 3;
+    const money = (n: number) => (d.money >= n ? yes : no(`You need ${naira(n)}`));
+    switch (place.venue) {
+      case 'club':
+        add({ id: 'party', kind: 'party', label: 'Party on the dance floor', detail: 'Entry and drinks · stress melts, energy goes', target: { type: 'bench' }, cost: { ...SLOT, money: 3000 }, ...(night || (weekend && slot === 2) ? money(3000) : no('The club opens at night (and weekend evenings)')) });
+        add({ id: 'vip', kind: 'vip', label: 'Book a VIP table', detail: 'Everybody will know your name tomorrow', target: { type: 'counter' }, cost: { ...SLOT, money: 15000 }, ...(night ? money(15000) : no('VIP opens at night')) });
+        break;
+      case 'lounge':
+        add({ id: 'chill', kind: 'chill', label: 'Chill with drinks and music', target: { type: 'bench' }, cost: { ...SLOT, money: 1500 }, ...(slot >= 2 ? money(1500) : no('The lounge opens in the evening')) });
+        break;
+      case 'cinema':
+        add({ id: 'movie', kind: 'movie', label: 'Watch the latest Nollywood blockbuster', target: { type: 'seat' }, cost: { ...SLOT, money: 2000 }, ...(slot >= 1 ? money(2000) : no('First show is in the afternoon')) });
+        break;
+      case 'event_centre':
+        add({ id: 'owambe', kind: 'owambe', label: 'Join the owambe (free food!)', detail: 'Somebody is celebrating. Dress well and dance', target: { type: 'counter' }, cost: SLOT, ...(weekend && slot >= 1 ? yes : no('Parties hold at weekends, afternoon to night')) });
+        break;
+    }
+  }
+
+  // The bank: a small student loan.
+  if (place.bank) {
+    const owing = d.loans.some((l) => l.personId === 'bank_officer');
+    add({
+      id: 'bank_loan',
+      kind: 'bank_loan',
+      label: `Take a student loan of ${naira(BANK_LOAN.amount)}`,
+      detail: `Pay back ${naira(BANK_LOAN.repay)} within ${BANK_LOAN.days} days`,
+      target: { type: 'desk' },
+      cost: SLOT,
+      ...(owing ? no('Pay back your current loan first') : slot <= 1 && !isWeekend(d.clock.day) ? yes : no('The bank is open weekday mornings and afternoons')),
+    });
   }
 
   // People here.
@@ -475,6 +530,11 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
       else if (arg === 'haircut') applyEffects(d, { stress: -5 });
       else if (arg === 'laundry') applyEffects(d, { stress: -4 });
       else if (arg === 'airtime') d.flags.data = d.clock.dayCount;
+      else if (arg === 'car') d.inventory.car = 1;
+      else if (arg === 'phone_upgrade') {
+        applyEffects(d, { stress: -10, rel: { coursemate: 2 } });
+        d.flags.new_phone = d.clock.dayCount;
+      }
       else d.inventory[arg] = (d.inventory[arg] ?? 0) + (item.pack ?? 1);
       log(d, `You bought ${item.name.toLowerCase()} for ${naira(item.price)}.`);
       break;
@@ -506,7 +566,8 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
       setUpMut(d, arg as never);
       break;
     case 'treat':
-      treatMut(d, place.medicalCentre ? TREATMENT.medicalCentre : TREATMENT.sickBay);
+      treatMut(d, place.hospital ? HOSPITAL_TREATMENT : place.medicalCentre ? TREATMENT.medicalCentre : TREATMENT.sickBay);
+      if (place.hospital) applyEffects(d, { health: 25 });
       break;
     case 'hangout':
       spend(d, 500);
@@ -522,6 +583,41 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
       d.goals.campaign += 5;
       applyEffects(d, { rel: { coursemate: 2, course_rep: 1 }, energy: -6 });
       log(d, 'You campaigned: posters up, hands shaken, promises made.');
+      break;
+    case 'party':
+      spend(d, 3000);
+      applyEffects(d, { stress: -25, energy: -22, hunger: 8, rel: { coursemate: 3 } });
+      d.flags.partied = d.clock.dayCount;
+      log(d, 'You partied at Club Afrique till the DJ begged everybody to go home.');
+      break;
+    case 'vip':
+      spend(d, 15000);
+      applyEffects(d, { stress: -35, energy: -25, rel: { coursemate: 6, course_rep: 3, senior: 4 } });
+      d.goals.campaign += 8;
+      d.flags.partied = d.clock.dayCount;
+      log(d, 'VIP table, sparklers, the works. Half the campus has your picture now.');
+      break;
+    case 'chill':
+      spend(d, 1500);
+      applyEffects(d, { stress: -12, energy: -4 });
+      log(d, 'You chilled at the lounge with cold drinks and Afrobeats. Soft life.');
+      break;
+    case 'movie':
+      spend(d, 2000);
+      applyEffects(d, { stress: -15, energy: -3 });
+      log(d, 'You watched the new Nollywood blockbuster. The twist was obvious but you still gasped.');
+      break;
+    case 'owambe':
+      applyEffects(d, { hunger: -40, stress: -10, energy: -8, rel: { coursemate: 2 } });
+      d.stats.meals += 1;
+      log(d, 'You entered an owambe you were not invited to. Jollof, small chops, and you danced with the celebrant\'s aunty.');
+      break;
+    case 'bank_loan':
+      spend(d, 0);
+      d.money += BANK_LOAN.amount;
+      d.finance.earned += BANK_LOAN.amount;
+      d.loans.push({ id: `bank-${d.clock.dayCount}`, personId: 'bank_officer', amount: BANK_LOAN.repay, due: d.clock.dayCount + BANK_LOAN.days, playerOwes: true });
+      log(d, `The bank gave you ${naira(BANK_LOAN.amount)}. Pay back ${naira(BANK_LOAN.repay)} within ${BANK_LOAN.days} days.`);
       break;
     case 'talk':
       talkMut(d, r, arg);
@@ -570,25 +666,36 @@ export interface TravelOption {
   reason?: string;
 }
 
-export function fare(d: GameState, mode: 'keke' | 'cab'): number {
-  return Math.round((FARES[mode] * (modifiers(d).fare ?? 1)) / 50) * 50;
+export function fare(d: GameState, mode: 'keke' | 'cab', toTown = false): number {
+  return Math.round((FARES[mode] * (modifiers(d).fare ?? 1) * (toTown ? TOWN_TRIP.fareFactor : 1)) / 50) * 50;
+}
+
+function townTrip(d: GameState, to: PlaceDef): boolean {
+  return (to.sectionId === 'town') !== (d.location.sectionId === 'town');
 }
 
 export function travelOptions(d: GameState, toPlaceId: string): TravelOption[] {
   const to = getPlace(toPlaceId);
   if (!to) return [];
   const across = to.sectionId !== d.location.sectionId;
+  const far = townTrip(d, to);
+  const walkSlots = far ? TOWN_TRIP.walkSlots : 1;
   const walk: TravelOption = across
-    ? { mode: 'walk', label: 'Walk there', detail: 'Free, but it takes the whole slot', cost: { slots: 1 }, available: true }
-    : { mode: 'walk', label: 'Walk there', detail: 'Free and quick: same part of campus', cost: {}, available: true };
+    ? { mode: 'walk', label: 'Walk there', detail: far ? 'Free, but the long road takes two slots' : 'Free, but it takes the whole slot', cost: { slots: walkSlots }, available: true }
+    : { mode: 'walk', label: 'Walk there', detail: 'Free and quick: same area', cost: {}, available: true };
   if (!across) return [walk];
-  const keke = fare(d, 'keke');
-  const cab = fare(d, 'cab');
-  return [
+  const keke = fare(d, 'keke', far);
+  const cab = fare(d, 'cab', far);
+  const options: TravelOption[] = [];
+  if (d.inventory.car) {
+    options.push({ mode: 'drive', label: 'Drive your car', detail: `${naira(DRIVE_FUEL)} of fuel`, cost: { money: DRIVE_FUEL }, ...(d.money < DRIVE_FUEL ? no(`You need ${naira(DRIVE_FUEL)} for fuel`) : yes) });
+  }
+  options.push(
     { mode: 'keke', label: 'Take a keke', detail: `${naira(keke)} · from the keke park`, cost: { money: keke }, ...(d.clock.slot === 3 ? no('No kekes at night') : d.money < keke ? no(`You need ${naira(keke)}`) : yes) },
-    { mode: 'cab', label: 'Call a cab', detail: `${naira(cab)} · door to door`, cost: { money: cab }, ...(d.money < cab ? no(`You need ${naira(cab)}`) : yes) },
+    { mode: 'cab', label: 'Call a cab', detail: `${naira(cab)} · door to door${d.clock.slot === 3 ? ' (night rides run)' : ''}`, cost: { money: cab }, ...(d.money < cab ? no(`You need ${naira(cab)}`) : yes) },
     walk,
-  ];
+  );
+  return options;
 }
 
 /** Moves the player on a draft. Returns false if that way is not possible. */
@@ -600,12 +707,12 @@ export function travelMut(d: GameState, r: import('./rng').Rng, toPlaceId: strin
   const across = to.sectionId !== d.location.sectionId;
   d.location = { placeId: toPlaceId, sectionId: to.sectionId };
   if (!across) return true;
-  if (mode === 'keke' || mode === 'cab') {
+  if (mode === 'keke' || mode === 'cab' || mode === 'drive') {
     spend(d, opt.cost.money ?? 0);
     if (mode === 'keke') d.stats.kekeRides += 1;
-    else d.stats.cabRides += 1;
+    else if (mode === 'cab') d.stats.cabRides += 1;
     d.flags.arrived = stamp(d.clock);
-    log(d, `${mode === 'keke' ? 'Keke' : 'Cab'} to ${to.name}: ${naira(opt.cost.money ?? 0)}.`);
+    log(d, `${mode === 'keke' ? 'Keke' : mode === 'cab' ? 'Cab' : 'You drove'} to ${to.name}: ${naira(opt.cost.money ?? 0)}.`);
     maybeEventMut(d, r, 'busstop', toPlaceId);
     return true;
   }
@@ -613,7 +720,7 @@ export function travelMut(d: GameState, r: import('./rng').Rng, toPlaceId: strin
   d.needs.energy = clamp(d.needs.energy - 6);
   log(d, `You trekked to ${to.name}. Long walk, free ride.`);
   maybeEventMut(d, r, 'busstop', toPlaceId);
-  advance(d, r, 1);
+  advance(d, r, opt.cost.slots ?? 1);
   d.flags.arrived = stamp(d.clock);
   return true;
 }

@@ -37,6 +37,11 @@ export const DISHES: Record<string, MenuItem> = Object.fromEntries(
     dish('zobo', 'Zobo drink', 200, 5, { snack: true, stress: -2 }),
     dish('malt', 'Malt drink', 400, 5, { snack: true, energy: 5 }),
     dish('bottled_water', 'Bottled water', 150, 2, { snack: true }),
+    dish('hotel_buffet', 'Hotel buffet (all you can eat)', 6000, 75, { energy: 10, stress: -8 }),
+    dish('club_sandwich', 'Club sandwich and chips', 3500, 45, { stress: -4 }),
+    dish('pizza_slice', 'Pizza (two slices)', 2500, 40, { stress: -3 }),
+    dish('ice_cream', 'Ice cream cone', 1200, 8, { snack: true, stress: -5 }),
+    dish('smoothie', 'Fruit smoothie', 1500, 10, { snack: true, energy: 6 }),
   ].map((d) => [d.id, d]),
 );
 
@@ -65,6 +70,8 @@ export const MENUS: Record<string, string[]> = {
   canteen: ['jollof', 'white_rice', 'beans_dodo', 'yam_egg', 'indomie_egg', 'meat_pie'],
   cafeteria: ['indomie_egg', 'bread_egg', 'fried_rice', 'beans_dodo', 'spaghetti'],
   market: ['bread_egg', 'puff_puff', 'boli', 'gala_drink'],
+  mall: ['pizza_slice', 'shawarma', 'fried_rice', 'ice_cream', 'smoothie', 'malt'],
+  hotel: ['hotel_buffet', 'club_sandwich', 'jollof', 'pounded_yam', 'smoothie'],
 };
 
 /** Things shops sell. Provisions go in your locker. */
@@ -84,4 +91,6 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
   airtime: { id: 'airtime', name: 'Data bundle (1 week)', price: 500, draft: true },
   haircut: { id: 'haircut', name: 'Haircut or hair-do', price: 1000, draft: true },
   laundry: { id: 'laundry', name: 'Laundry (one bag)', price: 1500, draft: true },
+  car: { id: 'car', name: 'Fairly used car (tokunbo)', price: 150000, draft: true },
+  phone_upgrade: { id: 'phone_upgrade', name: 'New smartphone', price: 45000, draft: true },
 };

@@ -497,3 +497,34 @@ the code mentioned.
      retake rule above, the simulator now produces occasional Firsts for
      study and balanced play, 2:1s for most diligent players, 2:2s for
      hustlers. See BALANCE.md.
+
+## Town and night life
+
+126. **No university-specific names in the game.** The game says "admission
+     to university"; matric numbers start `UNI/`; the portal is the "Student
+     Portal"; the College of Law and two buildings lost their real-world
+     names; the disclaimer now reads "Not affiliated with any real
+     university". File and code names (campus-layout.json, campus-overrides.ts)
+     are unchanged.
+127. **The entrance test can be retaken** (new questions each time) when the
+     score misses the cut-off. The letter shows attempts in this application
+     and the total on this phone; the profile shows the attempts for this
+     game.
+128. **The town** (`src/content/town.ts`) is a fifth part of the map, west of
+     Off-campus, joined to it only by one road about 150 m long through the
+     bush. Streets on a grid; bungalows and duplexes in fenced compounds with
+     cars, penthouse towers with rooftop pools, City Mall with a car park,
+     three parks, a car dealership, a filling station, a bank, a
+     supermarket, phone shops, a pharmacy, restaurants, a hotel, a general
+     hospital, a cinema, a club, a lounge, an event centre and a motor park.
+129. **Getting to town:** keke and cab fares are 2.5 times dearer and
+     walking takes two slots. Buying a car (₦150,000 at Prestige Motors)
+     adds "Drive your car" (₦300 fuel, any time).
+130. **Night life:** the club (party ₦3,000, at night or on weekend
+     evenings; VIP table ₦15,000 helps a campaign), the lounge (evenings), the
+     cinema (afternoon on), and the event centre (free owambe food at
+     weekends). Partying leaves a hangover the next morning. Eight new night
+     events.
+131. **The bank** gives one student loan at a time: ₦20,000 now, ₦24,000 back
+     within 14 days. **The General Hospital** treats for ₦3,000 and heals
+     more than the Medical Centre.

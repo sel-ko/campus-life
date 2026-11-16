@@ -23,6 +23,7 @@ export const CAST: PersonDef[] = [
   person({ id: 'officer_ict', name: 'Mr Effiong "Network"', role: 'officer', office: 'ict', blurb: 'ICT Unit. Blames everything on the server.', startRel: 0, look: 'm2' }),
   person({ id: 'officer_college', name: 'Mrs Adebayo', role: 'officer', office: 'college_office', blurb: 'College Office secretary. The real power in the college.', startRel: 0, look: 'f1' }),
   person({ id: 'officer_hod', name: 'Dr (Mrs) Omoregie', role: 'officer', office: 'hod', blurb: 'Head of Department. Busy, fair, and always in a meeting.', startRel: 0, look: 'f2' }),
+  person({ id: 'bank_officer', name: 'Mr Adewale', role: 'vendor', blurb: 'Loans officer at Cowrie Savings Bank. Smiles less when you owe.', startRel: 0, look: 'm2' }),
   person({ id: 'doctor', name: 'Dr Osifo', role: 'doctor', office: 'medical', blurb: 'Medical Centre doctor. Prescribes rest and paracetamol for everything.', startRel: 0, look: 'm1' }),
 ];
 

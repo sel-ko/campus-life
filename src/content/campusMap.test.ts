@@ -4,11 +4,12 @@ import { buildings, sections } from './campusMap';
 import raw from './campus-layout.json';
 import { BUILDING_ROLES } from './campus-overrides';
 import { PLACES, freshersHall, hostels } from './places';
+import { TOWN_ITEMS } from './town';
 
 describe('the planner layout', () => {
   it('loads every section and building you drew', () => {
-    expect(sections).toHaveLength(raw.sections.length);
-    expect(buildings).toHaveLength(raw.items.length);
+    expect(sections).toHaveLength(raw.sections.length + 1); // + the town
+    expect(buildings).toHaveLength(raw.items.length + TOWN_ITEMS.length);
   });
 
   it('gives every building except gardens a role and a unique name', () => {
@@ -19,7 +20,7 @@ describe('the planner layout', () => {
   });
 
   it('renames the sections', () => {
-    expect(sections.map((s) => s.name).sort()).toEqual(['2nd Campus', 'Campus Hostel', 'First Campus', 'Off-campus']);
+    expect(sections.map((s) => s.name).sort()).toEqual(['2nd Campus', 'Campus Hostel', 'First Campus', 'Off-campus', 'Town']);
   });
 
   it('has playable hostels', () => {

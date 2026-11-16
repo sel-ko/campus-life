@@ -10,7 +10,7 @@ import { checkMilestonesMut, electionMut, finalMilestonesMut, newWeekMut } from 
 import { log, produce } from './draft';
 import { addLateFeeIfDue, allowanceDay, landLateAllowance, sendFeeMoney, sessionFees, weeklyData } from './money';
 import { dayOutagesMut, oversleepMut, reallocateMut, roommateNightMut } from './hostel';
-import { checkCollapse, nightWithoutSleep, tickNeeds } from './needs';
+import { checkCollapse, hangoverMut, nightWithoutSleep, tickNeeds } from './needs';
 import { loansDayMut } from './people';
 import { Rng } from './rng';
 import { blankState, type NewGameSetup } from './state';
@@ -63,6 +63,7 @@ export function beginDay(d: GameState, r: Rng): void {
   const moved = moveGstBatches(d, r);
   dayOutagesMut(d, r);
   oversleepMut(d, r);
+  hangoverMut(d);
   chatDayMut(d, r, moved);
   loansDayMut(d, r);
   dueEventsMut(d);
