@@ -63,6 +63,8 @@ export interface RoomLayout {
   spawn: V2;
   /** Spots for nameless students when the room is busy. */
   crowd?: Spot[];
+  /** Where the doorway is in the front wall (default: where you appear). */
+  doorX?: number;
 }
 
 const solidOf = (x: number, z: number, w: number, d: number, pad = 0): [number, number, number, number] => [x - w / 2 - pad, z - d / 2 - pad, x + w / 2 + pad, z + d / 2 + pad];
@@ -213,7 +215,9 @@ function dorm(): RoomLayout {
     crowd: [others[0]!, others[3]!, others[4]!, { x: 5.45, z: -0.05, rot: PI, pose: 'cook' }, others[1]!, others[2]!, others[5]!],
     floor: '#C79A68',
     wall: '#EADFC8',
-    spawn: [0.6, 3.6],
+    // You start by your own bed and wardrobe; the doorway is in the front wall.
+    spawn: [-4.4, -2.4],
+    doorX: 0.6,
     fixtures,
     build: (p) => {
       for (const b of builds) b(p);
@@ -235,9 +239,8 @@ function dorm(): RoomLayout {
       F.poster(p, { x: 2.6, z: -D / 2 + 0.03 }, '#E0407A', 1.7);
       F.windowOn(p, { x: -W / 2 + 0.03, z: -1.1, rot: PI / 2 }, '#E0407A');
       F.windowOn(p, { x: W / 2 - 0.03, z: 1.9, rot: -PI / 2 }, '#2E8B57');
-      // Middle of the room: rug, clothes line, door mat.
+      // Middle of the room: rug and the door mat.
       F.rug(p, { x: -1.2, z: 0.9 }, '#8E3B8A', 3.6, 2.6);
-      F.clothesLine(p, { x: -1.4, z: 2.2 }, 5, ['#F2C230', '#2F7FC1', '#F4EFE6', '#D9482B']);
       F.rug(p, { x: 0.6, z: 4.5 }, '#6E4B2F', 1.3, 0.6);
     },
   };

@@ -652,3 +652,40 @@ the code mentioned.
      button: you leave with the bottom bar (Home, Me, Map). Under the top
      bar a room shows its name and live status, "⋯" for all actions, your
      quest and your needs.
+
+## Small details
+
+158. **Reloading during development starts a brand-new game** at the
+     admission screen (and shows the tour again); hot reloads while editing
+     keep the game. The published game keeps the save and opens on a start
+     menu (Continue, New game).
+159. **Actions say how long they take in real words** ("⏱ 2 hrs",
+     "⏱ 10 min", "⏱ Till morning") instead of "the whole slot". The rules
+     still count parts of the day. Every action has an emoji; the extra line
+     under an action only shows where it matters (hustles, project, pleading).
+     Bottom sheets and cards have no scrollbar strip.
+160. **Queues take time.** Where people queue (offices, the Bursary,
+     Student Affairs, the clinic, the library desk) the card shows "⏳ 14
+     ahead · ~84 min"; doing it first sits you on the waiting bench until
+     your turn ("Waiting in the queue · 8 ahead"), then you go to the desk.
+161. **Tapping anywhere else closes the action card**, and the "drag to
+     walk" hint is gone from rooms.
+162. **Follow-up steps:** when an office turns you back, the quest gets a
+     follow-up above that office's step ("↳ Get a passport photograph at the
+     Business Centre", "↳ The HOD wants the College Office signature first",
+     "↳ Find 3,000 naira for the Medical Centre fee", "↳ Come back
+     tomorrow"), and it becomes your next step.
+163. The dorm lost its clothes line, and you start each visit by your own
+     bed and wardrobe.
+164. The room header is a small chip like the quest one (place and live
+     status). On the right: "⋯", then your room's condition (💧 water,
+     💡 light, 🔒 padlock, 💸 levy owed; struck through in red when missing),
+     or the queue length elsewhere. Your needs moved to the profile (and the
+     clock pill).
+165. Sleeping characters close their eyes.
+166. The building your story wants you at glows gold (a pulsing box round
+     it) instead of a big text sign.
+167. **Travel you can see:** walking is shown in first person along the
+     road and takes longer (up to about 20 seconds); a keke drops you at the
+     keke park nearest the place and you walk the rest; only a cab (or your
+     car) takes you to the door.

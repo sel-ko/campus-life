@@ -15,6 +15,7 @@ import { useGameStore } from '../store/gameStore';
 import { PRESETS, PRESET_IDS, presetLook } from '../world/characters/look';
 import { CheckIcon, CloseIcon } from './icons';
 import { Portrait } from './Portrait';
+import { NeedsPanel } from './lifeUi';
 
 const H = 'mb-1.5 text-xs font-semibold tracking-wide text-muted uppercase';
 const BOX = 'rounded-2xl border border-white/10 bg-white/5 p-3';
@@ -121,6 +122,10 @@ export function ProfileSheet({ game }: { game: GameState }) {
             <CloseIcon size={20} />
           </button>
         </div>
+
+        <section className={BOX}>
+          <NeedsPanel game={game} />
+        </section>
 
         <section className={`${BOX} grid grid-cols-3 gap-2 text-center`}>
           <div>

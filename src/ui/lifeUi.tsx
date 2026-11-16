@@ -86,25 +86,6 @@ export function NeedsPanel({ game }: { game: GameState }) {
   );
 }
 
-/** A compact strip of the needs that are getting bad (shown in rooms). */
-export function NeedsStrip({ game }: { game: GameState }) {
-  return (
-    <div className="flex gap-1">
-      {NEEDS.slice(0, 5).map((n) => {
-        const raw = game.needs[n.key] ?? 0;
-        const good = n.invert ? 100 - raw : raw;
-        const colour = good >= 60 ? '#34D399' : good >= 30 ? '#FBBF24' : '#F87171';
-        return (
-          <span key={n.key} title={n.label} className="relative grid size-8 place-items-center rounded-full bg-black/55 text-sm" style={{ background: `conic-gradient(${colour} ${good * 3.6}deg, rgba(0,0,0,0.55) 0)` }}>
-            <span className="grid size-6 place-items-center rounded-full bg-[#14202B] text-[13px]" aria-label={`${n.label} ${Math.round(raw)}`}>
-              {n.icon}
-            </span>
-          </span>
-        );
-      })}
-    </div>
-  );
-}
 
 
 /** Your story's next step, with a button to go there. */
@@ -144,10 +125,10 @@ export function QuestChip({ game }: { game: GameState }) {
       {open && (
         <div className="flex flex-col gap-1.5 border-t border-white/10 px-3 pt-2 pb-3">
           <p className="text-xs text-muted">{ch.blurb}</p>
-          <ol className="flex flex-col gap-1">
+          <ol className="no-scrollbar flex max-h-[45vh] flex-col gap-1 overflow-y-auto">
             {ch.steps.map((s) => (
-              <li key={s.id} className={`flex gap-2 text-sm ${s.done ? 'text-muted line-through' : s === next ? 'font-semibold' : ''}`}>
-                <span aria-hidden="true">{s.done ? '✅' : s === next ? '👉' : '▫️'}</span>
+              <li key={s.id} className={`flex gap-2 text-sm ${s.sub ? 'pl-5 text-amber-200' : ''} ${s.done ? 'text-muted line-through' : s === next ? 'font-semibold' : ''}`}>
+                <span aria-hidden="true">{s.done ? '✅' : s === next ? '👉' : s.sub ? '↳' : '▫️'}</span>
                 <span>
                   {s.label}
                   {s === next && s.hint && <span className="block text-xs font-normal text-muted">{s.hint}</span>}

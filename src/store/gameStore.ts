@@ -3,7 +3,7 @@
 // holds screen state (what is open, where the 3D player is walking).
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getPlace } from '../content/places';
+import { PLACES, getPlace } from '../content/places';
 import { newGame } from '../game/engine';
 import {
   answerChat,
@@ -38,6 +38,12 @@ interface GameStore {
   /** The 3D player is on the way here (walking, or riding = jump there). */
   walkTargetId: string | null;
   riding: boolean;
+  /** How the current trip is made: walking is seen in first person; a keke
+   *  drops you at the keke park nearest the place and you walk the rest; a
+   *  cab (or your car) takes you to the door. */
+  travelMode: TravelMode | null;
+  /** The keke park the keke is heading for (world x, z), until you get there. */
+  rideStop: [number, number] | null;
   cameraMode: CameraMode;
   /** A door the 3D player is standing near. */
   nearbyPlaceId: string | null;
@@ -54,6 +60,8 @@ interface GameStore {
   arrive: () => void;
   /** The joystick took over. */
   cancelWalk: () => void;
+  /** The keke dropped you at the park: walk the rest. */
+  reachStop: () => void;
   enter: (placeId: string) => void;
   leave: () => void;
   setNearby: (placeId: string | null) => void;
@@ -80,6 +88,8 @@ const freshScreen = {
   travelSheetId: null,
   walkTargetId: null,
   riding: false,
+  travelMode: null,
+  rideStop: null,
   nearbyPlaceId: null,
   phoneApp: null,
   profileOpen: false,
@@ -122,7 +132,13 @@ export const useGameStore = create<GameStore>()(
           if (!game || !travelSheetId) return;
           const next = update(game, (g) => travel(g, travelSheetId, mode));
           if (next.location.placeId !== travelSheetId) return; // not allowed (e.g. no fare)
-          set({ game: next, travelSheetId: null, walkTargetId: travelSheetId, riding: mode !== 'walk', insidePlaceId: null });
+          const to = getPlace(travelSheetId);
+          // Kekes run between keke parks: the nearest one to the place.
+          const stop =
+            mode === 'keke' && to && to.type !== 'busstop'
+              ? PLACES.filter((p) => p.type === 'busstop' && p.sectionId === to.sectionId).sort((a, b) => Math.hypot(a.position[0] - to.position[0], a.position[1] - to.position[1]) - Math.hypot(b.position[0] - to.position[0], b.position[1] - to.position[1]))[0]
+              : undefined;
+          set({ game: next, travelSheetId: null, walkTargetId: travelSheetId, riding: mode !== 'walk', travelMode: mode, rideStop: stop ? stop.position : null, insidePlaceId: null });
         },
 
         closeTravelSheet: () => set({ travelSheetId: null }),
@@ -130,12 +146,14 @@ export const useGameStore = create<GameStore>()(
         arrive: () => {
           const target = get().walkTargetId;
           if (!target) return;
-          set({ walkTargetId: null, riding: false, insidePlaceId: getPlace(target)?.enterable ? target : null });
+          set({ walkTargetId: null, riding: false, travelMode: null, rideStop: null, insidePlaceId: getPlace(target)?.enterable ? target : null });
         },
 
         cancelWalk: () => {
-          if (get().walkTargetId) set({ walkTargetId: null, riding: false });
+          if (get().walkTargetId) set({ walkTargetId: null, riding: false, travelMode: null, rideStop: null });
         },
+
+        reachStop: () => set({ rideStop: null, riding: false }),
 
         enter: (placeId) => {
           const { game } = get();

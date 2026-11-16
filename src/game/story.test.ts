@@ -68,6 +68,21 @@ describe('the story', () => {
     expect(again.money).toBe(after.money);
   });
 
+  it('adds a follow-up step when an office turns you back', () => {
+    const d = structuredClone(testGame());
+    d.flags.bathed = 1;
+    d.stats.meals = 1;
+    d.flags.acceptance_paid = 1;
+    d.inventory.photocopy = 1; // documents bought, but no passport photograph
+    d.inventory.passport = 0;
+    const steps = currentChapter(d).steps;
+    const sub = steps.find((s) => s.sub && s.id.startsWith('docs_admissions'));
+    expect(sub?.label).toMatch(/passport/);
+    expect(nextStep(d)?.sub).toBe(true);
+    d.inventory.passport = 2;
+    expect(currentChapter(d).steps.some((s) => s.id === 'docs_admissions')).toBe(false);
+  });
+
   it('keeps the town and night life closed until the clearance form is done', () => {
     const d = structuredClone(testGame());
     const club = PLACES.find((p) => p.venue === 'club')!;

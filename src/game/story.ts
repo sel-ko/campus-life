@@ -3,7 +3,7 @@
 // up, eat, then the long clearance walk); later chapters follow each semester
 // to graduation. Pure: worked out from the state every time, nothing saved.
 import { mainBuka, mainLibrary, placeName } from '../content/places';
-import { blockedBy, clearanceSteps, officeName, officePlaceId, signedCount } from './clearance';
+import { clearanceSteps, missingDocs, officeName, officePlaceId, signedCount } from './clearance';
 import { DOC_NAMES, OFFICES, OFFICE_ORDER } from '../content/offices';
 import { canRegister, feesDueNow, registrationDeadline } from './money';
 import { addMoney } from './money';
@@ -22,6 +22,8 @@ export interface StoryStep {
   hint?: string;
   /** Paid once, the first time the step is done. */
   reward?: number;
+  /** A follow-up that came out of the step below it ("no passport? get one"). */
+  sub?: boolean;
 }
 
 export interface Chapter {
@@ -40,6 +42,7 @@ function fresherChapter(d: GameState): Chapter {
   const clr = clearanceSteps(d);
   const step = (id: string) => clr.find((s) => s.id === id)!;
   const signed = signedCount(d);
+  const firstUnsigned = OFFICE_ORDER.find((o) => !c.signed[o]);
   const haveDocs = (d.inventory.photocopy ?? 0) + (d.inventory.passport ?? 0) > 0 || signed > 0;
   return {
     id: 'fresher',
@@ -52,19 +55,33 @@ function fresherChapter(d: GameState): Chapter {
       { id: 'acceptance', label: 'Pay the acceptance fee', done: step('acceptance').done, portal: true, hint: 'Phone → School app → Fees' },
       { id: 'docs', label: 'Buy photocopies, passports and a receipt', done: haveDocs, placeId: DOC_SHOP, hint: 'Every office wants paper' },
       // The clearance route: one office at a time, in order, each with what to bring.
-      ...OFFICE_ORDER.map((o, i): StoryStep => {
+      ...OFFICE_ORDER.flatMap((o, i): StoryStep[] => {
         const office = OFFICES[o];
         const bring = (Object.entries(office.docs) as Array<[DocId, number]>).map(([doc, n]) => (n > 1 ? `${n} ${PLURAL[doc]}` : `1 ${DOC_NAMES[doc]}`)).join(', ');
-        const blocked = blockedBy(d, o);
         const placeId = officePlaceId(d, o);
-        return {
+        const step: StoryStep = {
           id: `office_${o}`,
           reward: i === OFFICE_ORDER.length - 1 ? 1500 : 200,
           label: `${i === 0 ? 'Start clearance at the' : 'Signature:'} ${officeName(o)} (${placeName(placeId)})`,
           done: c.signed[o],
           placeId,
-          hint: [blocked, bring && `Bring ${bring}`, office.fee ? `Fee ${office.fee.toLocaleString('en-NG')} naira` : '', 'Open weekday mornings and afternoons'].filter(Boolean).join(' · '),
+          hint: [bring && `Bring ${bring}`, office.fee ? `Fee ${office.fee.toLocaleString('en-NG')} naira` : '', 'Open weekday mornings and afternoons'].filter(Boolean).join(' · '),
         };
+        if (c.signed[o]) return [step];
+        // Follow-ups for the office you are on (or one that turned you back).
+        const current = o === firstUnsigned || c.backOn[o] !== undefined || c.extraPrereq[o] !== undefined;
+        if (!current) return [step];
+        const subs: StoryStep[] = [];
+        const missing = missingDocs(d, o);
+        if (missing.length) subs.push({ id: `docs_${o}`, sub: true, label: `Get ${missing.map((m) => DOC_NAMES[m]).join(' and ')} at the Business Centre`, done: false, placeId: DOC_SHOP, hint: `The ${officeName(o)} will not sign without it` });
+        for (const need of [...(office.needs ?? []), ...(c.extraPrereq[o] ? [c.extraPrereq[o]!] : [])]) {
+          if (!c.signed[need]) subs.push({ id: `first_${o}_${need}`, sub: true, label: `The ${officeName(o)} wants the ${officeName(need)} signature first`, done: false, placeId: officePlaceId(d, need) });
+        }
+        if (office.needsAcceptance && !clr[0]!.done) subs.push({ id: `acc_${o}`, sub: true, label: 'Pay the acceptance fee before the Bursary', done: false, portal: true });
+        if (office.fee && d.money < office.fee) subs.push({ id: `fee_${o}`, sub: true, label: `Find ${office.fee.toLocaleString('en-NG')} naira for the ${officeName(o)} fee`, done: false, hint: 'Hustle, wash plates, or ask a friend' });
+        const back = c.backOn[o];
+        if (back !== undefined && back > d.clock.dayCount) subs.push({ id: `back_${o}`, sub: true, label: `The ${officeName(o)} said come back tomorrow`, done: false, hint: 'Try another office today' });
+        return [...subs, step];
       }),
       { id: 'fees', label: 'Pay school fees, dues and the hostel fee', done: step('school1').done && step('dues').done && step('hostel').done, portal: true },
       { id: 'allocation', label: 'Collect your hostel allocation', done: c.allocation, placeId: step('allocation').placeId },

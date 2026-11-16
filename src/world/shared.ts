@@ -7,7 +7,7 @@ import * as THREE from 'three';
 export const gesture = { moved: false, active: false };
 
 /** Where the player character is, so the camera can follow it. */
-export const playerWorld = { pos: new THREE.Vector3(), moving: false };
+export const playerWorld = { pos: new THREE.Vector3(), moving: false, heading: 0 };
 
 /** How far the camera is from the ground (labels) and which way it faces
  *  (yaw, radians), so the joystick moves the player relative to the screen. */

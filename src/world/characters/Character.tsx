@@ -4,7 +4,7 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import type * as THREE from 'three';
 import { vertexColourMaterials } from '../three-utils';
-import { HIP, SHOULDER, characterModel, type LimbGeometry } from './buildCharacter';
+import { FZ, HIP, HY, SHOULDER, characterModel, type LimbGeometry } from './buildCharacter';
 import type { CharacterLook } from './look';
 
 function Limb({ geo, material, renderOrder = 0 }: { geo: LimbGeometry; material?: THREE.Material; renderOrder?: number }) {
@@ -135,6 +135,7 @@ export function Character({ look, walking, pose = 'stand', seated = false, phase
   return (
     <group ref={body}>
       <Limb geo={model.body} material={material} renderOrder={renderOrder} />
+      {pose === 'lie' && !material && <ClosedEyes skin={look.skin} />}
       <group ref={legL} position={[-HIP[0], HIP[1], 0]}>
         <Limb geo={model.legs[0]} material={material} renderOrder={renderOrder} />
       </group>
@@ -152,5 +153,25 @@ export function Character({ look, walking, pose = 'stand', seated = false, phase
         </group>
       </group>
     </group>
+  );
+}
+
+/** Asleep: eyelids down over both eyes, with the lash line showing. */
+function ClosedEyes({ skin }: { skin: string }) {
+  return (
+    <>
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * 0.34, HY + 0.05, FZ + 0.045]}>
+          <mesh>
+            <boxGeometry args={[0.3, 0.27, 0.03]} />
+            <meshLambertMaterial color={skin} />
+          </mesh>
+          <mesh position={[0, -0.05, 0.02]}>
+            <boxGeometry args={[0.24, 0.035, 0.02]} />
+            <meshBasicMaterial color="#1B120D" />
+          </mesh>
+        </group>
+      ))}
+    </>
   );
 }

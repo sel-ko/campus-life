@@ -3,7 +3,7 @@
 // keke stops, gate, and anything you named yourself in the planner).
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import { cameraState } from '../shared';
 import { buildingById, sections } from '../../content/campusMap';
 import { PLACES, PLOTS } from '../../content/places';
@@ -58,20 +58,34 @@ export function CampusLabels() {
         ))}
       </group>
       {home && home.id !== target?.id && <Label text="🏠 Your room" position={[top(home.buildingId)[0], top(home.buildingId)[1] + 3, top(home.buildingId)[2]]} size={1.05} />}
-      {target && <QuestPin position={top(target.buildingId)} text={`👉 ${next!.label.length > 34 ? `${next!.label.slice(0, 32)}…` : next!.label}`} />}
+      {target && <QuestHighlight buildingId={target.buildingId} height={heights.get(target.buildingId) ?? 4} />}
     </group>
   );
 }
 
-/** A bouncing marker over the place your story wants you to go next. */
-function QuestPin({ position, text }: { position: [number, number, number]; text: string }) {
-  const g = useRef<THREE.Group>(null);
+/** The building your story wants you at next glows gold, pulsing gently. */
+function QuestHighlight({ buildingId, height }: { buildingId: string; height: number }) {
+  const b = buildingById.get(buildingId)!;
+  const w = b.plot.x1 - b.plot.x0 + 1.2;
+  const d = b.plot.z1 - b.plot.z0 + 1.2;
+  const h = height + 0.8;
+  const box = useMemo(() => new THREE.BoxGeometry(w, h, d), [w, h, d]);
+  const edges = useMemo(() => new THREE.EdgesGeometry(box), [box]);
+  const fill = useRef<THREE.MeshBasicMaterial>(null);
+  const line = useRef<THREE.LineBasicMaterial>(null);
   useFrame(({ clock }) => {
-    if (g.current) g.current.position.y = position[1] + 6 + Math.sin(clock.elapsedTime * 3) * 1.2;
+    const k = (Math.sin(clock.elapsedTime * 3) + 1) / 2;
+    if (fill.current) fill.current.opacity = 0.2 + k * 0.25;
+    if (line.current) line.current.opacity = 0.55 + k * 0.45;
   });
   return (
-    <group ref={g} position={[position[0], position[1] + 6, position[2]]}>
-      <Label text={text} position={[0, 0, 0]} size={1.3} accent />
+    <group position={[(b.plot.x0 + b.plot.x1) / 2, h / 2, (b.plot.z0 + b.plot.z1) / 2]}>
+      <mesh geometry={box} renderOrder={5}>
+        <meshBasicMaterial ref={fill} color="#F5B83D" transparent opacity={0.2} depthWrite={false} />
+      </mesh>
+      <lineSegments geometry={edges} renderOrder={6}>
+        <lineBasicMaterial ref={line} color="#FFD45C" transparent opacity={1} />
+      </lineSegments>
     </group>
   );
 }

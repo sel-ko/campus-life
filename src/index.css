@@ -36,3 +36,7 @@ body {
 }
 .float-up { animation: float-up 4.2s ease-out forwards; }
 @media (prefers-reduced-motion: reduce) { .float-up { animation: none; } }
+
+/* Scrolling lists without a scrollbar strip down the side. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

@@ -64,7 +64,7 @@ function Room({ layout, night }: { layout: RoomLayout; night: boolean }) {
   const { w, d, wall, floor, outdoor } = layout;
   const side = useMemo(() => new THREE.Color(wall).multiplyScalar(0.9), [wall]);
   const cap = useMemo(() => new THREE.Color(wall).multiplyScalar(0.62), [wall]);
-  const gap = layout.spawn[0];
+  const gap = layout.doorX ?? layout.spawn[0];
   const leftW = gap - 0.8 + w / 2;
   const rightW = w / 2 - (gap + 0.8);
   return (

@@ -41,6 +41,9 @@ export function CameraRig({ start }: { start: [number, number] }) {
   const goal = useRef({ followDist: FOLLOW.start, overviewDist: 0, ox: 0, oz: 0, yaw: 0, tilt: DEFAULT_TILT });
   /** Set when pinching out switched to the map: keep the view where it is. */
   const zoomedOut = useRef(false);
+  // First-person camera while walking somewhere (smoothed).
+  const fp = useRef(new THREE.Vector3());
+  const look = useRef(new THREE.Vector3());
 
   // Changing mode straightens the view; the map view fits the whole campus.
   useEffect(() => {
@@ -201,6 +204,28 @@ export function CameraRig({ start }: { start: [number, number] }) {
     v.yaw += (g.yaw - v.yaw) * kr;
     v.tilt += (g.tilt - v.tilt) * kr;
 
+    const cam = camera as THREE.PerspectiveCamera;
+    const s = useGameStore.getState();
+    const firstPerson = !!s.walkTargetId && s.travelMode === 'walk' && !s.insidePlaceId;
+    if (firstPerson) {
+      // Walking somewhere: see the road through your own eyes.
+      const h = playerWorld.heading;
+      const fx = Math.sin(h);
+      const fz = Math.cos(h);
+      fp.current.lerp(new THREE.Vector3(playerWorld.pos.x - fx * 0.4, 2.1, playerWorld.pos.z - fz * 0.4), 1 - Math.exp(-dt * 8));
+      look.current.lerp(new THREE.Vector3(playerWorld.pos.x + fx * 12, 1.4, playerWorld.pos.z + fz * 12), 1 - Math.exp(-dt * 5));
+      camera.position.copy(fp.current);
+      camera.lookAt(look.current);
+      if (cam.near !== 0.1) {
+        cam.near = 0.1;
+        cam.far = 900;
+        cam.updateProjectionMatrix();
+      }
+      cameraState.dist = 30;
+      return;
+    }
+    fp.current.copy(camera.position);
+    look.current.set(v.x, 0, v.z);
     const flat = v.dist * Math.cos(v.tilt);
     camera.position.set(v.x + flat * Math.sin(v.yaw), v.dist * Math.sin(v.tilt), v.z + flat * Math.cos(v.yaw));
     camera.lookAt(v.x, 0, v.z);
@@ -208,7 +233,6 @@ export function CameraRig({ start }: { start: [number, number] }) {
     cameraState.yaw = v.yaw;
 
     // Keep the depth range tight so roads lying just above the grass never flicker.
-    const cam = camera as THREE.PerspectiveCamera;
     const near = Math.max(0.5, v.dist * 0.04);
     const far = v.dist * 6 + 400;
     if (Math.abs(cam.near - near) > near * 0.15 || Math.abs(cam.far - far) > far * 0.15) {

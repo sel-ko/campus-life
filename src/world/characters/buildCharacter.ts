@@ -15,8 +15,8 @@ import {
 import type { CharacterLook } from './look';
 
 /** Head centre height and face depth, as in the reference. */
-const HY = 2.05;
-const FZ = 0.7;
+export const HY = 2.05;
+export const FZ = 0.7;
 /** Hip and shoulder pivots, where legs and arms rotate. */
 export const HIP: [number, number] = [0.2, 0.68];
 export const SHOULDER: [number, number] = [0.5, 1.3];

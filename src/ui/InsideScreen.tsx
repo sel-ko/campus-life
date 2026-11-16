@@ -10,7 +10,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { getPerson } from '../content/people';
 import { getPlace, sectionName } from '../content/places';
 import { naira } from '../game/format';
-import { getInteractions, getOccupants, isOwnRoom, officesAt, type Interaction, type InteractionKind, type TargetType } from '../game/interactions';
+import { getInteractions, getOccupants, getQueueLength, isOwnRoom, officesAt, type Interaction, type InteractionKind, type TargetType } from '../game/interactions';
 import { crowdLevel, placeEmoji, placeStatus } from '../game/status';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
@@ -21,7 +21,7 @@ import { roomLayout, type Target } from '../world/interior/layouts';
 import { SHOP_ITEMS } from '../content/food';
 import { ErrorBoundary } from './ErrorBoundary';
 import { FloatingJoystick, useJoystickHandlers } from './Joystick';
-import { DayPlanView, EffectChips, NeedsPanel, NeedsStrip, QuestChip } from './lifeUi';
+import { DayPlanView, EffectChips, QuestChip } from './lifeUi';
 import { usePageVisible } from './usePageVisible';
 import { hasWebGL } from './webgl';
 import { SHEET } from './theme';
@@ -116,21 +116,116 @@ function durationMs(i: Interaction): number {
   return i.kind === 'buy' || i.kind === 'levy' ? 1200 : 2200;
 }
 
-function timeText(i: Interaction): string {
-  if (i.kind === 'sleep') return '⏱ Till morning';
-  const s = i.cost?.slots ?? 0;
-  return s ? `⏱ ${s === 1 ? 'The whole slot' : `${s} slots`}` : '⏱ Quick';
-}
+/** How long each thing takes, in plain words. */
+const DURATION: Partial<Record<InteractionKind, string>> = {
+  attend: '2 hrs',
+  test: '1 hr',
+  exam: '3 hrs',
+  orientation: '3 hrs',
+  read: '2 hrs',
+  assignment: '2 hrs',
+  handout: '2 min',
+  project: '3 hrs',
+  supervisor: '30 min',
+  plead: '30 min',
+  office: '20 min',
+  debit: '30 min',
+  issue: '30 min',
+  allocation: '20 min',
+  library: '15 min',
+  eat: '15 min',
+  buy: '2 min',
+  wash_plates: '3 hrs',
+  errands: '3 hrs',
+  sleep: 'Till morning',
+  nap: '2 hrs',
+  cook: '30 min',
+  levy: '1 min',
+  hustle: '4 hrs',
+  setup: '1 hr',
+  treat: '1 hr',
+  talk: '10 min',
+  favour: '10 min',
+  hangout: '3 hrs',
+  exercise: '1 hr',
+  campaign: '3 hrs',
+  party: '5 hrs',
+  vip: '5 hrs',
+  chill: '3 hrs',
+  movie: '2 hrs',
+  owambe: '4 hrs',
+  bank_loan: '30 min',
+  bath: '10 min',
+  toilet: '5 min',
+  wait: '3 hrs',
+};
 
-function ActionRow({ i, onDo }: { i: Interaction; onDo: (i: Interaction) => void }) {
+const EMOJI: Partial<Record<InteractionKind, string>> = {
+  attend: '📘',
+  test: '✏️',
+  exam: '📝',
+  orientation: '🎤',
+  read: '📖',
+  assignment: '✍️',
+  handout: '📄',
+  project: '📑',
+  supervisor: '👨🏾‍🏫',
+  plead: '🙏🏾',
+  office: '🗂️',
+  debit: '🧾',
+  issue: '⚠️',
+  allocation: '🔑',
+  library: '🪪',
+  eat: '🍲',
+  buy: '🛒',
+  wash_plates: '🍽️',
+  errands: '🏃🏾',
+  sleep: '🛏️',
+  nap: '😴',
+  cook: '🍳',
+  levy: '💸',
+  hustle: '💼',
+  setup: '🛠️',
+  treat: '🩺',
+  talk: '💬',
+  favour: '🤝🏾',
+  hangout: '🗣️',
+  exercise: '🏃🏾',
+  campaign: '📣',
+  party: '🪩',
+  vip: '🍾',
+  chill: '🍹',
+  movie: '🎬',
+  owambe: '🎊',
+  bank_loan: '🏦',
+  bath: '🧼',
+  toilet: '🚽',
+  wait: '⏳',
+};
+
+/** Only these keep their extra line; for the rest the chips say it all. */
+const KEEP_DETAIL: InteractionKind[] = ['hustle', 'setup', 'project', 'handout', 'plead', 'library'];
+
+/** People queue at these. */
+const QUEUED: InteractionKind[] = ['office', 'debit', 'issue', 'allocation', 'plead', 'treat', 'library'];
+
+/** About six minutes a person in the queue. */
+const queueText = (n: number) => (n > 0 ? `⏳ ${n} ahead · ~${Math.max(5, n * 6)} min` : '');
+
+function ActionRow({ i, onDo, queue = 0 }: { i: Interaction; onDo: (i: Interaction) => void; queue?: number }) {
+  const q = QUEUED.includes(i.kind) ? queueText(queue) : '';
   return (
     <li className={`rounded-2xl border border-white/10 bg-white/6 p-2.5 ${i.available ? '' : 'opacity-60'}`}>
-      <div className="flex items-start gap-2">
+      <div className="flex items-center gap-2.5">
+        <span className="text-2xl" aria-hidden="true">
+          {EMOJI[i.kind] ?? '•'}
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="leading-tight font-semibold">{i.label}</p>
-          {i.detail && <p className="text-xs text-muted">{i.detail}</p>}
+          <p className="leading-tight font-semibold">{i.label.replace(/^Get your clearance form signed: /, 'Clearance: ')}</p>
+          {i.detail && KEEP_DETAIL.includes(i.kind) && <p className="text-xs text-muted">{i.detail}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-1">
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold">{timeText(i)}</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold">⏱ {DURATION[i.kind] ?? '10 min'}</span>
+            {q && <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-semibold text-amber-200">{q}</span>}
             {i.cost?.money ? <span className="rounded-full bg-sun/20 px-2 py-0.5 text-[11px] font-bold text-sun">{naira(i.cost.money)}</span> : null}
             <EffectChips effects={i.effects} />
           </div>
@@ -159,9 +254,32 @@ function Locker({ game }: { game: GameState }) {
   );
 }
 
+/** Your room's state at a glance: water, light, padlock, and any levy owed. */
+function RoomCondition({ game }: { game: GameState }) {
+  const r = game.room;
+  const items: Array<[string, string, boolean]> = [
+    ['💧', r.water ? 'Water running' : 'No water', r.water],
+    ['💡', r.light ? 'Light on' : 'No light (NEPA)', r.light],
+    [r.padlock ? '🔒' : '🔓', r.padlock ? 'Padlocked' : 'No padlock', r.padlock],
+  ];
+  if (r.levy) items.push(['💸', `Levy owed: ${naira(r.levy)}`, false]);
+  return (
+    <div className="flex flex-col gap-1" aria-label="Room condition">
+      {items.map(([icon, label, good]) => (
+        <span key={label} title={label} aria-label={label} className={`relative grid size-9 place-items-center rounded-full text-base ${good ? 'bg-black/55' : 'bg-red-500/70'}`}>
+          {icon}
+          {!good && icon !== '💸' && <span className="absolute inset-x-1.5 top-1/2 h-0.5 -rotate-45 rounded bg-white/90" />}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 interface Doing {
   i: Interaction;
   activity: Activity;
+  /** Waiting in the queue first (on the benches), with this many people ahead. */
+  queue?: number;
   /** performance.now() when the doing started (after walking there). */
   startedAt: number | null;
   ms: number;
@@ -203,7 +321,6 @@ export function InsideScreen({ game }: { game: GameState }) {
   // After doing something, its card stays closed until you walk to something else.
   const [dismissed, setDismissed] = useState<Target | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const [showNeeds, setShowNeeds] = useState(false);
   const [doing, setDoing] = useState<Doing | null>(null);
   const [float, setFloat] = useState<Float | null>(null);
   const [progress, setProgress] = useState(0);
@@ -225,6 +342,8 @@ export function InsideScreen({ game }: { game: GameState }) {
 
   const doingRef = useRef(doing);
   doingRef.current = doing;
+  const nearRef = useRef(near);
+  nearRef.current = near;
 
   function finish() {
     const d = doingRef.current;
@@ -253,7 +372,13 @@ export function InsideScreen({ game }: { game: GameState }) {
       if (!d?.startedAt) return;
       const p = Math.min(1, (performance.now() - d.startedAt) / d.ms);
       setProgress(p);
-      if (p >= 1) finish();
+      if (p >= 1 && d.queue !== undefined) {
+        // Your turn: off the bench and up to the desk.
+        const next: Doing = { i: d.i, activity: { target: d.i.target, pose: POSES[d.i.kind] ?? 'chat', stage: 'walk' }, startedAt: null, ms: durationMs(d.i) };
+        doingRef.current = next;
+        setProgress(0);
+        setDoing(next);
+      } else if (p >= 1) finish();
       else raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -262,6 +387,7 @@ export function InsideScreen({ game }: { game: GameState }) {
   }, [doing?.startedAt]);
 
   const eventOpen = game.pendingEvent !== null;
+  const queue = placeId ? getQueueLength(game, placeId) : 0;
   const can3d = hasWebGL();
   const handlers = useJoystickHandlers(!!place && can3d && !eventOpen && !showAll);
   if (!place || !placeId || !layout) return null;
@@ -276,6 +402,11 @@ export function InsideScreen({ game }: { game: GameState }) {
     }
     setFloat(null);
     setProgress(0);
+    const q = QUEUED.includes(i.kind) ? queue : 0;
+    if (q > 0 && layout?.fixtures.some((f) => f.target?.type === 'bench')) {
+      setDoing({ i, queue: q, activity: { target: { type: 'bench' }, pose: 'sit', stage: 'walk' }, startedAt: null, ms: Math.min(1500 + q * 450, 6000) });
+      return;
+    }
     setDoing({ i, activity: { target: i.target, pose: POSES[i.kind] ?? 'stand', stage: 'walk' }, startedAt: null, ms: durationMs(i) });
   }
 
@@ -314,7 +445,12 @@ export function InsideScreen({ game }: { game: GameState }) {
                 occupants={occupants}
                 characterId={game.player.characterId}
                 selected={selected}
-                onSelect={(t) => !doingRef.current && setSelected(t)}
+                onSelect={(t) => {
+                  if (doingRef.current) return;
+                  setSelected(t);
+                  // Tapping anywhere else closes the card you were looking at.
+                  if (!t) setDismissed(nearRef.current);
+                }}
                 onNear={(t) => {
                   setNear(t);
                   setDismissed((x) => (x && t && x.type === t.type && (x.id ?? '') === (t.id ?? '') ? x : null));
@@ -334,7 +470,7 @@ export function InsideScreen({ game }: { game: GameState }) {
         <div className="absolute inset-0 overflow-y-auto bg-[#0E161E] px-3 pt-28 pb-8">
           <ul className="mx-auto flex max-w-md flex-col gap-1.5">
             {interactions.map((i) => (
-              <ActionRow key={i.id} i={i} onDo={start} />
+              <ActionRow key={i.id} i={i} onDo={start} queue={queue} />
             ))}
           </ul>
         </div>
@@ -346,32 +482,31 @@ export function InsideScreen({ game }: { game: GameState }) {
       {/* Top: back, the place and what is happening, your status. */}
       {/* Under the top bar (time, journal, money): where you are and what is going on. Leave with the bottom bar. */}
       <header className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 px-3 pt-[calc(max(0.75rem,env(safe-area-inset-top))+3.25rem)]">
-        <div className="flex items-start gap-2">
-          <div className="min-w-0 flex-1 rounded-2xl bg-black/55 px-3 py-1.5 text-white">
-            <p className="truncate text-sm font-bold">
-              {placeEmoji(game, placeId)} {place.name}
-            </p>
-            <p className="truncate text-[11px] text-white/80">
-              <span className={`mr-1 inline-block size-1.5 rounded-full align-middle ${status.tone === 'live' ? 'bg-red-400' : status.tone === 'open' ? 'bg-emerald-400' : status.tone === 'closed' ? 'bg-zinc-400' : 'bg-sky-300'}`} />
-              {status.text || sectionName(place.sectionId)}
-            </p>
-          </div>
-          <button onClick={() => setShowAll(true)} className="pointer-events-auto h-10 shrink-0 rounded-full bg-black/60 px-3 text-sm font-semibold text-white" aria-label="All actions">
-            ⋯
-          </button>
-        </div>
         <div className="flex items-start justify-between gap-2">
-          <QuestChip game={game} />
-          <button onClick={() => setShowNeeds((o) => !o)} aria-label="Your needs" aria-expanded={showNeeds} className="pointer-events-auto shrink-0">
-            <NeedsStrip game={game} />
-          </button>
-        </div>
-        {showNeeds && <div className="pointer-events-auto fixed inset-0" onClick={() => setShowNeeds(false)} aria-hidden="true" />}
-        {showNeeds && (
-          <div className="pointer-events-auto relative mx-auto w-full max-w-sm rounded-3xl border border-white/10 bg-[#14202B]/95 p-3">
-            <NeedsPanel game={game} />
+          <div className="flex min-w-0 flex-col items-start gap-2">
+            {/* Where you are: a small chip like the quest one. */}
+            <div className="pointer-events-auto flex w-fit max-w-[min(20rem,calc(100vw-5rem))] items-center gap-2 rounded-2xl border border-white/10 bg-[#16181F]/90 px-3 py-1.5 text-white shadow-lg">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10 text-sm" aria-hidden="true">
+                {placeEmoji(game, placeId)}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{place.name}</span>
+                <span className="flex items-center gap-1 truncate text-[11px] text-white/75">
+                  <span className={`inline-block size-1.5 shrink-0 rounded-full ${status.tone === 'live' ? 'bg-red-400' : status.tone === 'open' ? 'bg-emerald-400' : status.tone === 'closed' ? 'bg-zinc-400' : 'bg-sky-300'}`} />
+                  <span className="truncate">{status.text || sectionName(place.sectionId)}</span>
+                </span>
+              </span>
+            </div>
+            <QuestChip game={game} />
           </div>
-        )}
+          <div className="pointer-events-auto flex shrink-0 flex-col items-end gap-1.5">
+            <button onClick={() => setShowAll(true)} className="h-10 rounded-full bg-black/60 px-3 text-sm font-semibold text-white" aria-label="All actions">
+              ⋯
+            </button>
+            {ownRoom && <RoomCondition game={game} />}
+            {!ownRoom && queue > 0 && <span className="rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">⏳ {queue} in the queue</span>}
+          </div>
+        </div>
       </header>
 
       {can3d && !doing && <FloatingJoystick />}
@@ -387,7 +522,13 @@ export function InsideScreen({ game }: { game: GameState }) {
               <section className="flex items-center gap-3 rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 shadow-2xl">
                 <div className="min-w-0 flex-1">
                   <p className="font-bold">
-                    {doing.startedAt ? `${DOING[doing.i.kind] ?? 'Busy'}…` : 'On my way…'}
+                    {doing.queue !== undefined
+                      ? doing.startedAt
+                        ? `Waiting in the queue · ${Math.max(1, Math.ceil(doing.queue * (1 - progress)))} ahead`
+                        : 'Joining the queue…'
+                      : doing.startedAt
+                        ? `${EMOJI[doing.i.kind] ?? ''} ${DOING[doing.i.kind] ?? 'Busy'}…`
+                        : 'On my way…'}
                     {sleeping && ' 🌙'}
                   </p>
                   <p className="truncate text-xs text-muted">{doing.i.label}</p>
@@ -406,7 +547,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                 )}
               </section>
             ) : focus ? (
-              <section className="flex max-h-[42vh] flex-col gap-2 overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 shadow-2xl">
+              <section className="no-scrollbar flex max-h-[42vh] flex-col gap-2 overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 shadow-2xl">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold">
                     {focusName}
@@ -423,7 +564,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                 {focusList.length ? (
                   <ul className="flex flex-col gap-1.5">
                     {focusList.map((i) => (
-                      <ActionRow key={i.id} i={i} onDo={start} />
+                      <ActionRow key={i.id} i={i} onDo={start} queue={queue} />
                     ))}
                   </ul>
                 ) : (
@@ -435,9 +576,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                   </button>
                 )}
               </section>
-            ) : (
-              <p className="mx-auto w-fit rounded-full bg-black/60 px-4 py-2 text-center text-xs text-white/90">Drag to walk · go up to anything with a ◆, or tap it</p>
-            )}
+            ) : null}
           </div>
         </div>
       )}
@@ -454,7 +593,7 @@ export function InsideScreen({ game }: { game: GameState }) {
             {ownRoom && <Locker game={game} />}
             <ul className="mt-2 flex flex-col gap-1.5">
               {interactions.map((i) => (
-                <ActionRow key={i.id} i={i} onDo={start} />
+                <ActionRow key={i.id} i={i} onDo={start} queue={queue} />
               ))}
             </ul>
           </section>

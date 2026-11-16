@@ -18,6 +18,8 @@ import { cameraState, playerWorld } from './shared';
 const WALK_SPEED = 8; // metres per second at full joystick
 const MIN_TRAVEL_SPEED = 14; // metres per second after tapping a place
 const MAX_TRAVEL_SECONDS = 6; // long trips speed up so none takes longer than this
+const ON_FOOT_SPEED = 6; // choosing to walk: a real walk, seen in first person
+const MAX_ON_FOOT_SECONDS = 22;
 const HOP = 0.3;
 const DOOR_RANGE = 5;
 const SCALE = 0.7; // a character is about one storey tall
@@ -105,8 +107,13 @@ export function Player({ look }: { look: CharacterLook }) {
       const target = getPlace(store.walkTargetId);
       if (!target) {
         store.cancelWalk();
+      } else if (store.riding && store.rideStop) {
+        // A keke ride drops you at the keke park nearest the place; walk the rest.
+        p.set(store.rideStop[0], 0, store.rideStop[1]);
+        route.current = null;
+        store.reachStop();
       } else if (store.riding) {
-        // A keke ride: arrive straight away; the camera glides over.
+        // A cab (or your car): to the door; the camera glides over.
         p.set(target.position[0], 0, target.position[1]);
         route.current = null;
         store.arrive();
@@ -114,7 +121,8 @@ export function Player({ look }: { look: CharacterLook }) {
         if (!route.current || route.current.target !== target.id) {
           const points = findPath([p.x, p.z], target.position);
           const len = pathLength([p.x, p.z], points);
-          route.current = { target: target.id, points, speed: Math.max(MIN_TRAVEL_SPEED, len / MAX_TRAVEL_SECONDS) };
+          const onFoot = store.travelMode === 'walk';
+          route.current = { target: target.id, points, speed: onFoot ? Math.max(ON_FOOT_SPEED, len / MAX_ON_FOOT_SECONDS) : Math.max(MIN_TRAVEL_SPEED, len / MAX_TRAVEL_SECONDS) };
         }
         const r = route.current;
         let step = r.speed * dt;
@@ -157,6 +165,9 @@ export function Player({ look }: { look: CharacterLook }) {
 
     g.position.copy(p);
     playerWorld.pos.copy(p);
+    playerWorld.heading = g.rotation.y;
+    // Walking somewhere is seen through your own eyes: hide your body.
+    g.visible = !(store.walkTargetId && store.travelMode === 'walk');
   });
 
   return (
