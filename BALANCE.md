@@ -21,8 +21,9 @@ npm run sim -- 50    # quicker
 - **random:** each slot plays one of the three above at random.
 
 Every bot pays fees as soon as it can, eats when hungry (plate washing when
-broke), sleeps at night, sees a doctor when sick and goes through clearance
-office by office. Family background rotates broke / average / comfortable by
+broke), sleeps at night, uses the toilet and bathes, keeps its phone charged
+and buys data when it runs low, sees a doctor when sick and goes through
+clearance office by office (waiting for 8:00 when it is early). Family background rotates broke / average / comfortable by
 seed. Courses: Computer Science (4 years), Mechanical Engineering (5 years),
 Medicine and Surgery (6 years).
 
@@ -55,21 +56,25 @@ _200 seeds per row, generated 2026-11-16._
 ## Reading the table
 
 - **No strategy always wins.** Study gives the best grades, balanced
-  graduates most often, random play still earns 2:1s, and always hustling
-  earns 2:2s and the most money but rarely survives Medicine.
-- **First Class is reachable but rare** for the bots, and only for study or
-  balanced play: about 6% of Medicine runs; on the 4- and 5-year courses the
-  bots peak around 4.15 (90th percentile), just short. The bots are not clever readers (they skip assignments when
-  lectures fill the day and cannot plan around packed GST halls), so a
-  focused human player does better.
-- **Withdrawals** are mostly broke-family runs that fall behind on food and
-  fees in exam weeks.
-- **Clearance** takes the bots 12 to 20 days on average because they also
-  attend lectures and tests from week two; a focused player can finish in
-  about a week.
-- **Hustling through Medicine** almost never graduates: the course is long,
-  the postings demand attendance, and the hustle bot attends half its
-  classes.
+  graduates most often (74 to 83%), random play still earns mostly 2:1s, and
+  always hustling earns 2:2s and the most money but does not survive
+  Medicine (0% in the latest run).
+- **First Class is reachable but rare** for the bots, and only in Medicine:
+  about 15% of study runs and 6% of balanced runs. On the 4- and 5-year
+  courses the bots peak around 4.2 (90th percentile), just short. The bots
+  are not clever readers (they skip assignments when lectures fill the day
+  and cannot plan around packed GST halls), so a focused human player does
+  better.
+- **Withdrawals** (10 to 24%) are mostly broke-family runs that fall behind
+  on food and fees in exam weeks. They rose a little when unrevised courses
+  started to fade (0.25 knowledge a day).
+- **Clearance** takes the bots 4 to 7 days on average: office visits are now
+  timed (about five minutes per person in the queue plus 15 at the desk), but
+  the bots still do only one office per part of the day and attend lectures
+  from week two. A player who starts at 8:00 with the right papers can
+  finish the form in one day.
+- **Hustling through Medicine** does not graduate: the course is long, the
+  postings demand attendance, and the hustle bot attends half its classes.
 
 ## What the tuning changed
 
@@ -96,3 +101,13 @@ _200 seeds per row, generated 2026-11-16._
   at most), GST seats 75% and standing outside teaches 60%, paper
   performance 0.27 + 0.8 × knowledge. Also fixed a dead end where clearance
   running into year two could never finish.
+- Office visits take minutes, not a whole part of the day; queues follow the
+  clock (short at 8:00, longest mid-morning) and offices keep 8:00 to 4:00.
+  "Not on seat" fell to 7% and "come back tomorrow" to 5%, so clearance can
+  be finished in a day.
+- The phone drains 6% a part of the day and uses data; sleeping in a lit room
+  charges it, and the weekly allowance renews 1.5 GB.
+- Exam forms are signed at the College Office on days 8 to 11; missing it
+  costs ₦2,000 at the first exam.
+- Every course loses 0.25 knowledge a day if not revised (first tried at 0.5,
+  which pushed withdrawals up to about 26%).
