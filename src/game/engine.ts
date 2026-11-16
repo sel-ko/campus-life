@@ -33,7 +33,9 @@ export function newGame(setup: NewGameSetup): GameState {
 /** Start of a session (two semesters): fees. */
 export function beginSession(d: GameState, r: Rng): void {
   const firstYear = d.clock.year === 1;
-  d.finance.fees = sessionFees(d.player.programmeId, firstYear);
+  // Clearance not finished: the acceptance fee stays on the portal until it is paid.
+  const owesAcceptance = d.clearance.active && !d.flags.acceptance_paid;
+  d.finance.fees = sessionFees(d.player.programmeId, firstYear || owesAcceptance);
   if (!firstYear) reallocateMut(d, r);
 }
 

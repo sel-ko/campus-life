@@ -33,46 +33,43 @@ years; a run stops after the programme length plus four sessions.
 
 <!-- sim-table -->
 
-_200 seeds per row, generated 2026-11-15._
+_200 seeds per row, generated 2026-11-16._
 
 | Course | Strategy | Graduated | Withdrawn | CGPA p10 / median / p90 | First / 2:1 / 2:2 / 3rd / Pass | Ever broke | Times broke (avg) | Clearance days (avg) | Sessions (avg) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Computer Science (4y) | study | 68% | 27% | 3.10 / 3.29 / 3.53 | 0 / 18 / 116 / 1 / 0 | 33% | 3.6 | 12.6 | 5.0 |
-| Computer Science (4y) | hustle | 55% | 20% | 1.62 / 1.85 / 2.09 | 0 / 0 / 0 / 107 / 2 | 33% | 1.9 | 12.2 | 6.8 |
-| Computer Science (4y) | balanced | 79% | 19% | 2.70 / 3.30 / 3.55 | 0 / 23 / 125 / 9 / 0 | 31% | 2.9 | 12.3 | 5.3 |
-| Computer Science (4y) | random | 79% | 19% | 2.48 / 2.92 / 3.24 | 0 / 1 / 144 / 10 / 2 | 33% | 3.0 | 12.0 | 5.3 |
-| Mechanical Engineering (5y) | study | 68% | 27% | 2.95 / 3.17 / 3.39 | 0 / 4 / 130 / 2 / 0 | 33% | 2.6 | 12.4 | 5.7 |
-| Mechanical Engineering (5y) | hustle | 37% | 28% | 1.58 / 1.74 / 2.00 | 0 / 0 / 0 / 72 / 2 | 33% | 1.1 | 13.3 | 7.4 |
-| Mechanical Engineering (5y) | balanced | 78% | 14% | 2.38 / 3.17 / 3.41 | 0 / 7 / 132 / 16 / 0 | 33% | 2.8 | 11.4 | 6.5 |
-| Mechanical Engineering (5y) | random | 75% | 21% | 2.56 / 2.87 / 3.13 | 0 / 0 / 141 / 9 / 0 | 32% | 1.7 | 11.3 | 6.1 |
-| Medicine and Surgery (6y) | study | 67% | 21% | 3.62 / 3.88 / 4.11 | 0 / 128 / 6 / 0 / 0 | 33% | 3.5 | 11.9 | 6.7 |
-| Medicine and Surgery (6y) | hustle | 1% | 18% | 2.03 / 2.42 / 2.42 | 0 / 0 / 1 / 1 / 0 | 29% | 0.9 | 12.8 | 9.5 |
-| Medicine and Surgery (6y) | balanced | 86% | 9% | 2.68 / 3.77 / 4.04 | 0 / 132 / 33 / 6 / 0 | 32% | 2.0 | 10.8 | 7.2 |
-| Medicine and Surgery (6y) | random | 78% | 17% | 2.83 / 3.23 / 3.54 | 0 / 20 / 133 / 3 / 0 | 28% | 1.3 | 11.2 | 7.1 |
+| Computer Science (4y) | study | 71% | 14% | 3.78 / 3.99 / 4.13 | 0 / 134 / 8 / 0 / 0 | 33% | 4.8 | 15.5 | 5.6 |
+| Computer Science (4y) | hustle | 66% | 12% | 2.79 / 3.01 / 3.22 | 0 / 1 / 131 / 0 / 0 | 33% | 1.9 | 14.3 | 7.1 |
+| Computer Science (4y) | balanced | 82% | 13% | 3.55 / 4.01 / 4.17 | 0 / 149 / 14 / 0 / 0 | 32% | 3.1 | 17.1 | 5.4 |
+| Computer Science (4y) | random | 83% | 12% | 3.47 / 3.74 / 3.92 | 0 / 144 / 21 / 0 / 0 | 32% | 3.1 | 17.7 | 5.5 |
+| Mechanical Engineering (5y) | study | 69% | 12% | 3.79 / 3.97 / 4.12 | 0 / 134 / 4 / 0 / 0 | 33% | 4.6 | 14.8 | 6.6 |
+| Mechanical Engineering (5y) | hustle | 51% | 13% | 2.80 / 2.99 / 3.25 | 0 / 1 / 100 / 0 / 0 | 33% | 1.3 | 14.7 | 8.3 |
+| Mechanical Engineering (5y) | balanced | 88% | 7% | 3.49 / 3.98 / 4.15 | 0 / 158 / 18 / 0 / 0 | 33% | 2.2 | 16.1 | 6.6 |
+| Mechanical Engineering (5y) | random | 83% | 13% | 3.40 / 3.72 / 3.92 | 0 / 142 / 24 / 0 / 0 | 34% | 2.0 | 15.8 | 6.5 |
+| Medicine and Surgery (6y) | study | 68% | 6% | 4.23 / 4.37 / 4.48 | 11 / 124 / 1 / 0 / 0 | 33% | 5.0 | 16.5 | 7.7 |
+| Medicine and Surgery (6y) | hustle | 1% | 6% | 3.30 / 3.61 / 3.61 | 0 / 1 / 1 / 0 / 0 | 28% | 0.8 | 14.6 | 10.5 |
+| Medicine and Surgery (6y) | balanced | 93% | 4% | 3.69 / 4.32 / 4.46 | 12 / 165 / 8 / 0 / 0 | 32% | 2.2 | 17.2 | 7.3 |
+| Medicine and Surgery (6y) | random | 90% | 7% | 3.62 / 3.96 / 4.15 | 0 / 172 / 7 / 0 / 0 | 27% | 1.5 | 16.5 | 7.7 |
 
 <!-- sim-table -->
 
 ## Reading the table
 
-- **No strategy always wins.** Study gives the best grades but graduates no
-  more often than balanced or random play; balanced graduates most; always
-  hustling gives the most money but Third Class at best, and almost never
-  survives Medicine.
-- **None is impossible.** Every strategy graduates on the 4-year and 5-year
-  courses; hustling through Medicine is the one near-impossible case (1%).
-- **Withdrawals (10% to 28%) are mostly broke-family runs:** the fee
-  shortfall plus food leaves them hungry and ill in exam weeks. A careful
-  human who hustles early does better than the bots.
-- **First Class never happened in 2,400 runs.** The bots are not clever
-  readers and every failed attempt stays in the CGPA. It is reachable in
-  principle (study bots reach 4.11 at the 90th percentile in Medicine), but
-  it is rarer than it should be. See the weak spots in the final report.
-- **Clearance takes 11 to 13 days on average** for the bots (they also
-  attend lectures and tests in week two); a focused player can do it in
+- **No strategy always wins.** Study gives the best grades, balanced
+  graduates most often, random play still earns 2:1s, and always hustling
+  earns 2:2s and the most money but rarely survives Medicine.
+- **First Class is reachable but rare** for the bots, and only for study or
+  balanced play: about 6% of Medicine runs; on the 4- and 5-year courses the
+  bots peak around 4.15 (90th percentile), just short. The bots are not clever readers (they skip assignments when
+  lectures fill the day and cannot plan around packed GST halls), so a
+  focused human player does better.
+- **Withdrawals** are mostly broke-family runs that fall behind on food and
+  fees in exam weeks.
+- **Clearance** takes the bots 12 to 20 days on average because they also
+  attend lectures and tests from week two; a focused player can finish in
   about a week.
-- This table was produced just before one last rule fix ("a session with
-  nothing registered means repeating the year"), which bots never trigger
-  because they always register.
+- **Hustling through Medicine** almost never graduates: the course is long,
+  the postings demand attendance, and the hustle bot attends half its
+  classes.
 
 ## What the tuning changed
 
@@ -95,3 +92,7 @@ _200 seeds per row, generated 2026-11-15._
 - At most 26 units a semester including carryovers; exam timetable has room
   for up to 14 papers; a failed final-year project can be redone.
 - Broke families send 85% of fees and ₦7,000 allowance.
+- First Class tuning: a passed carryover replaces its F in the CGPA (as a C
+  at most), GST seats 75% and standing outside teaches 60%, paper
+  performance 0.27 + 0.8 × knowledge. Also fixed a dead end where clearance
+  running into year two could never finish.

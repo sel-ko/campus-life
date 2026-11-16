@@ -147,7 +147,11 @@ describe('grading', () => {
     expect(gpa([{ units: 3, points: 5 }, { units: 1, points: 1 }])).toBe(4);
     const rec = (courses: Array<{ units: number; points: number }>) =>
       ({ courses: courses.map((c) => ({ ...c, code: 'X', title: '', ca: 0, exam: 0, score: 0, grade: 'A' as const, carryover: false })) }) as never;
-    expect(cgpaOf([rec([{ units: 2, points: 5 }]), rec([{ units: 2, points: 3 }])])).toBe(4);
+    expect(cgpaOf([rec([{ units: 2, points: 5 }]), rec([{ units: 2, points: 3 }])])).toBe(3); // same code: the latest attempt counts
+    const named = (code: string, units: number, points: number) => ({ courses: [{ code, title: '', units, points, ca: 0, exam: 0, score: 0, grade: 'A' as const, carryover: false }] }) as never;
+    expect(cgpaOf([named('A', 2, 5), named('B', 2, 3)])).toBe(4);
+    const failed = (code: string, units: number) => ({ courses: [{ code, title: '', units, points: 0, ca: 0, exam: 0, score: 0, grade: 'F' as const, carryover: false }] }) as never;
+    expect(cgpaOf([failed('A', 3), named('B', 3, 4), named('A', 3, 5)])).toBe(3.5); // a passed carryover replaces its F, as a C at most
     expect(classOfDegree(4.5)).toBe('First Class');
     expect(classOfDegree(3.5)).toBe('Second Class Upper');
     expect(classOfDegree(2.4)).toBe('Second Class Lower');

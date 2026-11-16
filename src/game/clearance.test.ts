@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OFFICE_ORDER } from '../content/offices';
 import {
+  blockedBy,
   canCollectAllocation,
   canRegisterLibrary,
   clearanceDays,
@@ -10,6 +11,7 @@ import {
   visitOfficeMut,
   type VisitOutcome,
 } from './clearance';
+import { passSlots } from './engine';
 import { journal } from './journal';
 import { getFee } from './money';
 import { Rng } from './rng';
@@ -102,6 +104,19 @@ describe('office visits', () => {
 });
 
 describe('finishing clearance', () => {
+  it('keeps the acceptance fee payable if clearance runs into the next session (no dead end)', () => {
+    const d = structuredClone(testGame());
+    d.clock = { ...d.clock, semester: 2, day: 14, slot: 3, dayCount: 28 };
+    d.academics.courses = [];
+    passSlots(d, new Rng(1), 1);
+    expect(d.clock.year).toBe(2);
+    expect(getFee(d, 'acceptance')).toBeDefined();
+    expect(blockedBy(d, 'bursary')).toMatch(/acceptance/);
+    getFee(d, 'acceptance')!.paid = true;
+    d.flags.acceptance_paid = d.clock.dayCount;
+    expect(blockedBy(d, 'bursary')).toBeNull();
+  });
+
   it('needs fees, an allocation and the library after the form', () => {
     const d = ready();
     signAll(d);

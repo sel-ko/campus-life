@@ -325,11 +325,13 @@ the code mentioned.
     temperament: strict (learn more, mark harder), gentle (mark kinder),
     handout (always sells one; refusing costs goodwill), absentee (cancels a
     lot), jovial (less stress).
-89. **Every attempt counts** in the CGPA (a failed course and its retake are
-    both on the transcript). An F becomes a carryover in the same semester
-    next session. Failing 24 or more units of the session's own courses
-    means repeating the year. CGPA below 1.00 for two semesters in a row is
-    probation; a third is withdrawal (the game offers a restart).
+89. **CGPA counts each course once, at its latest attempt.** Passing a
+    carryover replaces the earlier F, but counts as a C (3 points) at most
+    (changed in the First Class tuning, see 122). An F becomes a carryover in
+    the same semester next session. Failing 24 or more units of the
+    session's own courses means repeating the year. CGPA below 1.00 for two
+    semesters in a row is probation; a third is withdrawal (the game offers
+    a restart).
 90. **Final year:** if carryovers remain (or the project failed) the player
     spills over into an extra session taking only those courses. Graduation
     needs no carryovers, a passed project and no open result problem.
@@ -477,3 +479,21 @@ the code mentioned.
      and ₦7,000 allowance. The final table is in BALANCE.md.
 121. **"Random" in the simulator** plays one of the other three strategies
      at random each slot (a bot pressing random buttons is not a strategy).
+
+## First Class tuning
+
+122. **Why nobody got a First:** every failed attempt stayed in the CGPA
+     forever, so one rough fresher semester capped a whole degree. Now a
+     passed carryover replaces its F in the CGPA, capped at a C. The
+     semester GPA on the results screen still shows the F.
+123. **A real dead end fixed:** if clearance ran past the end of year one,
+     the new session's fee list dropped the acceptance fee, so the Bursary
+     could never sign and the player could never register again. The
+     acceptance fee now stays on the portal until paid (and paying it is
+     remembered across sessions).
+124. **General-course halls:** 75% chance of a seat when you arrive early
+     (was 65%); standing outside now teaches 60% (was 50%).
+125. **Paper performance** 0.27 + 0.8 × knowledge (was 0.25). With the
+     retake rule above, the simulator now produces occasional Firsts for
+     study and balanced play, 2:1s for most diligent players, 2:2s for
+     hustlers. See BALANCE.md.

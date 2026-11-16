@@ -137,7 +137,7 @@ export const MEDICAL_TEST_FEE = 3000;
 export const START_KNOWLEDGE = 5;
 export const KNOWLEDGE = {
   lecture: 14,
-  outsideFactor: 0.5,
+  outsideFactor: 0.6,
   readLibrary: 11,
   readRoom: 8,
   readDark: 3,
@@ -153,7 +153,7 @@ export const ATTENDANCE_BAR = 0.75;
 /** Absences per course that never bar you (courses meet only 2 to 4 times). */
 export const FREE_ABSENCES = 1;
 /** Paper performance = PERF.base + PERF.slope × knowledge/100, plus luck. */
-export const PERF = { base: 0.25, slope: 0.8 };
+export const PERF = { base: 0.27, slope: 0.8 };
 export const GRADE_BANDS: Array<{ min: number; grade: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'; points: number }> = [
   { min: 70, grade: 'A', points: 5 },
   { min: 60, grade: 'B', points: 4 },
@@ -170,13 +170,15 @@ export const CLASS_OF_DEGREE: Array<{ min: number; name: string }> = [
   { min: 1.0, name: 'Pass' },
 ];
 export const PROBATION_CGPA = 1.0;
+/** A passed carryover replaces its F in the CGPA but counts as a C at most. */
+export const RETAKE_MAX_POINTS = 3;
 /** Failing this many units in one session means repeating the year. */
 export const REPEAT_FAILED_UNITS = 24;
 export const RESULT_ISSUE_CHANCE = 0.04;
 export const ISSUE_RESOLVE_CHANCE = 0.5;
 /** Chance a scheduled lecture is cancelled / moved / moved to a weekend. */
 export const LECTURE_CHANGES = { cancel: 0.06, move: 0.06, weekend: 0.03 };
-export const GST_SEAT_CHANCE = 0.65;
+export const GST_SEAT_CHANCE = 0.75;
 export const GST_BATCH_MOVE_CHANCE = 0.3;
 export const EPS_PROFIT_TARGET = 10000;
 export const PROJECT = { draftPerSession: 35, chapters: 5 };

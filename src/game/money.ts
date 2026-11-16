@@ -209,6 +209,7 @@ export function portalPayMut(d: GameState, r: Rng, id: FeeId): PortalOutcome {
 
 /** What a confirmed payment unlocks straight away. */
 function onFeePaid(d: GameState, id: FeeId): void {
+  if (id === 'acceptance') d.flags.acceptance_paid = d.clock.dayCount || 1;
   // Returning students get their new room as soon as the hostel fee is in.
   if (id === 'hostel' && !d.clearance.active && d.room.temporary) {
     d.room.temporary = false;

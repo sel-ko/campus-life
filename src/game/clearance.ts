@@ -63,7 +63,7 @@ export function blockedBy(d: GameState, id: OfficeId): string | null {
   for (const need of office.needs ?? []) if (!d.clearance.signed[need]) return `${officeName(need)} must sign first`;
   const extra = d.clearance.extraPrereq[id];
   if (extra && !d.clearance.signed[extra]) return `${officeName(extra)} must sign first`;
-  if (office.needsAcceptance && !feePaid(d, 'acceptance')) return 'Pay the acceptance fee on the portal first';
+  if (office.needsAcceptance && !feePaid(d, 'acceptance') && !d.flags.acceptance_paid) return 'Pay the acceptance fee on the portal first';
   return null;
 }
 
@@ -172,7 +172,7 @@ export interface ClearanceStep {
 export function clearanceSteps(d: GameState): ClearanceStep[] {
   const c = d.clearance;
   const steps: ClearanceStep[] = [
-    { id: 'acceptance', label: 'Pay the acceptance fee', done: feePaid(d, 'acceptance'), portal: true },
+    { id: 'acceptance', label: 'Pay the acceptance fee', done: feePaid(d, 'acceptance') || !!d.flags.acceptance_paid, portal: true },
     ...OFFICE_ORDER.map((o) => ({
       id: `office:${o}`,
       label: `Signature: ${officeName(o)}`,

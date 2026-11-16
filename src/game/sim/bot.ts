@@ -26,22 +26,28 @@ interface Ctx {
   s: Strategy;
 }
 
-function go(c: Ctx, placeId: string): boolean {
+function go(c: Ctx, placeId: string, urgent = false, noWalk = false): boolean {
   const { d } = c;
   if (d.location.placeId === placeId) return true;
   const to = getPlace(placeId)!;
   if (to.sectionId === d.location.sectionId) return travelMut(d, c.r, placeId, 'walk');
-  const rich = d.money >= 6000;
+  const rich = urgent || d.money >= 6000;
   if (rich && d.clock.slot !== 3 && travelMut(d, c.r, placeId, 'keke')) return true;
   if (rich && travelMut(d, c.r, placeId, 'cab')) return true;
+  if (noWalk) return false;
   return travelMut(d, c.r, placeId, 'walk') && d.location.placeId === placeId;
 }
 
-function act(c: Ctx, placeId: string, id: string): boolean {
+/** Errands that take no slot must never cost one by walking across campus. */
+function goQuick(c: Ctx, placeId: string): boolean {
+  return go(c, placeId, false, true);
+}
+
+function act(c: Ctx, placeId: string, id: string, urgent = false): boolean {
   // Check first, so the bot never pays a fare for something it cannot do.
   if (!getInteractions(c.d, placeId).some((i) => i.id === id && i.available)) return false;
   const before = c.d.clock;
-  if (!go(c, placeId)) return false;
+  if (!go(c, placeId, urgent)) return false;
   if (c.d.clock !== before && c.d.pendingEvent) return true; // the walk took the slot
   return performMut(c.d, c.r, placeId, id);
 }
@@ -94,7 +100,7 @@ function quickActions(c: Ctx): void {
         const dish = getMenu(d, rest.id)
           .filter((m) => m.fills >= 30 && m.price <= d.money - (c.s === 'hustle' ? 0 : 300))
           .sort((a, b2) => a.price / a.fills - b2.price / b2.fills)[0];
-        if (dish && go(c, rest.id)) performMut(d, c.r, rest.id, `eat:${dish.id}`);
+        if (dish && goQuick(c, rest.id)) performMut(d, c.r, rest.id, `eat:${dish.id}`);
       }
     }
   }
@@ -105,11 +111,11 @@ function quickActions(c: Ctx): void {
   const needManual = d.academics.courses.some((x) => x.kind === 'practical') && !(d.inventory.manual ?? 0) && d.money > 6000;
   if (needManual && d.clock.slot < 3 && (c.s !== 'random' || c.b.chance(0.3))) {
     const shop = getPlace('business-9')!;
-    if (go(c, shop.id)) performMut(d, c.r, shop.id, 'buy:manual');
+    if (goQuick(c, shop.id)) performMut(d, c.r, shop.id, 'buy:manual');
   }
   if ((needDocs || needPassport) && d.money > 1500 && d.clock.slot < 3) {
     const shop = getPlace('business-9')!;
-    if (go(c, shop.id)) {
+    if (goQuick(c, shop.id)) {
       for (const item of ['photocopy', 'passport', 'receipt']) {
         const lacking = OFFICE_ORDER.some((o) => !d.clearance.signed[o] && missingDocs(d, o).includes(item as never)) || (item === 'passport' && needPassport);
         if (lacking) performMut(d, c.r, shop.id, `buy:${item}`);
@@ -162,7 +168,7 @@ function slotAction(c0: Ctx): void {
   const slotBefore = d.clock.slot + d.clock.dayCount * 4;
   const done = () => d.clock.slot + d.clock.dayCount * 4 !== slotBefore || d.pendingEvent !== null || d.phase !== 'playing';
 
-  for (const e of examsNow(d)) if (act(c, e.exam.placeId, `exam:${e.code}`) && done()) return;
+  for (const e of examsNow(d)) if (act(c, e.exam.placeId, `exam:${e.code}`, true) && done()) return;
   // Hungry and broke: wash plates for a free meal.
   if (d.needs.hunger >= 65 && d.money < 800 && d.clock.slot < 3) {
     const rest = nearest(c, (p) => p.type === 'restaurant');
@@ -193,7 +199,7 @@ function slotAction(c0: Ctx): void {
   if (d.clock.slot === 2 && d.location.sectionId !== room.sectionId && !meetingsNow(d).length && !examsNow(d).length) go(c, room.id);
   const attendRate = s === 'study' || s === 'balanced' ? 1 : s === 'hustle' ? 0.55 : 0.6;
   for (const { course, meeting } of meetingsNow(d)) {
-    if (meeting.test || b.chance(attendRate)) if (act(c, meeting.placeId, `attend:${course.code}`) && done()) return;
+    if (meeting.test || b.chance(attendRate)) if (act(c, meeting.placeId, `attend:${course.code}`, meeting.test) && done()) return;
   }
   if (!d.clearance.library && act(c, mainLibrary().id, 'library_register') && done()) return;
   if (officesOpen(d)) {

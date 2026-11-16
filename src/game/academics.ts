@@ -23,6 +23,7 @@ import {
   LAST_LECTURE_DAY,
   LECTURE_CHANGES,
   PROBATION_CGPA,
+  RETAKE_MAX_POINTS,
   PROJECT,
   REPEAT_FAILED_UNITS,
   RESULT_ISSUE_CHANCE,
@@ -58,9 +59,19 @@ export function gpa(courses: Array<{ units: number; points: number }>): number {
   return Math.round((courses.reduce((s, c) => s + c.points * c.units, 0) / units) * 100) / 100;
 }
 
-/** CGPA over every attempt in the transcript, weighted by units. */
+/** CGPA weighted by units. Each course counts once, at its latest attempt:
+ *  passing a carryover replaces the earlier F, but counts as a C at most. */
 export function cgpaOf(transcript: SemesterRecord[]): number {
-  return gpa(transcript.flatMap((r) => r.courses));
+  const latest = new Map<string, { units: number; points: number }>();
+  const failedBefore = new Set<string>();
+  for (const r of transcript) {
+    for (const c of r.courses) {
+      const capped = failedBefore.has(c.code) ? Math.min(c.points, RETAKE_MAX_POINTS) : c.points;
+      latest.set(c.code, { units: c.units, points: capped });
+      if (c.grade === 'F') failedBefore.add(c.code);
+    }
+  }
+  return gpa([...latest.values()]);
 }
 
 export function classOfDegree(cgpa: number): string {
