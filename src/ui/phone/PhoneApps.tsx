@@ -6,7 +6,7 @@ import { ALL_PEOPLE, getPerson } from '../../content/people';
 import { PLACES, getPlace, placeName, sectionName } from '../../content/places';
 import { sections } from '../../content/campusMap';
 import { attendance, classOfDegree, currentCgpa } from '../../game/academics';
-import { BACKGROUNDS, DAY_NAMES, EXAM_DAYS, SEMESTER_DAYS, WEEKEND_DAYS } from '../../game/config';
+import { ALLOWANCE_DAYS, BACKGROUNDS, DAY_NAMES, EXAM_DAYS, SEMESTER_DAYS, WEEKEND_DAYS } from '../../game/config';
 import { naira } from '../../game/format';
 import { canPay, canPayInFull, canRegister, portalIsDown, registrationDeadline } from '../../game/money';
 import { placeHasSomethingNow } from '../../game/interactions';
@@ -316,7 +316,7 @@ export function CalendarApp({ game }: { game: GameState }) {
           return (
             <div key={day} className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm font-semibold ${today ? 'bg-sun text-night' : WEEKEND_DAYS.includes(day) ? 'bg-white/15' : 'bg-white/8'} ${day < game.clock.day ? 'opacity-45' : ''}`}>
               {day}
-              <span className="text-[10px] leading-none">{EXAM_DAYS.includes(day) ? '📝' : day % 7 === 1 ? '₦' : ''}</span>
+              <span className="text-[10px] leading-none">{EXAM_DAYS.includes(day) ? '📝' : ALLOWANCE_DAYS.includes(day) ? '₦' : ''}</span>
             </div>
           );
         })}
@@ -329,8 +329,14 @@ export function CalendarApp({ game }: { game: GameState }) {
         ))}
       </div>
       <ul className="flex flex-col gap-1 text-sm text-muted">
-        <li>₦ Allowance days. 📝 Exam days (12 to 14).</li>
-        <li>Registration deadline: day {registrationDeadline(game)}. Fees due by day 11.</li>
+        <li>₦ Allowance lands every Monday ({ALLOWANCE_DAYS.map((d) => dayLabel(game, d)).join(', ')}). 📝 Exams {dayLabel(game, EXAM_DAYS[0]!)} to {dayLabel(game, EXAM_DAYS[EXAM_DAYS.length - 1]!)}.</li>
+        <li>
+          Registration deadline: {dayLabel(game, registrationDeadline(game))}.{' '}
+          {(() => {
+            const due = game.finance.fees.filter((x) => !x.paid && x.dueSemester === game.clock.semester).sort((a, b) => a.dueDay - b.dueDay)[0];
+            return due ? `Next fee due: ${due.label} by ${dayLabel(game, due.dueDay)}.` : 'No fees due this semester.';
+          })()}
+        </li>
       </ul>
     </div>
   );
@@ -426,7 +432,7 @@ export function WalletApp({ game }: { game: GameState }) {
         <p className="text-sm text-muted">Balance</p>
         <p className="text-4xl font-extrabold text-sun">{naira(game.money)}</p>
         <p className="mt-2 text-sm">
-          {bg.label} family · {naira(bg.allowance)} allowance on days 1 and 8
+          {bg.label} family · {naira(bg.allowance)} allowance every Monday
         </p>
         <p className="text-sm text-muted">
           Earned {naira(game.finance.earned)} · spent {naira(game.finance.spent)}

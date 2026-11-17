@@ -195,7 +195,10 @@ export function feelings(d: GameState): Feeling[] {
   const decor = Object.entries(d.inventory).filter(([k, n]) => n > 0 && ['poster', 'plant', 'fairy_lights', 'duvet', 'rug_decor'].includes(k)).length;
   if (decor >= 2) f('cosy', '🪴', 'Cosy corner', 'Your space feels like home.', 3 + decor * 2);
   if (!d.room.water) f('no_water', '🚱', 'No water', 'The taps are dry in the hostel.', -5);
-  if (!d.room.light) f('no_light', '🕯️', 'NEPA took light', 'Phone at 4%.', -5);
+  if (!d.room.light) {
+    const battery = Math.round(d.phone?.battery ?? 100);
+    f('no_light', '🕯️', 'NEPA took light', battery <= 0 ? 'Phone dead, no fan, no charging.' : `Phone at ${battery}% and nowhere to charge.`, -5);
+  }
   if (d.flags.party_night === d.clock.dayCount || d.flags.party_night === d.clock.dayCount - 1) f('party', '🪩', 'Last night was mad', 'Still feeling the music.', 10);
   return out.sort((a, b) => a.value - b.value);
 }

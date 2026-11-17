@@ -3,29 +3,37 @@
 import { SHOP_ITEMS } from '../content/food';
 import type { GameState } from '../game/types';
 
-const ITEMS: Record<string, { emoji: string; group: 'Papers' | 'Books' | 'Food' | 'Health' | 'Other' }> = {
+const ITEMS: Record<string, { emoji: string; group: 'Papers' | 'Books' | 'Food' | 'Health' | 'Room' | 'Other' }> = {
   photocopy: { emoji: '📄', group: 'Papers' },
   passport: { emoji: '🖼️', group: 'Papers' },
   receipt: { emoji: '🧾', group: 'Papers' },
+  course_form: { emoji: '📝', group: 'Papers' },
   manual: { emoji: '📗', group: 'Books' },
   noodles: { emoji: '🍜', group: 'Food' },
   garri: { emoji: '🥣', group: 'Food' },
   bread: { emoji: '🍞', group: 'Food' },
   eggs: { emoji: '🥚', group: 'Food' },
   water_bag: { emoji: '💧', group: 'Food' },
+  rice: { emoji: '🍚', group: 'Food' },
+  beans: { emoji: '🫘', group: 'Food' },
   paracetamol: { emoji: '💊', group: 'Health' },
   vitamins: { emoji: '🧴', group: 'Health' },
   padlock: { emoji: '🔒', group: 'Other' },
   car: { emoji: '🚗', group: 'Other' },
+  poster: { emoji: '🖼️', group: 'Room' },
+  plant: { emoji: '🪴', group: 'Room' },
+  fairy_lights: { emoji: '✨', group: 'Room' },
+  duvet: { emoji: '🛏️', group: 'Room' },
+  rug_decor: { emoji: '🧶', group: 'Room' },
   phone_upgrade: { emoji: '📱', group: 'Other' },
 };
 
-const GROUPS = ['Papers', 'Books', 'Food', 'Health', 'Other'] as const;
+const GROUPS = ['Papers', 'Books', 'Food', 'Health', 'Room', 'Other'] as const;
 
 /** Everything in the bag, plus handouts and course books you own. */
 export function bagItems(game: GameState): Array<{ id: string; name: string; emoji: string; count: number; group: (typeof GROUPS)[number] }> {
   const out = Object.entries(game.inventory)
-    .filter(([id, n]) => n > 0 && id !== 'airtime')
+    .filter(([id, n]) => n > 0 && !['airtime', 'haircut', 'laundry'].includes(id))
     .map(([id, n]) => ({
       id,
       name: SHOP_ITEMS[id]?.name.replace(/ \(.*\)/, '') ?? id,
@@ -49,7 +57,7 @@ export function BagSheet({ game, onClose }: { game: GameState; onClose: () => vo
       <section
         role="dialog"
         aria-label="Your school bag"
-        className="pointer-events-auto fixed top-[calc(max(0.75rem,env(safe-area-inset-top))+3.25rem)] right-3 z-30 max-h-[60vh] w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-white/10 bg-[#16181F]/95 p-3 shadow-2xl"
+        className="pop-in pointer-events-auto fixed top-[calc(max(0.75rem,env(safe-area-inset-top))+3.25rem)] right-2 z-30 max-h-[min(60vh,calc(100dvh-10rem))] w-[min(17rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#16181F]/95 p-3 shadow-2xl"
       >
         <p className="mb-2 text-sm font-bold">🎒 School bag</p>
         {items.length === 0 && <p className="text-xs text-muted">Empty. Photocopies and passport photos are at the business centre.</p>}

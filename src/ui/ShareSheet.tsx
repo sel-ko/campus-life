@@ -21,7 +21,7 @@ export function ShareSheet({ data, onClose }: { data: ShareCardData; onClose: ()
   }, [data]);
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-night">
+    <div className="fade-in fixed inset-0 z-[70] flex flex-col bg-night">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Share</h2>

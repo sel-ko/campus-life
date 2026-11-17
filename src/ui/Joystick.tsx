@@ -1,7 +1,10 @@
 // Floating joystick for the close-up ("Me") view. Hidden until the player
 // touches and drags on the map; it appears under the finger and disappears on
 // release. A quick tap is left alone so buildings can still be tapped.
-import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
+// Fingers are also tracked on the window: a finger lifted after the map or
+// room under it went away (walking out of a room, a sheet opening) must not
+// leave the stick held down or count as a second finger next time.
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { useJoystickView } from '../store/joystickStore';
 import { joystick } from '../world/input';
 
@@ -17,15 +20,42 @@ export function useJoystickHandlers(enabled: boolean) {
   const fingers = useRef(new Set<number>());
 
   function reset() {
+    const held = touch.current !== null;
     touch.current = null;
+    if (!held) return;
     joystick.x = 0;
     joystick.y = 0;
     joystick.active = false;
     view.hide();
   }
+  const resetRef = useRef(reset);
+  resetRef.current = reset;
+
+  // Lifted anywhere (even off this element, or after it unmounted): forget the finger.
+  useEffect(() => {
+    const up = (e: PointerEvent) => {
+      fingers.current.delete(e.pointerId);
+      if (touch.current?.id === e.pointerId) resetRef.current();
+    };
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      fingers.current.clear();
+      resetRef.current();
+    };
+  }, []);
+
+  // Switched off mid-drag (a sheet opened, the view changed): let go of the stick.
+  useEffect(() => {
+    if (!enabled) resetRef.current();
+  }, [enabled]);
 
   return {
     onPointerDown(e: ReactPointerEvent) {
+      // The first finger down means no other finger is down: drop any we lost track of.
+      if (e.isPrimary) fingers.current.clear();
       fingers.current.add(e.pointerId);
       if (!enabled || fingers.current.size > 1) {
         // A second finger means pinch-to-zoom: drop the joystick.
