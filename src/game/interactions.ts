@@ -951,14 +951,16 @@ export function travelOptions(d: GameState, toPlaceId: string): TravelOption[] {
   // Right next door: no keke man will carry you that far. Just walk.
   const from = getPlace(d.location.placeId);
   const close = !across && !!from && Math.hypot(from.position[0] - to.position[0], from.position[1] - to.position[1]) < CLOSE_BY;
+  // A cab will always come, even for a short hop.
+  const cabRide: TravelOption = { mode: 'cab', label: 'Call a cab', detail: `${naira(cab)} · door to door${ride}${d.clock.slot === 3 ? ' (night rides run)' : ''}`, cost: { money: cab }, ...(d.money < cab ? no(`You need ${naira(cab)}`) : yes) };
   if (close) {
     walk.label = 'Trek';
     walk.detail = `${to.name} is close by`;
-    return [walk, { mode: 'keke', label: 'Take a keke', detail: '', cost: {}, ...no(`${to.name} is close by: walk`) }, { mode: 'cab', label: 'Call a cab', detail: '', cost: {}, ...no(`${to.name} is close by: walk`) }];
+    return [walk, { mode: 'keke', label: 'Take a keke', detail: '', cost: {}, ...no(`${to.name} is close by: walk`) }, ...options, cabRide];
   }
   const rides: TravelOption[] = [
     { mode: 'keke', label: 'Take a keke', detail: `${naira(keke)}${ride || ' · from the keke park'}`, cost: { money: keke }, ...(d.clock.slot === 3 ? no('No kekes at night') : d.money < keke ? no(`You need ${naira(keke)}`) : yes) },
-    { mode: 'cab', label: 'Call a cab', detail: `${naira(cab)} · door to door${ride}${d.clock.slot === 3 ? ' (night rides run)' : ''}`, cost: { money: cab }, ...(d.money < cab ? no(`You need ${naira(cab)}`) : yes) },
+    cabRide,
   ];
   // Close by, walking is the sensible first choice; far away, riding is.
   return across ? [...options, ...rides, walk] : [walk, ...options, ...rides];

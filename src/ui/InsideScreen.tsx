@@ -209,13 +209,13 @@ function ActionRow({ i, onDo, queue = 0, time }: { i: Interaction; onDo: (i: Int
   const total = i.qty ? i.qty.unit * n : i.cost?.money;
   const go = () => onDo(i.qty ? { ...i, id: `${i.id}:${n}`, cost: { ...i.cost, money: total } } : i);
   return (
-    <li className={`rounded-2xl border border-white/10 bg-white/6 p-2.5 ${i.available ? '' : 'opacity-60'}`}>
-      <div className="flex items-center gap-2.5">
-        <span className="text-2xl" aria-hidden="true">
+    <li className={`rounded-xl border border-white/10 bg-white/6 p-2 ${i.available ? '' : 'opacity-60'}`}>
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-xl" aria-hidden="true">
           {EMOJI_AT[i.target.type] ?? EMOJI[i.kind] ?? '•'}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="leading-tight font-semibold">{i.label.replace(/^Get your clearance form signed: /, 'Clearance: ')}</p>
+          <p className="text-sm leading-tight font-semibold">{i.label.replace(/^Get your clearance form signed: /, 'Clearance: ')}</p>
           {i.detail && KEEP_DETAIL.includes(i.kind) && <p className="text-xs text-muted">{i.detail}</p>}
           <div className="mt-1 flex flex-wrap items-center gap-1">
             <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold">⏱ {time}</span>
@@ -226,7 +226,7 @@ function ActionRow({ i, onDo, queue = 0, time }: { i: Interaction; onDo: (i: Int
           {!i.available && i.reason && <p className="mt-1 text-xs font-semibold text-red-300">{i.reason}</p>}
         </div>
         {i.qty && (
-          <span className="flex shrink-0 items-center gap-1 rounded-xl bg-white/8 p-1" aria-label="How many">
+          <span className="flex shrink-0 items-center gap-0.5 rounded-xl bg-white/8 p-0.5" aria-label="How many">
             <button onClick={() => setN((x) => Math.max(1, x - 1))} className="grid size-8 place-items-center rounded-lg bg-white/10 font-bold" aria-label="One fewer">
               −
             </button>
@@ -236,7 +236,7 @@ function ActionRow({ i, onDo, queue = 0, time }: { i: Interaction; onDo: (i: Int
               max={i.qty.max}
               value={n}
               onChange={(e) => setN(Math.max(1, Math.min(i.qty!.max, Number(e.target.value) || 1)))}
-              className="w-9 bg-transparent text-center text-sm font-bold [appearance:textfield]"
+              className="w-8 bg-transparent text-center text-sm font-bold [appearance:textfield]"
               aria-label="Number of copies"
             />
             <button onClick={() => setN((x) => Math.min(i.qty!.max, x + 1))} className="grid size-8 place-items-center rounded-lg bg-white/10 font-bold" aria-label="One more">
@@ -244,7 +244,7 @@ function ActionRow({ i, onDo, queue = 0, time }: { i: Interaction; onDo: (i: Int
             </button>
           </span>
         )}
-        <button onClick={go} disabled={!i.available} className="min-h-10 shrink-0 rounded-xl bg-sun px-3 text-sm font-bold text-night disabled:bg-white/10 disabled:text-muted">
+        <button onClick={go} disabled={!i.available} className="min-h-10 shrink-0 rounded-xl bg-sun px-2.5 text-sm font-bold text-night disabled:bg-white/10 disabled:text-muted">
           {pay ? 'Pay' : i.kind === 'buy' || i.kind === 'eat' ? 'Buy' : 'Do it'}
         </button>
       </div>
@@ -415,7 +415,9 @@ export function InsideScreen({ game }: { game: GameState }) {
   const eventOpen = game.pendingEvent !== null;
   const queue = placeId ? getQueueLength(game, placeId) : 0;
   const can3d = hasWebGL();
-  const handlers = useJoystickHandlers(!!place && can3d && !eventOpen && !showAll);
+  // The joystick always works in a room, even mid-activity (walking off stops
+  // it). Sheets and cards drawn on top take their own touches.
+  const handlers = useJoystickHandlers(!!place && can3d);
   if (!place || !placeId || !layout) return null;
 
   function start(i: Interaction) {
@@ -491,7 +493,12 @@ export function InsideScreen({ game }: { game: GameState }) {
                 }}
                 activity={doing?.activity ?? null}
                 onArrive={() => setDoing((d) => (d && !d.startedAt ? { ...d, activity: { ...d.activity, stage: 'act' }, startedAt: performance.now() } : d))}
-                onCancel={() => setDoing((d) => (d && d.startedAt === null ? null : d))}
+                onCancel={() => {
+                  if (!doingRef.current) return;
+                  doingRef.current = null;
+                  setDoing(null);
+                  setProgress(0);
+                }}
                 onExit={leave}
                 crowd={crowdLevel(game, placeId)}
                 paused={!visible || eventOpen}
@@ -543,7 +550,7 @@ export function InsideScreen({ game }: { game: GameState }) {
         </div>
       </header>
 
-      {can3d && !doing && <FloatingJoystick />}
+      {can3d && <FloatingJoystick />}
 
       {/* What just happened, floating up. */}
       {float && <FloatUp key={float.key} float={float} onDone={() => setFloat(null)} />}
@@ -553,9 +560,9 @@ export function InsideScreen({ game }: { game: GameState }) {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3" style={{ paddingBottom: BOTTOM_BAR_SPACE }}>
           <div className="pointer-events-auto mx-auto max-w-md">
             {doing ? (
-              <section className="flex items-center gap-3 rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 shadow-2xl">
+              <section className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-[#14202B]/95 p-2.5 shadow-2xl">
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold">
+                  <p className="truncate text-sm font-bold">
                     {doing.queue !== undefined
                       ? doing.startedAt
                         ? `Waiting in the queue · ${Math.max(1, Math.ceil(doing.queue * (1 - progress)))} ahead`
@@ -566,7 +573,7 @@ export function InsideScreen({ game }: { game: GameState }) {
                     {sleeping && ' 🌙'}
                   </p>
                   <p className="truncate text-xs text-muted">{doing.i.label}</p>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
                     <div className="h-full rounded-full bg-sun" style={{ width: `${Math.round(progress * 100)}%` }} />
                   </div>
                 </div>
@@ -582,13 +589,13 @@ export function InsideScreen({ game }: { game: GameState }) {
               </section>
             ) : focus ? (
               <ScrollCard>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold">
+                <div className="flex shrink-0 items-center justify-between gap-2">
+                  <h3 className="min-w-0 truncate text-sm font-bold">
                     {focusName}
                     {person && <span className="ml-2 text-xs font-normal text-muted">{person.role.replace('_', ' ')}</span>}
                   </h3>
                   {selected && (
-                    <button onClick={() => setSelected(null)} className="min-h-9 px-2 text-sm text-muted" aria-label="Close">
+                    <button onClick={() => setSelected(null)} className="grid size-10 shrink-0 place-items-center text-sm text-muted" aria-label="Close">
                       ✕
                     </button>
                   )}
@@ -625,15 +632,20 @@ export function InsideScreen({ game }: { game: GameState }) {
 
       {showAll && (
         <div className="fixed inset-0 z-30 bg-black/45" onClick={() => setShowAll(false)}>
-          <section className={`${SHEET} max-h-[75vh]`} style={{ bottom: BOTTOM_BAR_SPACE }} onClick={(e) => e.stopPropagation()}>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-bold">Everything here</h2>
-              <button onClick={() => setShowAll(false)} className="min-h-11 px-3 text-sm text-muted">
+          <section
+            className={SHEET}
+            // Between the top bar and the bottom bar, never over them; the list scrolls.
+            style={{ bottom: BOTTOM_BAR_SPACE, maxHeight: `min(70dvh, calc(100dvh - ${BOTTOM_BAR_SPACE} - 5rem))` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky -top-4 z-10 -mx-4 -mt-4 mb-1 flex items-center justify-between bg-[#14202B] px-4 pt-2">
+              <h2 className="text-base font-bold">Everything here</h2>
+              <button onClick={() => setShowAll(false)} className="min-h-10 px-3 text-sm text-muted">
                 Close
               </button>
             </div>
             {ownRoom && <Locker game={game} />}
-            <ul className="mt-2 flex flex-col gap-1.5">
+            <ul className="mt-1.5 flex flex-col gap-1.5">
               {interactions.map((i) => (
                 <ActionRow key={i.id} i={i} onDo={(x) => (x.kind === "sleep" ? (setShowAll(false), setRecap(x)) : start(x))} queue={queue} time={timeLabel(game, i)} />
               ))}
@@ -677,11 +689,11 @@ function ScrollCard({ children }: { children: React.ReactNode }) {
   useEffect(check);
   return (
     <div className="relative">
-      <section ref={ref} onScroll={check} className="card-scroll flex max-h-[42vh] flex-col gap-2 overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B]/95 p-3 pr-2 shadow-2xl">
+      <section ref={ref} onScroll={check} className="card-scroll flex max-h-[min(42dvh,calc(100dvh-17rem))] min-h-0 flex-col gap-1.5 overflow-y-auto rounded-2xl border border-white/10 bg-[#14202B]/95 p-2.5 pr-1.5 shadow-2xl">
         {children}
       </section>
       {more && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center rounded-b-3xl bg-gradient-to-t from-[#14202B] to-transparent pb-1.5">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-10 items-end justify-center rounded-b-2xl bg-gradient-to-t from-[#14202B] to-transparent pb-1.5">
           <span className="rounded-full bg-sun/90 px-2.5 py-0.5 text-[11px] font-bold text-night">↓ More</span>
         </div>
       )}
@@ -710,15 +722,27 @@ function TabbedActions({ list, render }: { list: Interaction[]; render: (i: Inte
   return (
     <>
       {tabbed && (
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5" role="tablist">
+        // shrink-0: in the scrolling card a scrollable row would otherwise be squeezed to nothing.
+        // Sticky, so the tabs stay in sight while the list under them scrolls.
+        <div className="no-scrollbar sticky -top-2.5 z-10 -mr-1.5 -ml-2.5 flex shrink-0 snap-x gap-1.5 overflow-x-auto bg-[#14202B] py-1.5 pr-1.5 pl-2.5" role="tablist" aria-label="Kinds of things to do">
           {groups.map((g) => (
-            <button key={g.id} role="tab" aria-selected={tab === g.id} onClick={() => setTab(g.id)} className={`min-h-8 shrink-0 rounded-full px-3 text-xs font-semibold ${tab === g.id ? 'bg-sun text-night' : 'bg-white/10'}`}>
-              {g.label} {g.items.length > 1 ? `(${g.items.length})` : ''}
+            <button
+              key={g.id}
+              role="tab"
+              aria-selected={tab === g.id}
+              onClick={(e) => {
+                setTab(g.id);
+                e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+              }}
+              className={`min-h-9 shrink-0 snap-start rounded-full border px-3 text-[13px] font-semibold whitespace-nowrap ${tab === g.id ? 'border-sun bg-sun text-night' : 'border-white/20 bg-white/12 text-white'}`}
+            >
+              {g.label}
+              {g.items.length > 1 && <span className={`ml-1 ${tab === g.id ? 'text-night/70' : 'text-white/70'}`}>{g.items.length}</span>}
             </button>
           ))}
         </div>
       )}
-      <ul className="flex flex-col gap-1.5">{shown.map(render)}</ul>
+      <ul className="flex shrink-0 flex-col gap-1.5">{shown.map(render)}</ul>
     </>
   );
 }
@@ -730,9 +754,9 @@ function DayRecap({ game, onSleep, onCancel }: { game: GameState; onSleep: () =>
   const mood = moodOf(game);
   return (
     <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={onCancel}>
-      <section role="dialog" aria-label="Your day" className="card-scroll max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <section role="dialog" aria-label="Your day" className="card-scroll max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B] p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <p className="text-xs font-semibold tracking-wide text-sun uppercase">Your day</p>
-        <h2 className="text-2xl font-bold">{todayLabel(game)}</h2>
+        <h2 className="text-xl font-bold">{todayLabel(game)}</h2>
         <p className="mt-1 text-sm text-muted">
           {mood.emoji} Feeling {mood.label.toLowerCase()} · {naira(game.money)} left
         </p>
