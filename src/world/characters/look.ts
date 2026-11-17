@@ -3,6 +3,51 @@
 export type HairStyle = 'fade' | 'beard-cap' | 'puffs' | 'braids';
 export type OutfitStyle = 'hoodie' | 'kaftan' | 'tee-jeans' | 'gown';
 
+/** Things worn on top of the outfit. Each has its own colour. */
+export type AccessoryId = 'glasses' | 'sunglasses' | 'cap' | 'beanie' | 'gele' | 'headphones' | 'backpack' | 'watch' | 'earrings' | 'necklace';
+
+export interface AccessoryInfo {
+  id: AccessoryId;
+  name: string;
+  /** Only one item from a slot at a time (one hat, one pair of glasses). */
+  slot?: 'head' | 'eyes';
+  colours: string[];
+}
+
+const DARK = ['#1B1B1F', '#6B4423', '#C2462E', '#2F5D8A', '#C9992E'];
+const CLOTH = ['#1F1F24', '#C2462E', '#2F5D8A', '#2E8B57', '#F2C230', '#8E3B8A', '#E8742A', '#EDE6D6'];
+const METAL = ['#E3B341', '#D9DDE2', '#B87333'];
+
+export const ACCESSORIES: AccessoryInfo[] = [
+  { id: 'glasses', name: 'Glasses', slot: 'eyes', colours: DARK },
+  { id: 'sunglasses', name: 'Shades', slot: 'eyes', colours: ['#1B1B1F', '#C9992E', '#C2462E', '#EDE6D6'] },
+  { id: 'cap', name: 'Cap', slot: 'head', colours: CLOTH },
+  { id: 'beanie', name: 'Beanie', slot: 'head', colours: CLOTH },
+  { id: 'gele', name: 'Gele', slot: 'head', colours: ['#E8742A', '#8E3B8A', '#C9992E', '#2E8B57', '#C2462E', '#2F5D8A'] },
+  { id: 'headphones', name: 'Headset', colours: ['#1F1F24', '#EDE6D6', '#C2462E', '#2F5D8A', '#F2C230'] },
+  { id: 'backpack', name: 'Backpack', colours: ['#E8742A', '#1F1F24', '#2F5D8A', '#C2462E', '#2E8B57', '#8E3B8A'] },
+  { id: 'watch', name: 'Watch', colours: ['#1F1F24', '#6B4423', '#E3B341', '#D9DDE2'] },
+  { id: 'earrings', name: 'Earrings', colours: METAL },
+  { id: 'necklace', name: 'Necklace', colours: METAL },
+];
+
+export function accessoryInfo(id: AccessoryId): AccessoryInfo {
+  return ACCESSORIES.find((a) => a.id === id)!;
+}
+
+/** Puts an item on (taking off anything else in its slot) or takes it off. */
+export function toggleAccessory(look: CharacterLook, id: AccessoryId): CharacterLook {
+  const worn = { ...look.accessories };
+  if (worn[id]) {
+    delete worn[id];
+  } else {
+    const info = accessoryInfo(id);
+    if (info.slot) for (const a of ACCESSORIES) if (a.slot === info.slot) delete worn[a.id];
+    worn[id] = info.colours[0]!;
+  }
+  return { ...look, accessories: worn };
+}
+
 export interface CharacterLook {
   skin: string;
   hairStyle: HairStyle;
@@ -23,6 +68,8 @@ export interface CharacterLook {
   lashes: boolean;
   /** How much the eyebrows tilt. */
   brow: number;
+  /** Worn items and their colours. Missing (older saves) means none. */
+  accessories?: Partial<Record<AccessoryId, string>>;
 }
 
 export type PresetId = 'm1' | 'm2' | 'f1' | 'f2';
@@ -117,8 +164,11 @@ export function randomLook(rand: () => number, gender?: 'male' | 'female'): Char
   const ids = gender ? PRESET_IDS.filter((id) => id.startsWith(gender === 'female' ? 'f' : 'm')) : PRESET_IDS;
   const base = PRESETS[pick(ids)].look;
   const top = pick(TOPS);
+  // Some students wear one thing extra.
+  const extra = rand() < 0.45 ? pick(ACCESSORIES.filter((a) => base.lashes || (a.id !== 'gele' && a.id !== 'earrings'))) : null;
   return {
     ...base,
+    ...(extra ? { accessories: { [extra.id]: pick(extra.colours) } } : {}),
     skin: pick(SKINS),
     colors: {
       ...base.colors,
