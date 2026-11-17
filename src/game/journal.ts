@@ -7,7 +7,11 @@ import { ELECTION_DAY, nextMilestone, upcomingElection } from './goals';
 import { clearanceSteps, missingDocs, officeName, officePlaceId } from './clearance';
 import { naira } from './format';
 import { canRegister, feesDueNow, registrationDeadline } from './money';
-import { EXAM_FORM_DAYS, dayLabel, meetingTime } from './calendar';
+import { EXAM_FORM_DAYS, dayLabel, examTime, meetingTime } from './calendar';
+import { ASSIGNMENT } from './config';
+import { classStart, classState, minutesUntilClass } from './periods';
+import { sideQuests } from './quests';
+import { formatTime } from './time';
 import { DOC_NAMES, OFFICE_ORDER } from '../content/offices';
 import type { GameState } from './types';
 
@@ -70,22 +74,21 @@ const moneyTasks: Producer = (d) => {
   return out;
 };
 
-const SLOT_NAMES = ['morning', 'afternoon', 'evening', 'night'];
-
 const studyTasks: Producer = (d) => {
   const out: JournalTask[] = [];
   const a = d.academics;
   const now = d.clock.day * 4 + d.clock.slot;
   for (const c of a.courses) {
-    // Today's (and tomorrow morning's) lectures, tests and exams.
+    // Today's lectures, tests and exams that you can still make (by the clock).
     for (const m of c.meetings) {
-      const t = m.day * 4 + m.slot;
-      if (m.status !== 'scheduled' || m.attended || t < now || m.day > d.clock.day) continue;
+      if (m.status !== 'scheduled' || m.attended || m.day !== d.clock.day) continue;
+      const st = classState(d, c, m);
+      if (st === 'over') continue;
       out.push({
         id: `lecture:${c.code}:${m.day}:${m.slot}`,
-        text: `${m.test ? 'TEST: ' : ''}${c.code} ${c.kind === 'posting' ? 'posting' : c.kind === 'it' ? 'placement' : 'lecture'}, ${meetingTime(c, m)} at ${placeName(m.placeId)}${m.moved ? ' (moved)' : ''}`,
+        text: `${m.test ? 'TEST: ' : ''}${c.code} ${c.kind === 'posting' ? 'posting' : c.kind === 'it' ? 'placement' : 'lecture'}, ${meetingTime(c, m)} at ${placeName(m.placeId)}${st === 'on' ? ' (on now!)' : ''}${m.moved ? ` (moved${m.from && m.from.day === m.day && m.from.slot !== m.slot ? ` from ${classStart(c, m.from)}` : ''})` : ''}`,
         placeId: m.placeId,
-        urgent: t === now || !!m.test,
+        urgent: st === 'on' || minutesUntilClass(d, c, m) <= 60 || !!m.test,
         group: 'today',
       });
     }
@@ -93,14 +96,15 @@ const studyTasks: Producer = (d) => {
     if (e.status === 'pending' && e.day * 4 + e.slot >= now && e.day <= d.clock.day + 1) {
       out.push({
         id: `exam:${c.code}`,
-        text: `EXAM: ${c.code}, ${dayLabel(d, e.day)} ${SLOT_NAMES[e.slot]}, at ${placeName(e.placeId)}${e.batchMoved ? ' (batch time changed!)' : ''}`,
+        text: `EXAM: ${c.code}, ${dayLabel(d, e.day)} ${examTime(e.slot)}, at ${placeName(e.placeId)}${e.batchMoved ? ' (batch time changed!)' : ''}`,
         placeId: e.placeId,
         urgent: true,
         group: 'today',
       });
     }
-    if (canDoAssignment(d, c).ok && d.clock.day >= 3) {
-      out.push({ id: `assignment:${c.code}`, text: `Submit the ${c.code} assignment (library or room)`, urgent: d.clock.day >= c.assignmentDue - 1, due: c.assignmentDue, group: 'study' });
+    if (canDoAssignment(d, c).ok) {
+      const left = c.assignmentDue - d.clock.day;
+      out.push({ id: `assignment:${c.code}`, text: `Submit the ${c.code} assignment by ${dayLabel(d, c.assignmentDue)}, ${formatTime(c.assignmentDueMin ?? ASSIGNMENT.dueMin)} (library or your desk)`, urgent: left <= 1, due: c.assignmentDue, group: 'study' });
     }
     // Tests coming up this semester.
     for (const m of c.meetings) {
@@ -174,7 +178,16 @@ const goalTasks: Producer = (d) => {
   return out;
 };
 
-const PRODUCERS: Producer[] = [goalTasks, studyTasks, healthTasks, clearanceTasks, moneyTasks, peopleTasks];
+/** The next step of every side quest you have picked up. */
+const sideQuestTasks: Producer = (d) =>
+  sideQuests(d).flatMap((q) => {
+    const o = q.objectives.find((x) => !x.done);
+    if (!o) return [];
+    const left = q.dueDay !== undefined ? q.dueDay - d.clock.dayCount : 99;
+    return [{ id: `side:${q.id}`, text: `${q.title}: ${o.label}${o.progress ? ` (${o.progress.have}/${o.progress.need})` : ''}`, placeId: o.placeId, urgent: left <= 0, group: 'goals' as const }];
+  });
+
+const PRODUCERS: Producer[] = [goalTasks, sideQuestTasks, studyTasks, healthTasks, clearanceTasks, moneyTasks, peopleTasks];
 
 export function journal(d: GameState): JournalTask[] {
   const tasks = PRODUCERS.flatMap((p) => p(d));

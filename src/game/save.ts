@@ -2,6 +2,8 @@
 // than SAVE_VERSION is not migrated (the rules changed too much) and the
 // player starts again with a friendly note.
 import { SAVE_VERSION } from './config';
+import { questsMut } from './quests';
+import { blankQuests } from './state';
 import type { GameState } from './types';
 
 export const RESET_NOTICE =
@@ -24,6 +26,15 @@ export function loadSave(game: unknown): { game: GameState | null; wasReset: boo
     }
     // Saves from before the phone needed charging and data.
     if (out.needs && !out.phone) out = { ...out, phone: { battery: 80, data: 1500 } };
+    // Saves from before the quest log: start one, and mark what is already
+    // done as finished without paying it again. (Courses on such saves have no
+    // assignmentSet, which counts as "given", so their assignments stay open.)
+    if (!out.quests && out.clock && out.academics) {
+      const copy = structuredClone(out);
+      copy.quests = blankQuests();
+      questsMut(copy, true);
+      out = copy;
+    }
     return { game: out, wasReset: false };
   }
   return { game: null, wasReset: true };

@@ -2,12 +2,15 @@
 // matter this semester (orientation, registration, fees, exam forms, tests,
 // the election, exams). The first semester starts on the first Monday of
 // October; the second on the first Monday of February. A game semester is a
-// compressed fortnight, so day 1 is that Monday and day 14 the second Sunday.
+// month of four weeks, so day 1 is that Monday and day 28 the fourth Sunday.
 // Pure: reads the state.
 import { ALLOWANCE_DAYS, EXAM_DAYS, FRESHER_LECTURES_START, LATE_REGISTRATION_CLOSE, ORIENTATION_DAYS, SEMESTER_DAYS } from './config';
 import { ELECTION_DAY, upcomingElection } from './goals';
 import { registrationDeadline } from './money';
 import type { CourseState, GameState, Meeting } from './types';
+import { placeName } from '../content/places';
+import { classWindow, examWindow, windowText } from './periods';
+import { formatTime } from './time';
 
 /** Days of the exam-form signing window (at the College Office). */
 export const EXAM_FORM_DAYS = [15, 16, 17, 18, 19];
@@ -59,36 +62,30 @@ export function todayLabel(d: GameState): string {
 
 // ---------- lecture times ----------
 
-function hashCode(text: string): number {
-  let h = 0;
-  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-/** The periods of a teaching day. Lunch is 12 to 1. */
-export const PERIODS: Array<{ id: string; label: string; start: number; end: number; slot: number; break?: boolean }> = [
-  { id: 'p1', label: '8–10 am', start: 8 * 60, end: 10 * 60, slot: 0 },
-  { id: 'p2', label: '10–12', start: 10 * 60, end: 12 * 60, slot: 0 },
-  { id: 'lunch', label: '12–1 pm', start: 12 * 60, end: 13 * 60, slot: 1, break: true },
-  { id: 'p3', label: '1–3 pm', start: 13 * 60, end: 15 * 60, slot: 1 },
-  { id: 'p4', label: '4–6 pm', start: 16 * 60, end: 18 * 60, slot: 2 },
-];
-
-/** Which period a class falls in (mornings split between 8 and 10 by course). */
-export function meetingPeriod(course: CourseState, meeting: Meeting): (typeof PERIODS)[number] {
-  if (meeting.slot === 0) return PERIODS[hashCode(course.code) % 2]!;
-  if (meeting.slot === 1) return PERIODS[3]!;
-  return PERIODS[4]!;
-}
+export { PERIODS, meetingPeriod, classStart, examStart } from './periods';
 
 /** "8:00–10:00 am" for a class. */
-export function meetingTime(course: CourseState, meeting: Meeting): string {
-  const p = meetingPeriod(course, meeting);
-  const t = (m: number) => {
-    const h = Math.floor(m / 60);
-    return `${h % 12 === 0 ? 12 : h % 12}:${String(m % 60).padStart(2, '0')}`;
-  };
-  return `${t(p.start)}–${t(p.end)} ${p.end >= 12 * 60 ? 'pm' : 'am'}`;
+export function meetingTime(course: Pick<CourseState, 'code'>, meeting: Pick<Meeting, 'slot'>): string {
+  return windowText(classWindow(course, meeting));
+}
+
+/** "9:00 am–12:00 pm" for an exam paper. */
+export function examTime(slot: number): string {
+  return windowText(examWindow(slot));
+}
+
+/** "Thu 8 Oct, 2:00 pm" for a class. */
+export function meetingWhen(d: GameState, course: Pick<CourseState, 'code'>, meeting: Pick<Meeting, 'day' | 'slot'>): string {
+  return `${dayLabel(d, meeting.day)}, ${formatTime(classWindow(course, meeting).start)}`;
+}
+
+/**
+ * A moved class in words, with its new day, time and hall:
+ * "CHM 101 moved to Thu 8 Oct, 2:00 pm at LT2 (was Wed 7 Oct, 8:00 am)".
+ */
+export function movedText(d: GameState, course: Pick<CourseState, 'code'>, meeting: Meeting): string {
+  const was = meeting.from ? ` (was ${meetingWhen(d, course, meeting.from)}${meeting.from.placeId !== meeting.placeId ? `, ${placeName(meeting.from.placeId)}` : ''})` : '';
+  return `${course.code} moved to ${meetingWhen(d, course, meeting)} at ${placeName(meeting.placeId)}${was}`;
 }
 
 // ---------- the calendar ----------
@@ -115,7 +112,12 @@ export function academicCalendar(d: GameState): CalendarEntry[] {
   for (const f of d.finance.fees) if (f.dueSemester === d.clock.semester && f.id !== 'late_reg') out.push({ day: f.dueDay, title: `${f.label} due`, icon: '💸', kind: 'money' });
   for (const day of ALLOWANCE_DAYS) out.push({ day, title: 'Upkeep from home', icon: '₦', kind: 'money' });
   out.push({ day: EXAM_FORM_DAYS[0]!, end: EXAM_FORM_DAYS[EXAM_FORM_DAYS.length - 1], title: 'Exam form signing (College Office)', icon: '✍🏾', kind: 'deadline' });
-  for (const c of d.academics.courses) for (const m of c.meetings) if (m.test) out.push({ day: m.day, title: `${c.code} test, ${meetingTime(c, m)}`, icon: '✏️', kind: 'test' });
+  for (const c of d.academics.courses) for (const m of c.meetings) if (m.test) out.push({ day: m.day, title: `${c.code} test, ${meetingTime(c, m)}${m.moved ? ' (moved)' : ''}`, icon: '✏️', kind: 'test' });
+  // Assignments appear once a lecturer has given them (never before).
+  for (const c of d.academics.courses) {
+    if (c.assignmentSet === null || c.assignmentSet === undefined || c.assignment !== null) continue;
+    out.push({ day: c.assignmentDue, title: `${c.code} assignment due ${formatTime(c.assignmentDueMin ?? 17 * 60)}`, icon: '📄', kind: 'deadline' });
+  }
   if (upcomingElection(d)) out.push({ day: ELECTION_DAY, title: 'Student union election', icon: '🗳️', kind: 'event' });
   out.push({ day: EXAM_DAYS[0]!, end: EXAM_DAYS[EXAM_DAYS.length - 1], title: 'Examinations', icon: '📝', kind: 'exam' });
   out.push({ day: SEMESTER_DAYS, title: d.clock.semester === 1 ? 'First semester ends' : 'Session ends', icon: '🏁', kind: 'academic' });

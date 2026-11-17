@@ -6,6 +6,7 @@ import { LECTURERS, getPerson } from '../content/people';
 import { collegeVenues, gstHalls, medicalCentre, officePlace, placementFor } from '../content/places';
 import type { CourseDef } from './contentTypes';
 import {
+  ASSIGNMENT,
   ATTENDANCE_BAR,
   FREE_ABSENCES,
   PERF,
@@ -34,7 +35,8 @@ import { semesterLoad, totalUnits } from './curriculum';
 import { clamp, log } from './draft';
 import { examFeeBlock } from './money';
 import { hashText, type Rng } from './rng';
-import { isWeekend, weekday } from './time';
+import { classWindow } from './periods';
+import { clockMin, dayName, formatDuration, formatTime, isWeekend, weekday } from './time';
 import type {
   Availability,
   CourseKind,
@@ -191,6 +193,8 @@ export function buildSemester(d: GameState, r: Rng): void {
   const startDay = d.clock.year === 1 && d.clock.semester === 1 && a.level === 1 && !a.repeating ? FRESHER_LECTURES_START : 1;
   const slots = examSlots();
   const examOrder = r.shuffle(defs.filter((x) => hasExam(x.kind)).map((x) => x.code));
+  // Weekday parts of the day already used by some course (moves avoid them).
+  const taken = new Set([...pattern.values()].flat().map((x) => `${x.wd}:${x.slot}`));
 
   a.courses = defs.map((def): CourseState => {
     const lecturerId = lecturerFor(def.code);
@@ -204,22 +208,31 @@ export function buildSemester(d: GameState, r: Rng): void {
         }
       }
     }
-    // Short-notice changes: cancelled, moved to another room, or fixed for a weekend.
+    // Short-notice changes: cancelled, moved to another hall (and often another
+    // time that day), or fixed for a weekend. A moved class remembers where
+    // and when it was, so messages and the timetable can say both.
     const absentee = temperament(lecturerId) === 'absentee';
     for (const m of meetings) {
       if (['it', 'posting', 'chambers'].includes(def.kind)) continue;
+      const from = { day: m.day, slot: m.slot, placeId: m.placeId };
       if (r.chance(LECTURE_CHANGES.cancel + (absentee ? 0.25 : 0))) m.status = 'cancelled';
       else if (r.chance(LECTURE_CHANGES.move)) {
         const other = [...collegeVenues(collegeId, 'lecture_hall'), ...gstHalls()].filter((v) => v.id !== venueId);
-        if (other.length) {
-          m.placeId = r.pick(other).id;
+        if (other.length) m.placeId = r.pick(other).id;
+        if (r.chance(0.5)) {
+          const free = [0, 1, 2].filter((s) => s !== m.slot && !taken.has(`${weekday(m.day)}:${s}`));
+          if (free.length) m.slot = r.pick(free);
+        }
+        if (m.placeId !== from.placeId || m.slot !== from.slot) {
           m.moved = true;
+          m.from = from;
         }
       } else if (r.chance(LECTURE_CHANGES.weekend) && def.kind !== 'gst') {
         const weekend = WEEKEND_DAYS.filter((wdDay) => wdDay > m.day && wdDay <= LAST_LECTURE_DAY);
         if (weekend.length) {
           m.day = weekend[0]!;
           m.moved = true;
+          m.from = from;
         }
       }
     }
@@ -231,6 +244,13 @@ export function buildSemester(d: GameState, r: Rng): void {
       const late = live.filter((m) => m.day >= 10);
       const t = late[0] ?? live[live.length - 1];
       if (t) t.test = true;
+    }
+    // The assignment: the lecturer gives it in class (the second class, as a rule).
+    if (hasAssignment(def)) {
+      const live = meetings.filter((m) => m.status === 'scheduled');
+      const plain = live.filter((m) => !m.test);
+      const a = plain[1] ?? plain[0] ?? live[0];
+      if (a) a.assign = true;
     }
     const examIndex = examOrder.indexOf(def.code);
     const examAt = examIndex >= 0 ? slots[examIndex % slots.length]! : { day: EXAM_DAYS[0]!, slot: 0 };
@@ -249,7 +269,10 @@ export function buildSemester(d: GameState, r: Rng): void {
       knowledge: START_KNOWLEDGE,
       testScore: null,
       assignment: null,
-      assignmentDue: 17,
+      // No assignment on day one: a lecturer gives it in class (see attendMut).
+      assignmentDue: 0,
+      assignmentSet: null,
+      assignmentDueMin: ASSIGNMENT.dueMin,
       handout: { price: handoutPrice(lecturerId, def.code, r), status: 'none' },
       goodwill: 0,
       covered: false,
@@ -348,13 +371,15 @@ export function attendMut(d: GameState, r: Rng, code: string, outside = false): 
   const course = d.academics.courses.find((c) => c.code === code);
   const m = course && meetingsNow(d).find((x) => x.course.code === code)?.meeting;
   if (!course || !m) return 'There is no lecture now.';
+  const lateBy = clockMin(d.clock) - classWindow(course, m).start;
   m.attended = true;
   m.outside = outside;
   d.stats.lecturesAttended += 1;
   d.week.attended += 1;
-  // Every class of a course together covers the same ground, however often it meets.
+  // Every class of a course together covers the same ground, however often it
+  // meets, and every class you sit through teaches you something real.
   const live = Math.max(2, course.meetings.filter((x) => x.status === 'scheduled').length);
-  const perClass = (KNOWLEDGE.lecture * 4) / live;
+  const perClass = Math.max(KNOWLEDGE.lectureMin, (KNOWLEDGE.lecture * 4) / live);
   const base = course.kind === 'posting' || course.kind === 'it' || course.kind === 'chambers' ? KNOWLEDGE.posting : perClass;
   const manual = course.kind === 'practical' && !(d.inventory.manual ?? 0) ? 0.5 : 1;
   const gain = learn(d, course, base * (outside ? KNOWLEDGE.outsideFactor : 1) * manual);
@@ -363,7 +388,12 @@ export function attendMut(d: GameState, r: Rng, code: string, outside = false): 
   let text = outside
     ? `${code}: no seat, so you stood by the window and caught what you could (+${gain} knowledge).`
     : `You attended ${code} (+${gain} knowledge).`;
+  if (lateBy > 10) text += ` You walked in ${formatDuration(lateBy)} late.`;
   if (manual < 1) text += ' No practical manual, so you mostly watched.';
+  if (m.assign && !assignmentGiven(course)) {
+    giveAssignmentMut(d, course);
+    text += ` ${getPerson(course.lecturerId)?.name ?? 'The lecturer'} gave an assignment: due ${assignmentDueText(course)}.`;
+  }
   if (m.test) {
     const score = Math.round(CA.test * performance(d, course, r));
     course.testScore = score;
@@ -387,11 +417,42 @@ export function readMut(d: GameState, code: string, where: 'library' | 'room'): 
   return text;
 }
 
+/** Courses that set an assignment at all. */
+export function hasAssignment(c: Pick<CourseState, 'kind' | 'code'>): boolean {
+  return !['it', 'chambers', 'project', 'posting'].includes(c.kind) && c.code !== 'EPS 312';
+}
+
+/** Has a lecturer given this course's assignment yet? (Old saves: yes.) */
+export function assignmentGiven(c: CourseState): boolean {
+  return c.assignmentSet !== null;
+}
+
+/** The lecturer gives the assignment (in class, or the course rep passes it on). */
+export function giveAssignmentMut(d: GameState, c: CourseState): void {
+  if (assignmentGiven(c) || !hasAssignment(c)) return;
+  c.assignmentSet = d.clock.day;
+  c.assignmentDue = Math.min(d.clock.day + ASSIGNMENT.days, EXAM_DAYS[0]! - 1);
+  c.assignmentDueMin = ASSIGNMENT.dueMin;
+}
+
+/** When it is due, e.g. "next Wed, 5:00 pm" (calendar.ts has the dated version). */
+export function assignmentDueText(c: CourseState, today = c.assignmentSet ?? 0): string {
+  const ahead = c.assignmentDue - today;
+  const day = ahead === 0 ? 'today' : ahead === 1 ? 'tomorrow' : `${ahead >= 7 ? 'next ' : ''}${dayName(c.assignmentDue)}`;
+  return `${day}, ${formatTime(c.assignmentDueMin ?? ASSIGNMENT.dueMin)}`;
+}
+
+/** Past the due day and time? */
+export function assignmentLate(d: GameState, c: CourseState): boolean {
+  if (d.clock.day !== c.assignmentDue) return d.clock.day > c.assignmentDue;
+  return clockMin(d.clock) >= (c.assignmentDueMin ?? ASSIGNMENT.dueMin);
+}
+
 export function canDoAssignment(d: GameState, course: CourseState): Availability {
   if (course.assignment !== null) return { ok: false, reason: 'Already submitted' };
-  if (['it', 'chambers', 'project', 'posting'].includes(course.kind)) return { ok: false, reason: 'No assignment for this one' };
-  if (course.code === 'EPS 312') return { ok: false, reason: 'EPS 312 is marked on your hustle profit' };
-  if (d.clock.day > course.assignmentDue) return { ok: false, reason: 'It is past the due date' };
+  if (!hasAssignment(course)) return { ok: false, reason: course.code === 'EPS 312' ? 'EPS 312 is marked on your hustle profit' : 'No assignment for this one' };
+  if (!assignmentGiven(course)) return { ok: false, reason: 'No assignment yet: the lecturer gives it in class' };
+  if (assignmentLate(d, course)) return { ok: false, reason: 'It is past the due date' };
   return { ok: true };
 }
 
@@ -501,14 +562,23 @@ export function meetSupervisorMut(d: GameState, r: Rng): string {
 
 // ---------- each slot, each day ----------
 
-/** End of a slot: meetings and exams in it that were not attended are missed. */
-export function closeSlot(d: GameState): void {
+/**
+ * End of a slot: meetings and exams in it that were not attended are missed.
+ * Returns the courses whose assignment was given at a class you missed (the
+ * course rep passes it on in the class group).
+ */
+export function closeSlot(d: GameState): CourseState[] {
+  const passedOn: CourseState[] = [];
   for (const course of d.academics.courses) {
     for (const m of course.meetings) {
       if (m.day === d.clock.day && m.slot === d.clock.slot && m.status === 'scheduled' && !m.attended) {
         d.stats.lecturesMissed += 1;
         d.week.missed += 1;
         if (m.test) course.testScore = 0;
+        if (m.assign && !assignmentGiven(course) && hasAssignment(course)) {
+          giveAssignmentMut(d, course);
+          passedOn.push(course);
+        }
       }
     }
     const e = course.exam;
@@ -518,6 +588,7 @@ export function closeSlot(d: GameState): void {
       log(d, `You missed the ${course.code} exam.`);
     }
   }
+  return passedOn;
 }
 
 /** Start of a day: GST exam batches can move at short notice. Returns moved codes. */

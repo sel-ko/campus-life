@@ -151,6 +151,8 @@ export const MEDICAL_TEST_FEE = 3000;
 export const START_KNOWLEDGE = 5;
 export const KNOWLEDGE = {
   lecture: 10,
+  /** Every class attended teaches at least this much (before illness, hunger...). */
+  lectureMin: 7,
   outsideFactor: 0.6,
   // Halved when the semester became a month (twice the days to read in).
   readLibrary: 3.5,
@@ -163,6 +165,8 @@ export const KNOWLEDGE = {
   illFactor: 0.5,
 };
 export const CA = { test: 15, assignment: 10, attendance: 5 };
+/** Assignments are given in class and due this many days later, by this time (minutes since midnight). */
+export const ASSIGNMENT = { days: 7, dueMin: 17 * 60 };
 export const EXAM_MAX = 70;
 export const ATTENDANCE_BAR = 0.75;
 /** Absences per course that never bar you (courses meet only 2 to 4 times). */

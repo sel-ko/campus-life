@@ -111,6 +111,10 @@ export interface Effects {
   borrow?: { from: string; amount: number; days: number };
   /** Lend money to someone. */
   lend?: { to: string; amount: number; days: number };
+  /** Starts a side quest (by id, from src/content/quests.ts). */
+  quest?: string;
+  /** Reputation points. */
+  xp?: number;
 }
 
 // ---------- academics ----------
@@ -127,6 +131,10 @@ export interface Meeting {
   test?: boolean;
   /** Moved to another building, time or a weekend at short notice. */
   moved?: boolean;
+  /** Where and when it was before it moved (day, part of the day, hall). */
+  from?: { day: number; slot: number; placeId: string };
+  /** The lecturer gives the course assignment at this class. */
+  assign?: boolean;
 }
 
 export interface ExamSitting {
@@ -152,8 +160,15 @@ export interface CourseState {
   /** How well the player knows the course, 0 to 100. */
   knowledge: number;
   testScore: number | null;
+  /** The assignment's score once submitted (null: not submitted). */
   assignment: number | null;
+  /** Day of the semester it is due (only meaningful once given). */
   assignmentDue: number;
+  /** Day of the semester the lecturer gave it; null until a class gives it.
+   *  (Missing on old saves: treated as given on day 1.) */
+  assignmentSet?: number | null;
+  /** Time on the due day it must be in by, minutes since midnight. */
+  assignmentDueMin?: number;
   handout: { price: number; status: 'none' | 'bought' | 'refused' };
   /** The lecturer's opinion of the player, -50 to 50. */
   goodwill: number;
@@ -428,6 +443,36 @@ export interface GoalState {
   campaign: number;
 }
 
+// ---------- quests ----------
+
+/** A side quest the player has picked up (from an event, a person or a need). */
+export interface SideQuestState {
+  id: string;
+  /** dayCount it started. */
+  start: number;
+  /** Counter values when it started (progress counts from here). */
+  base: Record<string, number>;
+  /** dayCount it must be finished by (missing: no limit). */
+  due?: number;
+  status: 'active' | 'done' | 'failed';
+  /** dayCount it ended. */
+  end?: number;
+}
+
+export interface QuestState {
+  /** Reputation points: every finished quest adds some. The level comes from it. */
+  xp: number;
+  /** Main-story quests finished, by quest id (dayCount when). Rewards are paid once. */
+  main: Record<string, number>;
+  /** Objective rewards already paid, by key. */
+  paid: Record<string, number>;
+  side: SideQuestState[];
+  /** Running counters of things done (by interaction kind, and kind:target). */
+  counts: Record<string, number>;
+  /** Highest level reached (for the level-up message). */
+  level: number;
+}
+
 export interface Stats {
   lecturesAttended: number;
   lecturesMissed: number;
@@ -507,6 +552,8 @@ export interface GameState {
   lastEventDay: number;
   seenEvents: Record<string, number>;
   goals: GoalState;
+  /** The quest log: main story progress, side quests, XP (filled in on old saves). */
+  quests: QuestState;
   week: WeekCounters;
   stats: Stats;
   /** Your phone: battery (0 to 100) and data left (MB). */

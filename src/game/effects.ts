@@ -3,6 +3,7 @@ import { ALL_PEOPLE } from '../content/people';
 import { worstAttendance, coverAttendanceMut } from './academics';
 import { clamp, log } from './draft';
 import { addMoney, earn, spend } from './money';
+import { addXpMut, startSideQuestMut } from './questState';
 import type { Effects, GameState } from './types';
 
 export function addRel(d: GameState, personId: string, delta: number): void {
@@ -55,6 +56,8 @@ export function applyEffects(d: GameState, e: Effects): void {
       playerOwes: true,
     });
   }
+  if (e.xp) addXpMut(d, e.xp);
+  if (e.quest) startSideQuestMut(d, e.quest);
   if (e.lend && spend(d, e.lend.amount)) {
     d.loans.push({
       id: `lend-${d.clock.dayCount}-${e.lend.to}-${d.loans.length}`,

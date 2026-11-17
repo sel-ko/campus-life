@@ -9,6 +9,7 @@ import { scriptMut, postMut } from './chat';
 import { clamp, log } from './draft';
 import { feesDueNow } from './money';
 import { friendsCount } from './people';
+import { addXpMut } from './questState';
 import type { Rng } from './rng';
 import type { GameState, Objective, Position } from './types';
 
@@ -86,7 +87,7 @@ export function upcomingElection(d: GameState): Election | undefined {
   return ELECTIONS.find((e) => e.level(years) === d.academics.level && RANK[d.goals.position] < RANK[e.position]);
 }
 
-/** Election day (first semester, day 10) for the Student Union ambition. */
+/** Election day (first semester, ELECTION_DAY) for the Student Union ambition. */
 export function electionMut(d: GameState, r: Rng): void {
   if (d.clock.day !== ELECTION_DAY) return;
   const e = upcomingElection(d);
@@ -152,7 +153,8 @@ function reward(d: GameState, o: Objective): void {
   o.done = true;
   d.goals.objectivesDone += 1;
   d.needs.stress = clamp(d.needs.stress - 5);
-  log(d, `Objective done: ${o.label}. You feel on top of things.`);
+  log(d, `Weekly objective done: ${o.label}. You feel on top of things (+15 rep).`);
+  addXpMut(d, 15);
 }
 
 /** After each action: tick off objectives that are met. */

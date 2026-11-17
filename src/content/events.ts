@@ -36,7 +36,7 @@ export const EVENTS: EventDef[] = [
     c('Thank him and walk away', 'Your village people did not get you today.', { stress: 1 }),
   ]),
   ev('clr_queue_friend', 'clearance', { clearance: true, places: ['admin_office'] }, 'Queue friends', 'In the endless clearance queue you meet Damilola, a fresher from your class.', [
-    c('Gist and swap numbers', 'The queue felt shorter. New friend unlocked.', { rel: { dami: 6 }, stress: -3 }),
+    c('Gist and swap numbers', 'The queue felt shorter. New friend unlocked.', { rel: { dami: 6 }, stress: -3, quest: 'dami_friend' }),
     c('Keep to yourself', 'You counted the ceiling tiles. All 84 of them.', { stress: 2 }),
   ]),
   ev('clr_needle', 'clearance', { clearance: true, places: ['clinic'] }, 'The needle', 'The Medical Centre wants a blood sample. You and needles are not friends.', [
@@ -108,11 +108,11 @@ export const EVENTS: EventDef[] = [
     c('Buy a cold drink after', 'The coldest ₦300 you ever spent.', { money: -300, stress: -4 }),
   ]),
   ev('gst_past_questions', 'gst', { levels: [1, 3] }, 'Past questions', 'Someone is selling "GST past questions with answers" in a nylon bag.', [
-    c('Buy for ₦500', 'Half the answers are wrong, but the questions help.', { money: -500, knowledge: 3 }, { cost: 500 }),
-    c('Read the textbook instead', 'Old school. It works.', { knowledge: 2, energy: -4 }),
+    c('Buy for ₦500', 'Half the answers are wrong, but the questions help.', { money: -500, knowledge: 3, quest: 'past_questions' }, { cost: 500 }),
+    c('Read the textbook instead', 'Old school. It works.', { knowledge: 2, energy: -4, quest: 'past_questions' }),
   ]),
   ev('gst_batch_rumour', 'gst', { levels: [1, 3], days: [9, 14] }, 'Batch wahala', 'Rumour: your department\'s GST exam has moved from batch B to batch D.', [
-    c('Confirm with the course rep', 'Tobi checked with the GST unit. Just a rumour.', { rel: { course_rep: 2 }, stress: -2 }),
+    c('Confirm with the course rep', 'Tobi checked with the GST unit. Just a rumour.', { rel: { course_rep: 2 }, stress: -2, quest: 'tobi_rep' }),
     c('Panic', 'You panicked for nothing. Classic WhatsApp.', { stress: 6 }),
   ]),
   ev('gst_seat_saver', 'gst', { places: ['lecture_hall'], levels: [1, 3] }, 'Seat saved', 'Osaze saved you a seat in the packed hall with his bag.', [
@@ -156,7 +156,7 @@ export const EVENTS: EventDef[] = [
 
   // ---------------- tests and results ----------------
   ev('test_leak', 'tests', { days: [5, 11] }, 'The leak', 'Rumour: the test questions have leaked.', [
-    c('Ignore it and read', 'There was no leak. You were ready anyway.', { knowledge: 3, energy: -5 }),
+    c('Ignore it and read', 'There was no leak. You were ready anyway.', { knowledge: 3, energy: -5, quest: 'past_questions' }),
     c('Search for the leak', 'You paid ₦500 for a PDF of last year\'s test.', { money: -500, stress: 5 }),
   ]),
   ev('test_copy', 'tests', { places: LECTURES, days: [7, 11] }, 'Eyes on your paper', 'In the test, your neighbour keeps leaning to copy your work.', [
@@ -176,7 +176,7 @@ export const EVENTS: EventDef[] = [
     c('Sleep and hope', 'Rested, slightly nervous.', { energy: 3, stress: 4 }),
   ]),
   ev('study_group', 'tests', { slots: ['Evening', 'Night'] }, 'Night class', 'Coursemates invite you to a TDB (till day break) study group.', [
-    c('Join them', 'You learnt a lot and drank too much Lipton.', { knowledge: 4, rel: { coursemate: 3 }, energy: -8 }),
+    c('Join them', 'You learnt a lot and drank too much Lipton.', { knowledge: 4, rel: { coursemate: 3 }, energy: -8, quest: 'ify_study' }),
     c('Sleep instead', 'Sleep is also revision. Allegedly.', { energy: 5 }),
   ]),
   ev('exam_panic', 'tests', { days: [11, 14] }, 'Exam week panic', 'Exam week. Your heart is beating like a talking drum.', [
@@ -206,7 +206,7 @@ export const EVENTS: EventDef[] = [
     c('Demand the rest', 'They paid it all, angrily.', { money: 2000, roommates: -3, stress: 3 }),
   ]),
   ev('rm_rota', 'roommates', { places: HOSTEL, roommateTrait: 'tidy' }, 'Cleaning rota', 'The tidy roommate drew up a cleaning rota, laminated.', [
-    c('Agree to it', 'The room has never been cleaner.', { roommates: 3, energy: -3 }),
+    c('Agree to it', 'The room has never been cleaner.', { roommates: 3, energy: -3, quest: 'fresh_start' }),
     c('Pay a junior to do your days', 'Capitalism.', { money: -500, roommates: 1 }),
   ]),
   ev('rm_cousin', 'roommates', { places: HOSTEL }, 'The "cousin"', 'A roommate brought a "cousin" who wants to sleep in the room for a week.', [
@@ -214,7 +214,7 @@ export const EVENTS: EventDef[] = [
     c('Tell the porter', 'The cousin left. The roommate is cold now.', { roommates: -4, stress: -2 }),
   ]),
   ev('rm_alarm', 'roommates', { places: HOSTEL, roommateTrait: 'reader' }, '5 a.m. alarm', 'A roommate\'s 5 a.m. "reading alarm" goes off. Again.', [
-    c('Wake up and read too', 'Early bird catches the GPA.', { knowledge: 3, energy: -5 }),
+    c('Wake up and read too', 'Early bird catches the GPA.', { knowledge: 3, energy: -5, quest: 'past_questions' }),
     c('Throw a pillow', 'Direct hit. War declared.', { roommates: -2, energy: 3 }),
   ]),
   ev('rm_lamp', 'roommates', { places: HOSTEL, lightOff: true }, 'Rechargeable lamp', 'The room wants to contribute for a rechargeable lamp.', [
@@ -245,7 +245,7 @@ export const EVENTS: EventDef[] = [
     c('Manage', 'Garri and groundnut for dinner.', { stress: 4 }),
   ]),
   ev('money_sold_out', 'money', { hasHustle: 'snacks' }, 'Sold out', 'Your snacks sold out fast and customers are asking for more.', [
-    c('Restock now', 'Second round sold out too.', { money: 600, energy: -4 }),
+    c('Restock now', 'Second round sold out too.', { money: 600, energy: -4, quest: 'kelz_hustle' }),
     c('Rest', 'Supply and demand can wait.', { energy: 3 }),
   ]),
   ev('money_fake_alert', 'money', { hasHustle: 'pos' }, 'Screenshot customer', 'A customer shows a "successful transfer" screenshot and wants cash.', [
@@ -253,7 +253,7 @@ export const EVENTS: EventDef[] = [
     c('Give the cash anyway', 'It was fake. Of course it was.', { money: -4000, stress: 6 }),
   ]),
   ev('money_bulk', 'money', { relAbove: ['hustle_partner', 10] }, 'Bulk buying', 'Kelechi suggests buying stock in bulk at the market in Benin. "Profit guaranteed."', [
-    c('Go with him (₦3,000)', 'You came back with sacks of stock.', { money: -3000, rel: { kelz: 3 }, energy: -6 }, { cost: 3000, followUp: { event: 'money_bulk_profit', days: 3 } }),
+    c('Go with him (₦3,000)', 'You came back with sacks of stock.', { money: -3000, rel: { kelz: 3 }, energy: -6, quest: 'kelz_hustle' }, { cost: 3000, followUp: { event: 'money_bulk_profit', days: 3 } }),
     c('Decline', '"You are not serious," he said.', { rel: { kelz: -1 } }),
   ]),
   followup('money_bulk_profit', 'money', 'Bulk paid off', 'The bulk stock sold well. Time to share the profit.', [
@@ -313,7 +313,7 @@ export const EVENTS: EventDef[] = [
     c('ORS and carry on', 'You survived. Barely.', { money: -200, health: -3 }),
   ]),
   ev('health_jogging', 'health', { places: ['field'] }, 'Morning jog', 'Friends invite you to jog round the Sports Complex every morning.', [
-    c('Join them', 'Legs on fire, mind clear.', { health: 5, energy: -6, stress: -4 }),
+    c('Join them', 'Legs on fire, mind clear.', { health: 5, energy: -6, stress: -4, quest: 'fit_life' }),
     c('Maybe next semester', 'Next semester never comes.', { stress: -1 }),
   ]),
   ev('health_skipped_meals', 'health', { hungerAbove: 70 }, 'Stomach orchestra', 'You have been skipping meals. Your stomach is singing in class.', [
@@ -335,7 +335,7 @@ export const EVENTS: EventDef[] = [
     c('Stay and read', 'The group chat pictures look fun though.', { knowledge: 2 }),
   ]),
   ev('fr_help_efiko', 'friends', {}, 'The efiko needs help', 'Ifeoma is stuck on a topic you actually understand.', [
-    c('Explain it to her', 'She now owes you one, and she knows it.', { rel: { ify: 6 }, knowledge: 2, energy: -3 }),
+    c('Explain it to her', 'She now owes you one, and she knows it.', { rel: { ify: 6 }, knowledge: 2, energy: -3, quest: 'ify_study' }),
     c('Pretend you do not know', 'Small pikin behaviour.', { rel: { ify: -1 } }),
   ]),
   ev('fr_smile', 'friends', { places: ['library', 'field'] }, 'A smile', 'Ejiro smiled at you.', [
@@ -347,7 +347,7 @@ export const EVENTS: EventDef[] = [
     c('Say you are reading', 'Books will not hug you, but okay.', { rel: { ejiro: -4 }, knowledge: 2 }),
   ]),
   ev('fr_campaign', 'friends', { levels: [2, 6] }, 'Campaign season', 'Comrade Tega wants you on his campaign team. "We move!"', [
-    c('Join the team', 'Posters, jingles, and late nights.', { rel: { tega: 6, coursemate: 2 }, energy: -6, setFlag: 'campaigner' }),
+    c('Join the team', 'Posters, jingles, and late nights.', { rel: { tega: 6, coursemate: 2 }, energy: -6, setFlag: 'campaigner', quest: 'tega_network' }),
     c('Stay neutral', 'Neutral is also a position.', { stress: -1 }),
   ]),
   ev('fr_fellowship', 'friends', { slots: ['Evening'] }, 'Fellowship', 'Friends invite you to fellowship (or Jumat prayers).', [

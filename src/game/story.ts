@@ -1,15 +1,9 @@
-// The story: your degree told as chapters, each a short list of things you
-// must do, in order. The first chapter is the fresher's first days (freshen
-// up, eat, then the long clearance walk); later chapters follow each semester
-// to graduation. Pure: worked out from the state every time, nothing saved.
-import { PLACES, getPlace, mainBuka, mainLibrary, placeName } from '../content/places';
-import { clearanceSteps, missingDocs, officeName, officePlaceId, signedCount } from './clearance';
-import { DOC_NAMES, OFFICES, OFFICE_ORDER } from '../content/offices';
-import { canRegister, feesDueNow, registrationDeadline } from './money';
-import { addMoney } from './money';
-import { dayLabel, meetingTime } from './calendar';
-import { log } from './draft';
-import type { DocId, GameState } from './types';
+// The story as "chapters" for the screens that show one list of steps (the
+// journal's quest tab, the quest tag over your head, the map marker). It is
+// a view of the quest log in quests.ts: the chapter is the main quest you
+// are on, its steps are that quest's objectives. Pure.
+import { activeMainQuest, questsMut, questLog } from './quests';
+import type { GameState } from './types';
 
 export interface StoryStep {
   id: string;
@@ -31,167 +25,44 @@ export interface StoryStep {
 
 export interface Chapter {
   id: string;
+  /** Quest number in the whole story (1 = the first quest of the game). */
   number: number;
   title: string;
   blurb: string;
   steps: StoryStep[];
 }
 
-const DOC_SHOP = 'business-9';
-
-/** The eatery nearest your hostel (the hostel cafeteria), else the main buka. */
-function nearbyEatery(d: GameState): string {
-  const home = getPlace(d.room.placeId);
-  const near = PLACES.filter((p) => p.type === 'restaurant' && p.menu && p.sectionId === home?.sectionId);
-  return (near.find((p) => /cafeteria/i.test(p.name)) ?? near[0] ?? mainBuka()).id;
-}
-const PLURAL: Record<DocId, string> = { photocopy: 'photocopies of your credentials', passport: 'passport photographs', receipt: 'receipts' };
-
-function fresherChapter(d: GameState): Chapter {
-  const c = d.clearance;
-  const clr = clearanceSteps(d);
-  const step = (id: string) => clr.find((s) => s.id === id)!;
-  const signed = signedCount(d);
-  const firstUnsigned = OFFICE_ORDER.find((o) => !c.signed[o]);
-  const haveDocs = (d.inventory.photocopy ?? 0) + (d.inventory.passport ?? 0) > 0 || signed > 0;
-  return {
-    id: 'fresher',
-    number: 1,
-    title: 'Welcome, fresher',
-    blurb: 'You made it in. Before you are a real student, you must survive clearance.',
-    steps: [
-      { id: 'bath', reward: 300, label: 'Freshen up: take a bath', done: !!d.flags.bathed || signed > 0, placeId: d.room.placeId, hint: 'Walk into the bathroom in your room' },
-      { id: 'eat', reward: 300, label: 'Eat something', done: d.stats.meals > 0 || signed > 0, placeId: nearbyEatery(d), hint: 'The hostel cafeteria, or cook in your room' },
-      // Fees first: no office signs for a student who has not paid.
-      { id: 'acceptance', label: 'Pay the acceptance fee', done: step('acceptance').done, portal: true, hint: 'Phone → School app → Fees' },
-      { id: 'school1', label: 'Pay your school fees (half or full)', done: step('school1').done, portal: true, hint: 'Phone → School app → Fees. Dad sent the money' },
-      { id: 'dues', label: 'Pay your departmental dues', done: step('dues').done, portal: true },
-      { id: 'hostel', label: 'Pay your hostel fee', done: step('hostel').done, portal: true },
-      { id: 'docs', label: 'Get photocopies, passport photos and the printed receipt', done: haveDocs, placeId: DOC_SHOP, hint: 'Business Centre. Every office keeps some paper' },
-      // The clearance route: one office at a time, in order, each with what to bring.
-      ...OFFICE_ORDER.flatMap((o, i): StoryStep[] => {
-        const office = OFFICES[o];
-        const bring = (Object.entries(office.docs) as Array<[DocId, number]>).map(([doc, n]) => (n > 1 ? `${n} ${PLURAL[doc]}` : `1 ${DOC_NAMES[doc]}`)).join(', ');
-        const placeId = officePlaceId(d, o);
-        const step: StoryStep = {
-          id: `office_${o}`,
-          reward: i === OFFICE_ORDER.length - 1 ? 1500 : 200,
-          label: `${i === 0 ? 'Start clearance at the' : 'Signature:'} ${officeName(o)} (${placeName(placeId)})${bring ? ` · 📄 ${bring}` : ''}${office.fee ? ` · ₦${office.fee.toLocaleString('en-NG')}` : ''}`,
-          done: c.signed[o],
-          placeId,
-          hint: [bring && `Bring ${bring}`, office.fee ? `Fee ${office.fee.toLocaleString('en-NG')} naira` : '', 'Open weekday mornings and afternoons'].filter(Boolean).join(' · '),
-        };
-        if (c.signed[o]) return [step];
-        // Follow-ups for the office you are on (or one that turned you back).
-        const current = o === firstUnsigned || c.backOn[o] !== undefined || c.extraPrereq[o] !== undefined;
-        if (!current) return [step];
-        const subs: StoryStep[] = [];
-        const missing = missingDocs(d, o);
-        // Each follow-up remembers the office that gave it (`at`).
-        if (missing.length) subs.push({ id: `docs_${o}`, sub: true, at: placeId, label: `Get ${missing.map((m) => DOC_NAMES[m]).join(' and ')} at the Business Centre`, done: false, placeId: DOC_SHOP, hint: `The ${officeName(o)} will not sign without it` });
-        for (const need of [...(office.needs ?? []), ...(c.extraPrereq[o] ? [c.extraPrereq[o]!] : [])]) {
-          if (!c.signed[need]) subs.push({ id: `first_${o}_${need}`, sub: true, at: placeId, label: `The ${officeName(o)} wants the ${officeName(need)} signature first`, done: false, placeId: officePlaceId(d, need) });
-        }
-        if (office.needsAcceptance && !clr[0]!.done) subs.push({ id: `acc_${o}`, sub: true, at: placeId, label: 'Pay the acceptance fee before the Bursary', done: false, portal: true });
-        if (office.fee && d.money < office.fee) subs.push({ id: `fee_${o}`, sub: true, at: placeId, label: `Find ${office.fee.toLocaleString('en-NG')} naira for the ${officeName(o)} fee`, done: false, hint: 'Call home from your phone (Wallet), or wash plates' });
-        const back = c.backOn[o];
-        if (back !== undefined && back > d.clock.dayCount) subs.push({ id: `back_${o}`, sub: true, at: placeId, label: `The ${officeName(o)} said come back tomorrow`, done: false, hint: 'Try another office today' });
-        return [...subs, step];
-      }),
-      { id: 'allocation', label: 'Collect your hostel allocation', done: c.allocation, placeId: step('allocation').placeId },
-      { id: 'library', reward: 500, label: 'Register at the library', done: c.library, placeId: mainLibrary().id, hint: 'Bring one passport photograph' },
-    ],
-  };
-}
-
-function firstLecturesChapter(d: GameState): Chapter {
-  const reg = canRegister(d);
-  const nextClass = upcomingClass(d);
-  return {
-    id: 'student',
-    number: 2,
-    title: 'Officially a student',
-    blurb: 'Clearance is done. Now the real work: register, go to class, find your people.',
-    steps: [
-      { id: 'register', label: `Register your courses (by ${dayLabel(d, registrationDeadline(d))})`, done: d.academics.registered, portal: true, hint: reg.ok || d.academics.registered ? 'Phone → School app → Courses' : reg.reason },
-      { id: 'lecture', reward: 500, label: 'Attend your first lecture', done: d.stats.lecturesAttended > 0, placeId: nextClass?.placeId, hint: nextClass?.text },
-      { id: 'friend', reward: 500, label: 'Make a friend on campus', done: Object.values(d.people).some((p) => p.rel >= 30), hint: 'Talk to people you meet in class, at the buka, at the field' },
-      { id: 'read', label: 'Read for one course', done: d.academics.courses.some((c) => c.knowledge >= 20) || d.academics.transcript.length > 0, placeId: mainLibrary().id, hint: 'At your desk or in the library' },
-    ],
-  };
-}
-
-function semesterChapter(d: GameState, number: number): Chapter {
-  const a = d.academics;
-  const nextClass = upcomingClass(d);
-  const fees = feesDueNow(d);
-  const examsLeft = a.courses.filter((c) => c.exam.status === 'pending');
-  const examDay = Math.min(...a.courses.map((c) => c.exam.day).filter(Boolean), 99);
-  const level = a.level * 100;
-  const sem = d.clock.semester === 1 ? 'First' : 'Second';
-  const steps: StoryStep[] = [
-    { id: 'fees', label: 'Pay what the school is owed', done: fees.length === 0, portal: true, hint: fees.map((f) => f.label).join(', ') || undefined },
-    { id: 'register', label: `Register this semester's courses (by ${dayLabel(d, registrationDeadline(d))})`, done: a.registered, portal: true },
-    { id: 'classes', label: nextClass ? `Next class: ${nextClass.text}` : 'No more classes this semester', done: !nextClass, placeId: nextClass?.placeId },
-    { id: 'exams', label: examsLeft.length ? `Write your exams (from ${dayLabel(d, examDay)})` : 'Exams written', done: examsLeft.length === 0 && a.courses.length > 0, placeId: examsLeft[0]?.exam.placeId },
-  ];
-  if (a.project && !a.project.defended) {
-    steps.push({ id: 'project', label: `Finish your project (${a.project.chapters}/5 chapters)`, done: false, hint: 'Write at your desk, then see your supervisor' });
-  }
-  return {
-    id: `sem-${d.clock.year}-${d.clock.semester}`,
-    number,
-    title: `${level} Level, ${sem} Semester`,
-    blurb: a.project ? 'Final year. One more push and you are a graduate.' : 'Keep your CGPA up, your stomach full and your friends close.',
-    steps,
-  };
-}
-
-/** Today's (or the next) class you have not attended yet. */
-function upcomingClass(d: GameState): { placeId: string; text: string } | null {
-  const now = d.clock.day * 4 + d.clock.slot;
-  let best: { t: number; placeId: string; text: string } | null = null;
-  for (const c of d.academics.courses) {
-    for (const m of c.meetings) {
-      const t = m.day * 4 + m.slot;
-      if (m.status !== 'scheduled' || m.attended || t < now) continue;
-      if (!best || t < best.t) best = { t, placeId: m.placeId, text: `${c.code}, ${m.day === d.clock.day ? (t === now ? `NOW, ${meetingTime(c, m)}` : `today ${meetingTime(c, m)}`) : `${dayLabel(d, m.day)} ${meetingTime(c, m)}`}` };
-    }
-  }
-  return best;
-}
-
-/** The chapter you are in now. */
+/** The main quest you are on now, as a chapter. */
 export function currentChapter(d: GameState): Chapter {
-  if (d.clearance.active) return fresherChapter(d);
-  const first = d.clock.year === 1 && d.clock.semester === 1;
-  if (first) {
-    const ch = firstLecturesChapter(d);
-    if (ch.steps.some((s) => !s.done)) return ch;
-  }
-  const semestersIn = (d.clock.year - 1) * 2 + d.clock.semester;
-  return semesterChapter(d, semestersIn + 1);
+  const log = questLog(d);
+  const q = log.current ?? log.main[log.main.length - 1]!;
+  const steps: StoryStep[] = q.objectives.map((o) => ({
+    id: o.id,
+    label: o.progress && o.progress.need > 1 && !/\d+\/\d+/.test(o.label) ? `${o.label} (${o.progress.have}/${o.progress.need})` : o.label,
+    done: o.done,
+    placeId: o.placeId,
+    portal: o.portal,
+    hint: o.hint,
+    reward: o.reward,
+    sub: o.sub,
+    at: o.at,
+  }));
+  // The quest's own reward shows on its last step.
+  const last = [...steps].reverse().find((s) => !s.sub);
+  if (last && q.reward.money && !last.reward) last.reward = q.reward.money;
+  return { id: q.id, number: log.finished + 1, title: q.title, blurb: `${q.blurb} Reward: ${q.reward.text}.`, steps };
 }
 
-/** The next unfinished step of the current chapter. */
+/** The next unfinished step of the current main quest (optional ones last). */
 export function nextStep(d: GameState): StoryStep | null {
-  return currentChapter(d).steps.find((s) => !s.done) ?? null;
+  const q = activeMainQuest(d);
+  if (!q) return null;
+  const ch = currentChapter(d);
+  const required = new Set(q.objectives.filter((o) => !o.optional).map((o) => o.id));
+  return ch.steps.find((s) => !s.done && required.has(s.id)) ?? ch.steps.find((s) => !s.done) ?? null;
 }
 
-/**
- * Pays each finished story step's reward once (a little encouragement from
- * home: "well done, here is something"). Called after anything that could
- * finish a step.
- */
+/** Pays finished quests and objectives (kept under its old name for callers). */
 export function storyRewardsMut(d: GameState): void {
-  if (d.phase !== 'playing') return;
-  const ch = currentChapter(d);
-  for (const s of ch.steps) {
-    if (!s.done || !s.reward) continue;
-    const key = `story_${ch.id}_${s.id}`;
-    if (d.flags[key]) continue;
-    d.flags[key] = d.clock.dayCount;
-    addMoney(d, s.reward);
-    log(d, `Quest done: ${s.label.replace(/ \(.*\)$/, '')}. Your people sent ₦${s.reward.toLocaleString('en-NG')} to say well done.`);
-  }
+  questsMut(d);
 }

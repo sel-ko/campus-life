@@ -4,7 +4,7 @@
 // the exported pure versions copy the state first.
 import { buildSemester, closeSlot, endOfSession, moveGstBatches, semesterResults } from './academics';
 import { chatDayMut, scriptMut, semesterChatMut, setupChatMut } from './chat';
-import { ALLOWANCE_DAYS, FORGET_PER_DAY } from './config';
+import { ALLOWANCE_DAYS, ASSIGNMENT, FORGET_PER_DAY } from './config';
 import { dueEventsMut } from './events';
 import { checkMilestonesMut, electionMut, finalMilestonesMut, newWeekMut } from './goals';
 import { log, produce } from './draft';
@@ -17,7 +17,9 @@ import { checkCollapse, hangoverMut, nightWithoutSleep, tickNeeds } from './need
 import { loansDayMut } from './people';
 import { Rng } from './rng';
 import { blankState, type NewGameSetup } from './state';
-import { SLOT_END, SLOT_START, clockMin, slotName, stepClock } from './time';
+import { SLOT_END, SLOT_START, clockMin, formatTime, slotName, stepClock } from './time';
+import { dayLabel } from './calendar';
+import { questsMut } from './quests';
 import type { GameState } from './types';
 
 // ---------- starting ----------
@@ -109,7 +111,11 @@ export function endSemester(d: GameState, r: Rng): void {
 /** Moves time on by one slot, running end-of-day and end-of-semester rules. */
 export function passSlot(d: GameState, r: Rng): void {
   if (d.phase !== 'playing') return;
-  closeSlot(d);
+  // An assignment given at a class you missed: the course rep passes it on.
+  for (const c of closeSlot(d)) {
+    postMut(d, 'class', 'tobi', `📌 ${c.code} assignment from today's class: due ${dayLabel(d, c.assignmentDue)}, ${formatTime(c.assignmentDueMin ?? ASSIGNMENT.dueMin)}. Submit on time o!`);
+    log(d, `You missed the ${c.code} class where the lecturer gave an assignment. Tobi posted it in the class group: due ${dayLabel(d, c.assignmentDue)}.`);
+  }
   tickNeeds(d);
   drainPhoneMut(d);
   checkCollapse(d);
@@ -167,5 +173,6 @@ export function waitSlot(state: GameState): GameState {
   return produce(state, (d, r) => {
     log(d, 'You rested and let time pass.');
     advance(d, r, 1);
+    questsMut(d);
   });
 }

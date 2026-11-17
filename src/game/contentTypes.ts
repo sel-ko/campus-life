@@ -315,3 +315,49 @@ export interface ObjectiveDef {
   when?: { clearance?: boolean; lectures?: boolean; hustle?: boolean; project?: boolean; feesDue?: boolean; examWeek?: boolean };
   draft: true;
 }
+
+// ---------- side quests ----------
+
+/** How a side-quest objective is checked. `count` counts things done since the
+ *  quest started: by interaction kind ("read", "hustle"), kind and target
+ *  ("talk:ify"), or "read@library". */
+export type QuestCheck =
+  | { kind: 'count'; key: string; need: number }
+  | { kind: 'money'; atLeast: number }
+  | { kind: 'rel'; person: string; atLeast: number }
+  | { kind: 'healthy' };
+
+export interface SideQuestObjectiveDef {
+  id: string;
+  label: string;
+  check: QuestCheck;
+  /** Where it is usually done (a kind of place), for the Go button. */
+  placeType?: PlaceType;
+  hint?: string;
+}
+
+export interface SideQuestDef {
+  id: string;
+  title: string;
+  /** Person id who gives it ('self' for things you set yourself). */
+  giver: string;
+  blurb: string;
+  objectives: readonly SideQuestObjectiveDef[];
+  /** Paid when every objective is done. `boostTest` adds knowledge to the
+   *  course with the next test; `boostWeakest` to your weakest course. */
+  reward: { xp: number; effects?: Effects; boostTest?: number; boostWeakest?: number };
+  /** The reward in words, e.g. "+8 knowledge for your next test". */
+  rewardText: string;
+  /** The main-story quest it helps (its base id, e.g. 'first_test'), and in words. */
+  helps?: string;
+  helpsText?: string;
+  /** Days to finish it in (missing: no limit). */
+  days?: number;
+  /** Can be picked up again in a later semester. */
+  repeat?: boolean;
+  /** Offered when you talk to this person (with at least this relationship). */
+  talk?: { person: string; relAtLeast: number };
+  /** Offered by itself when these conditions hold (same rules as event cards). */
+  auto?: EventWhen;
+  draft: true;
+}
