@@ -35,13 +35,13 @@ const STEPS: Array<{ where: Where; icon: string; title: string; text: string }> 
     where: 'top-right',
     icon: '⚡',
     title: 'Your needs',
-    text: 'Energy, hunger, hygiene, bladder and stress. Keep them green, or your mood and your grades suffer. Tap them to see how you feel and why.',
+    text: 'The little bars at the top: energy, hunger, hygiene, bladder and stress. Green is fine, red is trouble. Energy and hygiene should be full; hunger, bladder and stress should stay low (a full bladder means find a toilet now). Tap them to see how you feel and why.',
   },
   {
     where: 'bottom',
     icon: '📱',
     title: 'The bottom bar',
-    text: '🏠 your room · Me: close-up on you · Map: the whole campus (drag to move around) · the phone: school portal, fees, timetable and chats.',
+    text: 'Your picture opens your profile: the ring round it is your path through the degree. 🏠 your room · Me: close-up on you · Map: the whole campus · the phone (with its battery): school portal, fees, timetable and chats.',
   },
   {
     where: 'center',
@@ -53,9 +53,9 @@ const STEPS: Array<{ where: Where; icon: string; title: string; text: string }> 
 
 const PLACE: Record<Where, string> = {
   center: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-  'top-left': 'top-28 left-3',
-  'top-right': 'top-28 right-3',
-  bottom: 'bottom-28 left-1/2 -translate-x-1/2',
+  'top-left': 'top-[calc(max(0.75rem,env(safe-area-inset-top))+3.5rem)] left-3',
+  'top-right': 'top-[calc(max(0.75rem,env(safe-area-inset-top))+3.5rem)] right-3',
+  bottom: 'bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.5rem)] left-1/2 -translate-x-1/2',
 };
 
 const ARROW: Record<Where, string> = {
@@ -80,7 +80,7 @@ export function Tour() {
     <div className="fixed inset-0 z-40 bg-black/55" role="dialog" aria-modal="true" aria-label="How to play">
       <div className={`absolute w-[min(22rem,calc(100vw-1.5rem))] ${PLACE[step.where]}`}>
         {step.where.startsWith('top') && <p className={`mb-1 text-3xl text-sun ${step.where === 'top-right' ? 'text-right' : ''}`}>{ARROW[step.where]}</p>}
-        <section className="rounded-3xl border border-white/15 bg-[#14202B] p-4 shadow-2xl">
+        <section key={i} className="pop-in rounded-3xl border border-white/15 bg-[#14202B] p-4 shadow-2xl">
           <p className="text-3xl" aria-hidden="true">
             {step.icon}
           </p>

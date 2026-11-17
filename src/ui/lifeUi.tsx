@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { placeName } from '../content/places';
 import { naira } from '../game/format';
-import { feelings, moodLine } from '../game/needs';
+import { feelings, moodLine, type Feeling } from '../game/needs';
+import { attendance } from '../game/academics';
 import { PLAN_ICON, dayPlan } from '../game/planner';
 import { currentChapter } from '../game/story';
 import { journal } from '../game/journal';
@@ -21,10 +22,11 @@ export function EffectChips({ effects, small = false }: { effects?: string[]; sm
   return (
     <span className="flex flex-wrap gap-1">
       {effects.map((e) => {
-        // "+Energy" is good, "-Energy" is bad; for hunger, stress and bladder it is the other way round.
-        const up = e.startsWith('+');
+        // "+10 Energy" or "Energy +10" is good, a minus is bad; for hunger, stress and bladder it is the other way round.
+        const sign = e.match(/(?:^|\s)([+-])\s*[₦\d]/)?.[1] ?? (e.startsWith('+') || e.startsWith('-') ? e[0] : null);
         const reversed = /Hunger|Stress|Bladder/.test(e);
-        const good = e.startsWith('+') || e.startsWith('-') ? up !== reversed : true;
+        const lose = /^Lose |less|colder/.test(e);
+        const good = lose ? false : sign ? (sign === '+') !== reversed : true;
         return (
           <span key={e} className={`rounded-full px-2 ${small ? 'py-0 text-[10px]' : 'py-0.5 text-[11px]'} font-bold ${good ? 'bg-emerald-400/20 text-emerald-200' : 'bg-red-400/20 text-red-200'}`}>
             {e}
@@ -35,47 +37,86 @@ export function EffectChips({ effects, small = false }: { effects?: string[]; sm
   );
 }
 
-const NEEDS: Array<{ key: 'energy' | 'hunger' | 'hygiene' | 'bladder' | 'stress' | 'health'; label: string; icon: string; invert?: boolean }> = [
-  { key: 'energy', label: 'Energy', icon: '⚡' },
-  { key: 'hunger', label: 'Hunger', icon: '🍲', invert: true },
-  { key: 'hygiene', label: 'Hygiene', icon: '🧼' },
-  { key: 'bladder', label: 'Bladder', icon: '🚽', invert: true },
-  { key: 'stress', label: 'Stress', icon: '😤', invert: true },
-  { key: 'health', label: 'Health', icon: '❤️' },
+type NeedKey = 'energy' | 'hunger' | 'hygiene' | 'bladder' | 'stress' | 'health';
+export type Tone = 'good' | 'warn' | 'bad';
+
+/**
+ * The six needs as meters. Every bar fills with its real value (0 to 100).
+ * For energy, hygiene and health a full bar is good; for hunger, stress and
+ * bladder a full bar is bad (bladder 100 is an accident), so their colour
+ * runs green to amber to red as the bar fills.
+ */
+export const NEED_DEFS: Array<{ key: NeedKey; label: string; icon: string; highIsBad: boolean; word: (v: number, game: GameState) => [string, Tone] }> = [
+  { key: 'energy', label: 'Energy', icon: '⚡', highIsBad: false, word: (v) => (v >= 70 ? ['Rested', 'good'] : v >= 40 ? ['Okay', 'good'] : v >= 20 ? ['Tired', 'warn'] : ['Exhausted', 'bad']) },
+  { key: 'hunger', label: 'Hunger', icon: '🍲', highIsBad: true, word: (v) => (v <= 25 ? ['Full', 'good'] : v <= 55 ? ['Peckish', 'good'] : v < 80 ? ['Hungry', 'warn'] : ['Starving', 'bad']) },
+  { key: 'hygiene', label: 'Hygiene', icon: '🧼', highIsBad: false, word: (v) => (v >= 70 ? ['Fresh', 'good'] : v >= 45 ? ['Okay', 'good'] : v >= 25 ? ['Need a bath', 'warn'] : ['Smelly', 'bad']) },
+  { key: 'bladder', label: 'Bladder', icon: '🚽', highIsBad: true, word: (v) => (v < 50 ? ['Fine', 'good'] : v < 75 ? ['Need to go', 'warn'] : ['Pressed!', 'bad']) },
+  { key: 'stress', label: 'Stress', icon: '😤', highIsBad: true, word: (v) => (v <= 30 ? ['Calm', 'good'] : v <= 55 ? ['Okay', 'good'] : v < 75 ? ['Tense', 'warn'] : ['Stressed', 'bad']) },
+  { key: 'health', label: 'Health', icon: '❤️', highIsBad: false, word: (v, g) => (g.ill ? ['Sick', 'bad'] : v >= 75 ? ['Strong', 'good'] : v >= 50 ? ['Okay', 'good'] : v >= 35 ? ['Run down', 'warn'] : ['Weak', 'bad']) },
 ];
 
-/** Six bars: full green is good. Hunger, bladder and stress count down to good. */
-export function NeedsPanel({ game }: { game: GameState }) {
-  const feels = feelings(game);
+export const TONE_BG: Record<Tone, string> = { good: 'bg-emerald-400', warn: 'bg-amber-400', bad: 'bg-red-400' };
+export const TONE_TEXT: Record<Tone, string> = { good: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-red-300' };
+
+/** One need right now: its value, a word for it and how worried to be. */
+export function needState(game: GameState, key: NeedKey): { value: number; word: string; tone: Tone } {
+  const def = NEED_DEFS.find((n) => n.key === key)!;
+  const value = Math.round(Math.max(0, Math.min(100, game.needs[key] ?? 0)));
+  const [word, tone] = def.word(value, game);
+  return { value, word, tone };
+}
+
+/** The rules' feeling texts, with live numbers where the text is fixed. */
+function feelingText(game: GameState, f: Feeling): string {
+  if (f.id === 'no_light') {
+    const b = Math.round(game.phone.battery);
+    return b <= 0 ? 'No fan, no charging. Your phone is dead.' : `No fan, no charging. Phone at ${b}%.`;
+  }
+  return f.text;
+}
+
+/** Six labelled meters with a state word each, then why you feel the way you do. */
+export function NeedsPanel({ game, showFeelings = true }: { game: GameState; showFeelings?: boolean }) {
+  const feels = showFeelings ? feelings(game) : [];
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm font-semibold">{moodLine(game)}</p>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-        {NEEDS.map((n) => {
-          const raw = game.needs[n.key] ?? 0;
-          const good = n.invert ? 100 - raw : raw;
-          const colour = good >= 60 ? 'bg-emerald-400' : good >= 30 ? 'bg-amber-400' : 'bg-red-400';
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+        {NEED_DEFS.map((n) => {
+          const s = needState(game, n.key);
           return (
-            <div key={n.key} className="flex items-center gap-1.5 text-xs">
-              <span aria-hidden="true">{n.icon}</span>
-              <span className="w-14 text-muted">{n.label}</span>
-              <span className="h-2 flex-1 overflow-hidden rounded-full bg-white/10" role="meter" aria-label={n.label} aria-valuenow={Math.round(raw)} aria-valuemin={0} aria-valuemax={100}>
-                <span className={`block h-full ${colour}`} style={{ width: `${Math.max(4, good)}%` }} />
+            <div key={n.key} className="min-w-0">
+              <div className="flex items-baseline gap-1 text-[11px] leading-tight">
+                <span aria-hidden="true">{n.icon}</span>
+                <span className="font-semibold">{n.label}</span>
+                <span className={`ml-auto truncate font-semibold ${TONE_TEXT[s.tone]}`}>{s.word}</span>
+              </div>
+              <span
+                className="mt-1 block h-2 overflow-hidden rounded-full bg-white/10"
+                role="meter"
+                aria-label={`${n.label}: ${s.word}`}
+                aria-valuenow={s.value}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                title={`${n.label} ${s.value}/100${n.highIsBad ? ' (lower is better)' : ''}`}
+              >
+                <span className={`block h-full rounded-full transition-[width] duration-500 ${TONE_BG[s.tone]}`} style={{ width: `${s.value}%` }} />
               </span>
             </div>
           );
         })}
       </div>
+      <p className="text-[10px] leading-snug text-muted">Keep ⚡ 🧼 ❤️ full. Keep 🍲 😤 🚽 low: a full bladder means find a toilet now.</p>
       {feels.length > 0 && (
         <ul className="flex flex-col gap-1">
           {feels.map((f) => (
             <li key={f.id} className="flex items-center gap-2 rounded-xl bg-white/6 px-2 py-1">
               <span aria-hidden="true">{f.emoji}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">{f.title}</span>
-                <span className="block text-xs text-muted">{f.text}</span>
+                <span className="block text-xs font-semibold">{f.title}</span>
+                <span className="block text-[11px] text-muted">{feelingText(game, f)}</span>
               </span>
-              <span className={`text-sm font-bold ${f.value > 0 ? 'text-emerald-300' : 'text-red-300'}`}>{f.value > 0 ? `+${f.value}` : f.value}</span>
+              <span className={`text-xs font-bold ${f.value > 0 ? 'text-emerald-300' : 'text-red-300'}`}>{f.value > 0 ? `+${f.value}` : f.value}</span>
             </li>
           ))}
         </ul>
@@ -263,12 +304,12 @@ export function InfoStack({ game }: { game: GameState }) {
 const COURSE_COLOURS = ['#2F7FC1', '#E8742A', '#2E8B57', '#B23A79', '#8E3BFF', '#C9A227', '#D9482B', '#1F9E9A', '#5B6BD6', '#A0703F'];
 const WEEKDAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-/** How ready you are for a course's test and exam, from what you know. */
-export function preparedness(knowledge: number): { label: string; colour: string } {
-  if (knowledge >= 75) return { label: 'Strong', colour: 'bg-emerald-400' };
-  if (knowledge >= 55) return { label: 'Good', colour: 'bg-lime-400' };
-  if (knowledge >= 35) return { label: 'Fair', colour: 'bg-amber-400' };
-  return { label: 'Low', colour: 'bg-red-400' };
+/** How much you know of a course (0 to 100), in a word and a colour. */
+export function knowledgeLevel(knowledge: number): { label: string; colour: string; text: string } {
+  if (knowledge >= 75) return { label: 'Strong', colour: 'bg-emerald-400', text: 'text-emerald-300' };
+  if (knowledge >= 55) return { label: 'Good', colour: 'bg-lime-400', text: 'text-lime-300' };
+  if (knowledge >= 35) return { label: 'Fair', colour: 'bg-amber-400', text: 'text-amber-300' };
+  return { label: 'Low', colour: 'bg-red-400', text: 'text-red-300' };
 }
 
 /**
@@ -357,28 +398,39 @@ export function TimetableGrid({ game }: { game: GameState }) {
   );
 }
 
-/** Your courses this semester: what, who, and how ready you are. */
+/** Your courses this semester: what, how much you know, and your attendance. */
 export function CourseList({ game, colour }: { game: GameState; colour?: (code: string) => string }) {
   const courses = game.academics.courses;
   if (!courses.length) return <p className="text-sm text-muted">No courses yet. Register on the portal once clearance is done.</p>;
   return (
     <ul className="flex flex-col gap-1.5">
       {courses.map((c, i) => {
-        const prep = preparedness(c.knowledge);
+        const know = knowledgeLevel(c.knowledge);
+        const k = Math.round(Math.max(0, Math.min(100, c.knowledge)));
+        const att = attendance(game, c);
+        const attPct = Math.round(att.pct * 100);
         return (
-          <li key={c.code} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ background: colour ? colour(c.code) : COURSE_COLOURS[i % COURSE_COLOURS.length] }} />
+          <li key={c.code} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2">
+            <span className="h-9 w-1.5 shrink-0 rounded-full" style={{ background: colour ? colour(c.code) : COURSE_COLOURS[i % COURSE_COLOURS.length] }} />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold">
-                {c.code} <span className="font-normal text-muted">· {c.units} units</span>
+              <span className="flex items-baseline gap-1 text-sm font-bold">
+                {c.code}
+                <span className="truncate text-[11px] font-normal text-muted">
+                  · {c.units} units{c.carryover ? ' · carryover' : ''}
+                </span>
+                <span className={`ml-auto shrink-0 text-[11px] font-semibold ${!att.held ? 'text-muted' : attPct >= 75 ? 'text-emerald-300' : attPct >= 60 ? 'text-amber-300' : 'text-red-300'}`} title="Attendance so far (75% needed to write the exam)">
+                  {att.held ? `${att.attended}/${att.held} classes` : 'no classes yet'}
+                </span>
               </span>
               <span className="block truncate text-xs text-muted">{c.title}</span>
               <span className="mt-1 flex items-center gap-2 text-[11px]">
-                <span className="text-muted">Preparedness</span>
-                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-                  <span className={`block h-full ${prep.colour}`} style={{ width: `${Math.max(4, c.knowledge)}%` }} />
+                <span className="text-muted">Knowledge</span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10" role="meter" aria-label={`${c.code} knowledge`} aria-valuenow={k} aria-valuemin={0} aria-valuemax={100}>
+                  <span className={`block h-full rounded-full ${know.colour}`} style={{ width: `${k}%` }} />
                 </span>
-                <span className="w-12 text-right font-semibold">{prep.label}</span>
+                <span className={`w-16 text-right font-semibold ${know.text}`}>
+                  {k}% {know.label}
+                </span>
               </span>
             </span>
           </li>

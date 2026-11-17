@@ -23,7 +23,7 @@ type IconC = (p: { size?: number }) => ReactElement;
 
 /** Each app: a pastel tile with a coloured glyph. */
 const APPS: Array<{ id: AppId; label: string; Icon: IconC; tile: string; ink: string; online?: boolean }> = [
-  { id: 'school', label: 'Student Portal', Icon: BellIcon, tile: '#D7F0E2', ink: '#1E7A4C' },
+  { id: 'school', label: 'Portal', Icon: BellIcon, tile: '#D7F0E2', ink: '#1E7A4C' },
   { id: 'chat', label: 'Chats', Icon: ChatIcon, tile: '#E6DCFF', ink: '#5B3FD1' },
   { id: 'calendar', label: 'Calendar', Icon: CalendarIcon, tile: '#FFE1DA', ink: '#C2462E' },
   { id: 'clock', label: 'Alarm', Icon: MoonIcon, tile: '#DCE3FF', ink: '#3346A8' },
@@ -40,8 +40,8 @@ function AppTile({ app, badge, onOpen }: { app: (typeof APPS)[number]; badge?: n
   const { Icon } = app;
   return (
     <button onClick={onOpen} className="flex min-w-0 flex-col items-center gap-1.5">
-      <span className="relative grid size-[60px] place-items-center rounded-[18px] shadow-md" style={{ background: app.tile, color: app.ink }}>
-        <Icon size={28} />
+      <span className="relative grid size-[54px] place-items-center rounded-[16px] shadow-md" style={{ background: app.tile, color: app.ink }}>
+        <Icon size={26} />
         {!!badge && (
           <span className="absolute -top-1.5 -right-1.5 grid min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{badge}</span>
         )}
@@ -87,10 +87,10 @@ function HomeScreen({ game, onPickPlace }: { game: GameState; onPickPlace: (id: 
         onScroll={(e) => setPage(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
       >
         {/* Page 1: clock, next step, search, main apps */}
-        <section className="flex w-full shrink-0 snap-start flex-col gap-4 overflow-y-auto px-5 pt-6">
+        <section className="flex w-full shrink-0 snap-start flex-col gap-3 overflow-y-auto px-4 pt-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-7xl leading-none font-extrabold tracking-tight">{clockTime(game.clock).replace(/ [ap]m$/, '')}</p>
+              <p className="text-6xl leading-none font-extrabold tracking-tight">{clockTime(game.clock).replace(/ [ap]m$/, '')}</p>
               <p className="mt-2 text-sm text-white/85">
                 {todayLabel(game)} · {game.clock.semester === 1 ? 'first' : 'second'} semester
               </p>
@@ -106,21 +106,24 @@ function HomeScreen({ game, onPickPlace }: { game: GameState; onPickPlace: (id: 
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <span className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-sm font-medium">
+            <span className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-xs font-medium">
               {slot === 'Night' ? <MoonIcon size={16} /> : <SunIcon size={16} />} {slot}
             </span>
-            <button onClick={() => openPhone('chat')} className="flex h-9 items-center gap-1.5 rounded-full bg-black/35 px-3 text-sm font-medium">
+            <button onClick={() => openPhone('chat')} className="flex h-9 items-center gap-1.5 rounded-full bg-black/35 px-3 text-xs font-medium">
               <ChatIcon size={16} /> {unread ? `${unread} new messages` : 'Chats'}
             </button>
+            <span className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium ${game.phone.battery <= 15 ? 'bg-red-500/40' : 'bg-black/35'}`}>
+              🔋 {Math.round(game.phone.battery)}% · 📶 {game.phone.data >= 1000 ? `${(game.phone.data / 1000).toFixed(1)} GB` : `${Math.round(game.phone.data)} MB`}
+            </span>
           </div>
 
-          <div className="flex items-center gap-3 rounded-3xl bg-[#2A211B]/90 p-4">
+          <div className="flex items-center gap-3 rounded-3xl bg-[#2A211B]/90 p-3">
             <span className="text-3xl" aria-hidden="true">
               🎒
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold tracking-wide text-sun uppercase">Your next step</p>
-              <p className="font-bold">{task ? task.text : 'Nothing urgent'}</p>
+              <p className="text-sm font-bold">{task ? task.text : 'Nothing urgent'}</p>
               <p className="text-sm text-white/75">{task ? 'From your journal' : 'Read, rest, or make some money.'}</p>
             </div>
             {task?.placeId && (
@@ -130,7 +133,7 @@ function HomeScreen({ game, onPickPlace }: { game: GameState; onPickPlace: (id: 
             )}
           </div>
 
-          <label className="flex h-12 items-center gap-2 rounded-2xl bg-black/45 px-4">
+          <label className="flex h-11 items-center gap-2 rounded-2xl bg-black/45 px-3">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#CDB8FF" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.5-3.5" />
@@ -214,19 +217,19 @@ export function Phone({ game, onPickPlace }: { game: GameState; onPickPlace: (id
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 p-3" onClick={closePhone}>
+    <div className="fade-in fixed inset-0 z-40 flex items-center justify-center bg-black/55 px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))]" onClick={closePhone}>
       <div
         role="dialog"
         aria-label="Phone"
         onClick={(e) => e.stopPropagation()}
-        className="relative flex h-full max-h-[800px] w-full max-w-[400px] flex-col overflow-hidden rounded-[48px] border-[10px] border-[#0B0C10] text-ink shadow-2xl"
+        className="pop-in relative flex h-full max-h-[780px] w-full max-w-[390px] flex-col overflow-hidden rounded-[40px] border-[8px] border-[#0B0C10] text-ink shadow-2xl"
         style={{ background: `linear-gradient(170deg, ${university.colours.primary} 0%, #22405A 45%, #3E5A6E 75%, #93A5AE 100%)` }}
       >
         {/* Camera island, with the time, data and battery either side. */}
-        <div className="relative flex h-9 shrink-0 items-center justify-between px-6 pt-1 text-xs font-semibold">
+        <div className="relative flex h-9 shrink-0 items-center justify-between px-5 pt-1 text-[11px] font-semibold">
           <span>{clockTime(game.clock).replace(/ [ap]m$/, '')}</span>
-          <span className="absolute top-2.5 left-1/2 h-7 w-28 -translate-x-1/2 rounded-full bg-black" />
-          <span className="flex items-center gap-2">
+          <span className="absolute top-2 left-1/2 h-6 w-[5.5rem] -translate-x-1/2 rounded-full bg-black" />
+          <span className="flex items-center gap-1.5">
             <span className={game.phone.data <= 0 ? 'text-red-300' : ''}>{game.phone.data >= 1000 ? `${(game.phone.data / 1000).toFixed(1)} GB` : `${Math.round(game.phone.data)} MB`}</span>
             <Battery level={game.phone.battery} />
           </span>
@@ -242,16 +245,16 @@ export function Phone({ game, onPickPlace }: { game: GameState; onPickPlace: (id
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col bg-[#14202B]/85">
-            <div className="flex h-14 shrink-0 items-center gap-1 px-3">
-              <button onClick={() => openPhone('home')} className="grid min-h-11 min-w-11 place-items-center" aria-label="Back to home screen">
+            <div className="flex h-12 shrink-0 items-center gap-1 px-2">
+              <button onClick={() => openPhone('home')} className="grid size-10 place-items-center" aria-label="Back to home screen">
                 <BackIcon />
               </button>
-              <h2 className="flex-1 text-xl font-bold">{current?.label === 'Ranks' ? 'Leaderboard' : current?.label}</h2>
-              <button onClick={closePhone} className="grid min-h-11 min-w-11 place-items-center rounded-full bg-white/10" aria-label="Put the phone away">
+              <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{current?.label === 'Ranks' ? 'Leaderboard' : current?.label}</h2>
+              <button onClick={closePhone} className="grid size-10 place-items-center rounded-full bg-white/10" aria-label="Put the phone away">
                 <CloseIcon size={20} />
               </button>
             </div>
-            <div className={`min-h-0 flex-1 px-5 ${app === 'chat' ? 'overflow-hidden pb-2' : 'overflow-y-auto pb-4'}`}>{screens[app]}</div>
+            <div className={`min-h-0 flex-1 overscroll-contain px-4 ${app === 'chat' ? 'overflow-hidden pb-2' : 'overflow-y-auto pb-4'}`}>{screens[app]}</div>
           </div>
         )}
 
