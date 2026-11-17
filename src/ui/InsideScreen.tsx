@@ -753,38 +753,42 @@ function DayRecap({ game, onSleep, onCancel }: { game: GameState; onSleep: () =>
   const classes = game.academics.courses.flatMap((c) => c.meetings.filter((m) => m.day === game.clock.day && m.status === 'scheduled').map((m) => ({ c, m })));
   const mood = moodOf(game);
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" onClick={onCancel}>
-      <section role="dialog" aria-label="Your day" className="card-scroll max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/10 bg-[#14202B] p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <p className="text-xs font-semibold tracking-wide text-sun uppercase">Your day</p>
-        <h2 className="text-xl font-bold">{todayLabel(game)}</h2>
-        <p className="mt-1 text-sm text-muted">
-          {mood.emoji} Feeling {mood.label.toLowerCase()} · {naira(game.money)} left
-        </p>
-        {classes.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {classes.map(({ c, m }) => (
-              <span key={`${c.code}${m.slot}`} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${m.attended ? 'bg-emerald-400/20 text-emerald-200' : 'bg-red-400/20 text-red-200'}`}>
-                {m.attended ? '✅' : '❌'} {c.code}
-              </span>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]" onClick={onCancel}>
+      <section role="dialog" aria-label="Your day" className="flex max-h-[min(80dvh,560px)] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#14202B] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <header className="shrink-0 border-b border-white/10 px-4 pt-3 pb-2">
+          <p className="text-[11px] font-semibold tracking-wide text-sun uppercase">Your day</p>
+          <h2 className="text-base font-bold">{todayLabel(game)}</h2>
+          <p className="text-xs text-muted">
+            {mood.emoji} Feeling {mood.label.toLowerCase()} · {naira(game.money)} left
+          </p>
+        </header>
+        <div className="card-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2">
+          {classes.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1">
+              {classes.map(({ c, m }) => (
+                <span key={`${c.code}${m.slot}`} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${m.attended ? 'bg-emerald-400/20 text-emerald-200' : 'bg-red-400/20 text-red-200'}`}>
+                  {m.attended ? '✅' : '❌'} {c.code}
+                </span>
+              ))}
+            </div>
+          )}
+          <ul className="flex flex-col gap-1">
+            {today.length === 0 && <li className="text-xs text-muted">A quiet day.</li>}
+            {today.slice(-12).map((e, i) => (
+              <li key={i} className="rounded-lg bg-white/5 px-2.5 py-1.5 text-xs leading-snug">
+                {e.text}
+              </li>
             ))}
-          </div>
-        )}
-        <ul className="mt-3 flex flex-col gap-1.5">
-          {today.length === 0 && <li className="text-sm text-muted">A quiet day.</li>}
-          {today.slice(-12).map((e, i) => (
-            <li key={i} className="rounded-xl bg-white/5 px-3 py-2 text-sm">
-              {e.text}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 flex gap-2">
-          <button onClick={onCancel} className="min-h-11 rounded-xl border border-white/20 px-4 font-semibold">
+          </ul>
+        </div>
+        <footer className="flex shrink-0 gap-2 border-t border-white/10 px-4 py-2.5">
+          <button onClick={onCancel} className="min-h-10 rounded-xl border border-white/20 px-3 text-sm font-semibold">
             Not yet
           </button>
-          <button onClick={onSleep} className="min-h-11 flex-1 rounded-xl bg-sun font-bold text-night">
+          <button onClick={onSleep} className="min-h-10 flex-1 rounded-xl bg-sun text-sm font-bold text-night">
             🌙 Good night
           </button>
-        </div>
+        </footer>
       </section>
     </div>
   );
