@@ -1,6 +1,10 @@
 // The camera, with two modes:
 // - follow ("Me"): close on the player; the joystick moves them.
-// - overview ("Map"): fits the whole campus; one finger drags to pan.
+// - overview ("Map"): looks down on the campus; one finger drags to pan.
+//   The Map button lands at 80% zoomed out (the campus fills the screen);
+//   pinching or the wheel goes out to 100% (the whole campus) and back in.
+//   Before sign-up (no game yet) the same view starts at 40%, closer in.
+//   Panning stops at the campus edge, so the campus never leaves the screen.
 // Pinching out far from your character in close-up switches to the map view
 // (the joystick goes away and dragging pans), keeping the spot you were on.
 // In both: pinch zooms, twisting two fingers turns the view round, and moving
@@ -20,6 +24,11 @@ const FOLLOW = { start: 75, min: 25, max: 180 };
 /** Zoom out past this in close-up and the view becomes the pannable map. */
 const TO_MAP = 140;
 const TAP_SLOP = 8; // pixels a finger can wobble and still count as a tap
+/** The closest the map view goes (0% zoomed out). */
+const OVERVIEW_MIN = 40;
+/** Where the Map button lands, and where the pre-sign-up campus starts. */
+export const MAP_ZOOM = 0.8;
+export const LANDING_ZOOM = 0.4;
 
 /** Distance at which the whole campus fits on screen at a tilt. */
 function fitDistance(cam: THREE.PerspectiveCamera, width: number, height: number, tilt = DEFAULT_TILT): number {
@@ -31,11 +40,50 @@ function fitDistance(cam: THREE.PerspectiveCamera, width: number, height: number
   return Math.max(w / (2 * t * aspect), (d * Math.sin(tilt)) / (2 * t));
 }
 
+/** The farthest the map view goes (100% zoomed out): the whole campus. */
+function maxOverviewDistance(cam: THREE.PerspectiveCamera, width: number, height: number): number {
+  return Math.max(OVERVIEW_MIN * 2, fitDistance(cam, width, height) * 1.05);
+}
+
+/**
+ * Camera distance for a zoom-out level from 0 (closest) to 1 (the whole
+ * campus). Pinching scales the distance, so the levels are spaced the same way
+ * (each step is the same pinch), which keeps 80% filling the screen with campus.
+ */
+export function zoomDistance(level: number, max: number, min = OVERVIEW_MIN): number {
+  const l = THREE.MathUtils.clamp(level, 0, 1);
+  return min * Math.pow(Math.max(max, min) / min, l);
+}
+
+/**
+ * Keeps the map's centre where the view stays over the campus: on an axis
+ * where the view is wider than the campus it stays centred.
+ */
+export function clampToCampus(
+  centre: { x: number; z: number },
+  view: { dist: number; yaw: number; tilt: number; fov: number; aspect: number },
+  b: { minX: number; maxX: number; minZ: number; maxZ: number },
+): { x: number; z: number } {
+  const t = Math.tan(THREE.MathUtils.degToRad(view.fov) / 2);
+  const halfW = view.dist * t * view.aspect;
+  const halfD = (view.dist * t) / Math.max(Math.sin(view.tilt), 0.3);
+  const c = Math.abs(Math.cos(view.yaw));
+  const s = Math.abs(Math.sin(view.yaw));
+  const ex = c * halfW + s * halfD;
+  const ez = s * halfW + c * halfD;
+  const axis = (v: number, lo: number, hi: number, e: number) => (hi - lo <= 2 * e ? (lo + hi) / 2 : THREE.MathUtils.clamp(v, lo + e, hi - e));
+  return { x: axis(centre.x, b.minX, b.maxX, ex), z: axis(centre.z, b.minZ, b.maxZ, ez) };
+}
+
 export function CameraRig({ start }: { start: [number, number] }) {
   const { camera, gl, size } = useThree();
   const mode = useGameStore((s) => s.cameraMode);
   const modeRef = useRef(mode);
   modeRef.current = mode;
+  // No game yet: the campus behind the sign-up, free to look around.
+  const landing = useGameStore((s) => s.game === null);
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
 
   const view = useRef({ x: playerWorld.pos.x || start[0], z: playerWorld.pos.z || start[1], dist: FOLLOW.start, yaw: 0, tilt: DEFAULT_TILT });
   const goal = useRef({ followDist: FOLLOW.start, overviewDist: 0, ox: 0, oz: 0, yaw: 0, tilt: DEFAULT_TILT });
@@ -46,7 +94,8 @@ export function CameraRig({ start }: { start: [number, number] }) {
   const fp = useRef(new THREE.Vector3());
   const look = useRef(new THREE.Vector3());
 
-  // Changing mode straightens the view; the map view fits the whole campus.
+  // Changing mode straightens the view; the map view centres on the campus at
+  // 80% zoomed out (40% before sign-up). Resizing the window keeps your view.
   useEffect(() => {
     const g = goal.current;
     if (mode === 'overview' && zoomedOut.current) {
@@ -62,8 +111,15 @@ export function CameraRig({ start }: { start: [number, number] }) {
     const b = campusBounds();
     g.ox = (b.minX + b.maxX) / 2;
     g.oz = (b.minZ + b.maxZ) / 2;
-    g.overviewDist = fitDistance(camera as THREE.PerspectiveCamera, size.width, size.height);
-  }, [mode, camera, size.width, size.height]);
+    const { width, height } = sizeRef.current;
+    g.overviewDist = zoomDistance(landing ? LANDING_ZOOM : MAP_ZOOM, maxOverviewDistance(camera as THREE.PerspectiveCamera, width, height));
+  }, [mode, landing, camera]);
+
+  // A resize (phone rotated, address bar hiding) only keeps the zoom in range.
+  useEffect(() => {
+    const g = goal.current;
+    if (g.overviewDist) g.overviewDist = THREE.MathUtils.clamp(g.overviewDist, OVERVIEW_MIN, maxOverviewDistance(camera as THREE.PerspectiveCamera, size.width, size.height));
+  }, [camera, size.width, size.height]);
 
   useEffect(() => {
     const el = gl.domElement;
@@ -81,7 +137,7 @@ export function CameraRig({ start }: { start: [number, number] }) {
       if (!a || !b) return null;
       return { dist: Math.hypot(a.x - b.x, a.y - b.y), angle: Math.atan2(b.y - a.y, b.x - a.x), midY: (a.y + b.y) / 2 };
     };
-    const maxOverview = () => fitDistance(camera as THREE.PerspectiveCamera, el.clientWidth, el.clientHeight) * 1.05;
+    const maxOverview = () => maxOverviewDistance(camera as THREE.PerspectiveCamera, el.clientWidth, el.clientHeight);
     const setDist = (d: number) => {
       const g = goal.current;
       if (modeRef.current === 'follow') {
@@ -90,13 +146,13 @@ export function CameraRig({ start }: { start: [number, number] }) {
           // Zoomed right out from your character: become the map, right here.
           g.ox = playerWorld.pos.x;
           g.oz = playerWorld.pos.z;
-          g.overviewDist = THREE.MathUtils.clamp(d, 40, maxOverview());
+          g.overviewDist = THREE.MathUtils.clamp(d, OVERVIEW_MIN, maxOverview());
           zoomedOut.current = true;
           modeRef.current = 'overview';
           if (two) two.startDist = (g.overviewDist * Math.max(pair()?.dist ?? 1, 1)) / Math.max(two.dist, 1);
           useGameStore.getState().setCameraMode('overview');
         }
-      } else g.overviewDist = THREE.MathUtils.clamp(d, 40, maxOverview());
+      } else g.overviewDist = THREE.MathUtils.clamp(d, OVERVIEW_MIN, maxOverview());
     };
     const currentGoalDist = () => (modeRef.current === 'follow' ? goal.current.followDist : goal.current.overviewDist);
     const turn = (dYaw: number, dTilt: number) => {
@@ -185,13 +241,20 @@ export function CameraRig({ start }: { start: [number, number] }) {
     };
   }, [camera, gl]);
 
-  useFrame((_, rawDt) => {
+  useFrame((state, rawDt) => {
     const dt = Math.min(rawDt, 0.05);
     const v = view.current;
     const g = goal.current;
     const b = campusBounds();
-    g.ox = THREE.MathUtils.clamp(g.ox, b.minX, b.maxX);
-    g.oz = THREE.MathUtils.clamp(g.oz, b.minZ, b.maxZ);
+    if (modeRef.current === 'overview' && g.overviewDist) {
+      // Panning stops where the campus edge meets the screen edge.
+      const c = clampToCampus({ x: g.ox, z: g.oz }, { dist: g.overviewDist, yaw: g.yaw, tilt: g.tilt, fov: (camera as THREE.PerspectiveCamera).fov, aspect: state.size.width / Math.max(state.size.height, 1) }, b);
+      g.ox = c.x;
+      g.oz = c.z;
+    } else {
+      g.ox = THREE.MathUtils.clamp(g.ox, b.minX, b.maxX);
+      g.oz = THREE.MathUtils.clamp(g.oz, b.minZ, b.maxZ);
+    }
 
     const st = useGameStore.getState();
     // Riding a keke: watch from overhead, following it.

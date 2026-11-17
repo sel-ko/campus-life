@@ -1,7 +1,8 @@
 // The place card: tap any building and it opens at the bottom, showing what
 // the place is, what is happening there now, what you can do inside, and how
-// to get there (keke, cab or walk; your car if you have one). Picking a way
-// closes it and sets you off.
+// to get there (keke, cab or walk; your car if you have one). Close by, you
+// trek or call a cab (no keke for so short a hop). Picking a way closes it and
+// sets you off.
 import { getPlace, sectionName } from '../content/places';
 import { naira } from '../game/format';
 import { getInteractions, travelOptions } from '../game/interactions';
@@ -49,57 +50,57 @@ export function TravelSheet({ game }: { game: GameState }) {
       <section
         role="dialog"
         aria-label={`Go to ${place.name}`}
-        className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-3xl border border-white/10 bg-[#14202B] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
+        className="card-scroll fixed inset-x-0 bottom-0 mx-auto max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-[#14202B] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start gap-3">
-          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-2xl" aria-hidden="true">
+        <div className="flex items-start gap-2.5">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10 text-xl" aria-hidden="true">
             {placeEmoji(game, id)}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-lg leading-tight font-bold">{place.name}</h2>
+            <h2 className="truncate text-base leading-tight font-bold">{place.name}</h2>
             <p className="truncate text-xs text-muted">
               {sectionName(place.sectionId)}
               {across ? ` · you are on ${sectionName(game.location.sectionId)}` : ' · close by'}
             </p>
             {status.text && (
-              <p className="mt-0.5 flex items-center gap-1.5 text-sm">
+              <p className="mt-0.5 flex items-center gap-1.5 text-xs">
                 <span className={`inline-block size-2 rounded-full ${TONE[status.tone]}`} />
                 {status.text}
               </p>
             )}
           </div>
-          <button onClick={close} className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 text-sm" aria-label="Close">
+          <button onClick={close} className="grid size-10 shrink-0 place-items-center rounded-full bg-white/10 text-sm" aria-label="Close">
             ✕
           </button>
         </div>
 
-        {!placeOpen(game, id).open && <p className="mt-3 rounded-2xl bg-white/8 px-3 py-2 text-sm font-semibold">🔒 {placeOpen(game, id).reason}. You can still go there.</p>}
+        {!placeOpen(game, id).open && <p className="mt-2 rounded-xl bg-white/8 px-3 py-1.5 text-xs font-semibold">🔒 {placeOpen(game, id).reason}. You can still go there.</p>}
         {things.length > 0 && placeOpen(game, id).open && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap gap-1">
             {things.map((t) => (
-              <span key={t} className="rounded-full bg-white/8 px-2.5 py-1 text-xs">
+              <span key={t} className="rounded-full bg-white/8 px-2 py-0.5 text-[11px]">
                 {t}
               </span>
             ))}
           </div>
         )}
 
-        <p className="mt-3 mb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">Go there by</p>
-        <div className="grid grid-cols-3 gap-2">
+        <p className="mt-2.5 mb-1 text-[11px] font-semibold tracking-wide text-muted uppercase">Go there by</p>
+        <div className={`grid gap-1.5 ${options.length >= 4 ? 'grid-cols-4' : options.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
           {options.map((o) => (
             <button
               key={o.mode}
               disabled={!o.available}
               onClick={() => choose(o.mode)}
               title={o.available ? o.detail : o.reason}
-              className="flex min-h-20 flex-col items-center justify-center gap-0.5 rounded-2xl border border-white/10 bg-white/6 px-1 py-2 text-center enabled:active:bg-white/15 disabled:opacity-40"
+              className="flex min-h-16 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-white/10 bg-white/6 px-1 py-1.5 text-center enabled:active:bg-white/15 disabled:opacity-40"
             >
-              <span className="text-2xl" aria-hidden="true">
+              <span className="text-xl leading-none" aria-hidden="true">
                 {ICONS[o.mode]}
               </span>
-              <span className="text-sm font-bold">{o.mode === 'walk' && o.detail.includes('close by') ? 'Trek' : NAMES[o.mode]}</span>
-              <span className="text-[11px] leading-tight text-muted">
+              <span className="text-sm font-bold">{o.label === 'Trek' ? 'Trek' : NAMES[o.mode]}</span>
+              <span className="line-clamp-2 text-[10px] leading-tight text-muted">
                 {!o.available ? (o.reason ?? 'Not now') : o.detail.includes('close by') ? o.detail : o.cost.money ? naira(o.cost.money) : o.cost.slots ? `Free · ${o.cost.slots === 1 ? 'takes a while' : 'a long walk'}` : 'Free'}
               </span>
             </button>
