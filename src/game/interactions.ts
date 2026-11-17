@@ -47,9 +47,12 @@ import {
   visitOfficeMut,
 } from './clearance';
 import { answerMut, markReadMut } from './chat';
-import { BANK_LOAN, DRIVE_FUEL, FARES, HOSPITAL_TREATMENT, ORIENTATION_DAYS, PHONE, TOWN_TRIP } from './config';
+import { ASSIGNMENT, BANK_LOAN, DRIVE_FUEL, ERRAND_PAY, WASH_PLATES_PAY, FARES, HOSPITAL_TREATMENT, ORIENTATION_DAYS, PHONE, TOWN_TRIP } from './config';
 import { clamp, log, produce } from './draft';
 import { storyRewardsMut } from './story';
+import { offerTalkQuestMut } from './quests';
+import { countMut } from './questState';
+import { classState, classWindow, firstClassOn } from './periods';
 import { EXAM_FORM_DAYS, EXAM_FORM_LATE_FEE, dayLabel } from './calendar';
 import { addDataMut, askParentMut, canBuyData, chargeMut, overnightChargeMut, phoneProblem, usePhoneMut, type AskReason } from './phone';
 import { addRel, applyEffects } from './effects';
@@ -149,8 +152,8 @@ const EFFECTS: Partial<Record<InteractionKind, string[]>> = {
   library: ['+Library card'],
   eat: ['-Hunger', '+Energy'],
   buy: ['+Item'],
-  wash_plates: ['+₦500', '-Hunger', '-Hygiene'],
-  errands: ['+₦400', '-Energy'],
+  wash_plates: [`+${naira(WASH_PLATES_PAY)}`, '-Hunger', '-Hygiene'],
+  errands: [`+${naira(ERRAND_PAY)}`, '-Energy'],
   sleep: ['+Energy', '-Stress'],
   nap: ['+Energy'],
   cook: ['-Hunger'],
@@ -168,7 +171,7 @@ const EFFECTS: Partial<Record<InteractionKind, string[]>> = {
   chill: ['-Stress', '+Friends'],
   movie: ['-Stress'],
   owambe: ['-Hunger', '-Stress', '+Friends'],
-  bank_loan: ['+₦20,000', 'Debt'],
+  bank_loan: [`+${naira(BANK_LOAN.amount)}`, 'Debt'],
   bath: ['+Hygiene', '-Stress'],
   toilet: ['-Bladder'],
   wait: [],
@@ -366,14 +369,23 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
             : meeting.test
               ? `Write the ${course.code} test`
               : `Attend ${course.code}: ${course.title}`;
+    const win = classWindow(course, meeting);
+    const state = classState(d, course, meeting);
+    const when = `${formatTime(win.start)}–${formatTime(win.end)}`;
     add({
       id: `attend:${course.code}`,
       kind: meeting.test ? 'test' : 'attend',
       label,
-      detail: course.kind === 'gst' ? 'The hall is packed: come early to get a seat.' : meeting.moved ? 'Moved here at short notice.' : undefined,
+      detail: [
+        state === 'on' ? `Started at ${formatTime(win.start)}: you are late` : when,
+        course.kind === 'gst' ? 'The hall is packed: come early to get a seat.' : meeting.moved ? 'Moved here at short notice.' : '',
+        meeting.assign && course.assignmentSet === null ? 'The lecturer is giving an assignment today' : '',
+      ]
+        .filter(Boolean)
+        .join(' · '),
       target: { type: 'seat' },
       cost: SLOT,
-      ...(meeting.attended ? no('Already here') : yes),
+      ...(meeting.attended ? no('Already here') : state === 'over' ? no(`It ended at ${formatTime(win.end)}`) : yes),
     });
     if (course.handout.price > 0 && course.handout.status === 'none') {
       add({
@@ -409,7 +421,7 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
     }
     for (const c of a.courses) {
       const can = canDoAssignment(d, c);
-      if (can.ok) add({ id: `assignment:${c.code}`, kind: 'assignment', label: `Do the ${c.code} assignment`, detail: `Due ${dayLabel(d, c.assignmentDue)}`, target: { type: 'desk' }, minutes: 45, ...yes });
+      if (can.ok) add({ id: `assignment:${c.code}`, kind: 'assignment', label: `Do the ${c.code} assignment`, detail: `Due ${dayLabel(d, c.assignmentDue)}, ${formatTime(c.assignmentDueMin ?? ASSIGNMENT.dueMin)}`, target: { type: 'desk' }, minutes: 45, ...yes });
     }
     const p = a.project;
     if (p && !p.defended) {
@@ -469,7 +481,7 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
     });
   }
   if (place.type === 'restaurant') {
-    add({ id: 'wash_plates', kind: 'wash_plates', label: 'Wash plates for cash and a free plate', detail: '₦500 and a meal', target: { type: 'counter' }, cost: SLOT, ...(slot === 3 ? no('Closed at night') : yes) });
+    add({ id: 'wash_plates', kind: 'wash_plates', label: 'Wash plates for cash and a free plate', detail: `${naira(WASH_PLATES_PAY)} and a meal`, target: { type: 'counter' }, cost: SLOT, ...(slot === 3 ? no('Closed at night') : yes) });
   }
   for (const item of getShop(d, placeId)) {
     // Printing the acceptance receipt and admission letter needs the fee paid; the course form needs registration.
@@ -520,7 +532,9 @@ export function getInteractions(d: GameState, placeId: string): Interaction[] {
       add({ id: 'charge', kind: 'charge', label: 'Charge your phone', detail: `Battery ${Math.round(d.phone?.battery ?? 100)}%`, target: { type: 'desk' }, ...(!d.room.light ? no('No light in the hostel (NEPA)') : (d.phone?.battery ?? 100) >= 100 ? no('Already full') : yes) });
       const night = slot === 3 ? yes : no('Sleep is for the night; take a nap');
       const alarm = d.flags.alarm_set;
-      add({ id: 'sleep', kind: 'sleep', label: 'Sleep till morning', detail: alarm ? `Alarm set for ${formatTime(alarm)}` : 'No alarm set (set one on your phone): you might oversleep', target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...night });
+      const first = firstClassOn(d, d.clock.day + 1);
+      const firstText = first ? ` · first: ${first.code} at ${formatTime(first.start)}` : '';
+      add({ id: 'sleep', kind: 'sleep', label: 'Sleep till morning', detail: (alarm ? `Alarm set for ${formatTime(alarm)}` : 'No alarm set (set one on your phone): you might oversleep') + firstText, target: { type: 'bed', id: 'bed-1' }, cost: SLOT, ...night });
       const day = slot === 3 ? no('It is night: sleep properly') : yes;
       add({ id: 'nap:30', kind: 'nap', label: 'Power nap', target: { type: 'bed', id: 'bed-1' }, minutes: 30, ...day });
       add({ id: 'nap:60', kind: 'nap', label: 'Nap for an hour', target: { type: 'bed', id: 'bed-1' }, minutes: 60, ...day });
@@ -857,6 +871,15 @@ function doInteraction(d: GameState, r: import('./rng').Rng, i: Interaction, pla
   }
 }
 
+/** Counter keys for one thing done: "read", "read:CSC 101", "read@library"; a test also counts as a class. */
+export function questCountKeys(kind: InteractionKind, target: string, placeType: PlaceType): string[] {
+  const keys: string[] = [kind];
+  if (target && ['talk', 'read', 'attend', 'test', 'hustle', 'favour', 'eat'].includes(kind)) keys.push(`${kind}:${target}`);
+  if (kind === 'read') keys.push(`read@${placeType === 'library' ? 'library' : 'room'}`);
+  if (kind === 'test') keys.push('attend');
+  return keys;
+}
+
 /** Does one interaction on a draft (used by the public version and the simulator). Returns false if not allowed. */
 export function performMut(d: GameState, r: import('./rng').Rng, placeId: string, interactionId: string): boolean {
   const place = getPlace(placeId);
@@ -872,6 +895,10 @@ export function performMut(d: GameState, r: import('./rng').Rng, placeId: string
   if (!place || !i || !i.available || d.pendingEvent) return false;
   d.location = { placeId, sectionId: place.sectionId };
   doInteraction(d, r, i, place);
+  // The quest log counts what you do (side quests track progress from these).
+  const [, target = ''] = i.id.split(':');
+  countMut(d, ...questCountKeys(i.kind, target, place.type));
+  if (i.kind === 'talk') offerTalkQuestMut(d, target);
   const sweat = HYGIENE_COST[i.kind];
   if (sweat) d.needs.hygiene = clamp(d.needs.hygiene - sweat);
   if (i.kind === 'bath') d.flags.bathed = d.clock.dayCount;
@@ -1004,6 +1031,7 @@ export function chooseEvent(state: GameState, index: number): GameState {
   return produce(state, (d, r) => {
     chooseEventMut(d, index);
     if (d.lostSlots > 0) advance(d, r, 0);
+    storyRewardsMut(d);
   });
 }
 
@@ -1012,6 +1040,7 @@ export function answerChat(state: GameState, threadId: string, messageId: number
     if (phoneProblem(d)) return;
     usePhoneMut(d, PHONE.chatData);
     answerMut(d, threadId, messageId, index, (e) => applyEffects(d, e));
+    storyRewardsMut(d);
   });
 }
 
@@ -1042,6 +1071,7 @@ export function askParent(state: GameState, who: 'mum' | 'dad', reason: AskReaso
   return produce(state, (d, r) => {
     askParentMut(d, r, who, reason);
     trackMoneyIfAny(d);
+    storyRewardsMut(d);
   });
 }
 
@@ -1083,6 +1113,7 @@ export function dismissSummary(state: GameState): GameState {
   if (!state.summaries.length) return state;
   return produce(state, (d) => {
     d.summaries.shift();
+    storyRewardsMut(d);
   });
 }
 

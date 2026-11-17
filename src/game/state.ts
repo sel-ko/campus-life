@@ -5,7 +5,7 @@ import { freshersHall } from '../content/places';
 import { BACKGROUNDS, SAVE_VERSION, START_NEEDS, PHONE } from './config';
 import { matricNumber } from './admission';
 import { START_CLOCK } from './time';
-import type { AmbitionId, BackgroundId, GameState, OfficeId, PersonState, PlayerProfile } from './types';
+import type { AmbitionId, BackgroundId, GameState, OfficeId, PersonState, PlayerProfile, QuestState } from './types';
 
 export interface NewGameSetup {
   name: string;
@@ -35,6 +35,11 @@ const NO_OFFICES: Record<OfficeId, boolean> = {
   hod: false,
   medical: false,
 };
+
+/** An empty quest log (new games, and old saves without one). */
+export function blankQuests(): QuestState {
+  return { xp: 0, main: {}, paid: {}, side: [], counts: {}, level: 1 };
+}
 
 export function blankState(s: NewGameSetup): GameState {
   const home = freshersHall();
@@ -117,6 +122,7 @@ export function blankState(s: NewGameSetup): GameState {
     lastEventDay: 0,
     seenEvents: {},
     goals: { ambition: s.ambition, milestones: {}, objectives: [], objectivesDone: 0, position: 'none', campaign: 0 },
+    quests: blankQuests(),
     week: { attended: 0, missed: 0, reads: 0, shifts: 0, talks: 0, signatures: 0, assignments: 0, chapters: 0, maxHunger: 0, startMoney: money },
     phone: { ...PHONE.start },
     stats: {

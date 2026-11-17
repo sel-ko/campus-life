@@ -14,8 +14,9 @@ import { CHAT_LIMIT, CLASS_DUES, EXAM_DAYS, FEES, LATE_REGISTRATION_CLOSE } from
 import { log } from './draft';
 import { registrationDeadline } from './money';
 import type { Rng } from './rng';
-import { isWeekend, slotName, stamp } from './time';
-import { dayLabel } from './calendar';
+import { isWeekend, stamp } from './time';
+import { dayLabel, movedText } from './calendar';
+import { classStart, examStart } from './periods';
 import type { ChatReply, ChatThread, GameState } from './types';
 
 export const dmThread = (personId: string) => `dm:${personId}`;
@@ -127,17 +128,21 @@ export function chatDayMut(d: GameState, r: Rng, gstMoved: string[]): void {
   const leak = (d.people.tobi?.rel ?? 0) >= 40 ? 4 : 2;
   for (const c of d.academics.courses) {
     for (const m of c.meetings) {
-      const vars = { code: c.code, title: c.title, day: m.day, slot: slotName(m.slot).toLowerCase(), place: placeName(m.placeId) };
+      // Days as dates and exact times: "Thu 8 Oct", "2:00 pm".
+      const vars = { code: c.code, title: c.title, day: dayLabel(d, m.day), slot: classStart(c, m), place: placeName(m.placeId) };
       if (m.day === day + 1 && m.status === 'cancelled') scriptMut(d, r, 'lecture_cancelled', vars);
-      if (m.day === day + 1 && m.moved && m.status === 'scheduled') scriptMut(d, r, isWeekend(m.day) ? 'lecture_weekend' : 'lecture_moved', vars);
+      if (m.day === day + 1 && m.moved && m.status === 'scheduled') {
+        scriptMut(d, r, isWeekend(m.day) ? 'lecture_weekend' : 'lecture_moved', vars);
+        log(d, `⚠️ ${movedText(d, c, m)}.`);
+      }
       if (m.test && m.status === 'scheduled' && m.day === day + leak) scriptMut(d, r, 'test_announced', vars);
     }
   }
   for (const code of gstMoved) {
     const c = d.academics.courses.find((x) => x.code === code);
-    if (c) scriptMut(d, r, 'gst_batch_moved', { code, day: c.exam.day, slot: slotName(c.exam.slot).toLowerCase() });
+    if (c) scriptMut(d, r, 'gst_batch_moved', { code, day: dayLabel(d, c.exam.day), slot: examStart(c.exam.slot) });
   }
-  if (day === EXAM_DAYS[0]! - 5 && d.academics.courses.length) scriptMut(d, r, 'exams_soon');
+  if (day === EXAM_DAYS[0]! - 5 && d.academics.courses.length) scriptMut(d, r, 'exams_soon', { day: dayLabel(d, EXAM_DAYS[0]!) });
   if (day === 2 && d.academics.courses.length) scriptMut(d, r, 'class_dues', { amount: `₦${CLASS_DUES.toLocaleString('en-NG')}` });
   if (d.clock.semester === 2 && day === 3) scriptMut(d, r, 'dept_week', { amount: '₦3,000' });
   const deadline = registrationDeadline(d);
@@ -146,7 +151,7 @@ export function chatDayMut(d: GameState, r: Rng, gstMoved: string[]): void {
   }
   if (day <= LATE_REGISTRATION_CLOSE && r.chance(day >= deadline - 2 && day <= deadline ? 0.4 : 0.08)) scriptMut(d, r, 'portal_rumour');
   if (r.chance(0.06)) scriptMut(d, r, 'false_alarm');
-  if (r.chance(0.6)) scriptMut(d, r, 'chatter', { day: 10 });
+  if (r.chance(0.6)) scriptMut(d, r, 'chatter');
   if (d.chat.threads.room) {
     if (!d.room.light && r.chance(0.5)) scriptMut(d, r, 'room_light');
     if (d.room.levy && r.chance(0.3)) scriptMut(d, r, 'room_levy', { amount: `₦${d.room.levy}` });

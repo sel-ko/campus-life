@@ -7,13 +7,16 @@ import { feelings, moodLine } from '../game/needs';
 import { PLAN_ICON, dayPlan } from '../game/planner';
 import { currentChapter } from '../game/story';
 import { journal } from '../game/journal';
-import { PERIODS, academicCalendar, dayLabel, dayLabel as dayLabelOf, meetingPeriod, meetingTime, sessionDates, todayLabel as todayLabelOf } from '../game/calendar';
-import { dayName, slotName } from '../game/time';
+import { PERIODS, academicCalendar, dayLabel, dayLabel as dayLabelOf, examTime, meetingPeriod, meetingTime, movedText, sessionDates, todayLabel as todayLabelOf } from '../game/calendar';
+import { absMin, classAlerts, classState, examWindow, nowAbs } from '../game/periods';
+import { currentObjectives } from '../game/quests';
+import { SEMESTER_DAYS } from '../game/config';
+import { clockTime } from '../game/time';
+import { QuestTracker } from './QuestTracker';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { PILL } from './theme';
 
-const SLOTS = ['Morning', 'Afternoon', 'Evening', 'Night'];
 
 /** Coloured chips for what an action does: green is good for you, red costs you. */
 export function EffectChips({ effects, small = false }: { effects?: string[]; small?: boolean }) {
@@ -147,14 +150,14 @@ export function QuestChip({ game }: { game: GameState }) {
 
 /** The timetable as a day planner: every part of every day says what is on. */
 export function DayPlanView({ game, onlyToday = false }: { game: GameState; onlyToday?: boolean }) {
-  const week = game.clock.day <= 7 ? 1 : 2;
-  const [w, setW] = useState(week);
+  const [w, setW] = useState(Math.ceil(game.clock.day / 7));
   const days = onlyToday ? [game.clock.day] : Array.from({ length: 7 }, (_, i) => (w - 1) * 7 + i + 1);
+  const now = nowAbs(game);
   return (
     <div className="flex flex-col gap-2">
       {!onlyToday && (
         <div className="flex gap-1.5">
-          {[1, 2].map((n) => (
+          {WEEKS.map((n) => (
             <button key={n} onClick={() => setW(n)} aria-pressed={w === n} className={`min-h-9 flex-1 rounded-full text-sm font-semibold ${w === n ? 'bg-sun text-night' : 'bg-white/10'}`}>
               Week {n}
             </button>
@@ -167,22 +170,25 @@ export function DayPlanView({ game, onlyToday = false }: { game: GameState; only
         return (
           <div key={day} className={`rounded-2xl border border-white/10 bg-white/5 p-2.5 ${today ? 'ring-2 ring-sun' : ''} ${day < game.clock.day ? 'opacity-55' : ''}`}>
             <p className="mb-1 text-xs font-bold text-muted">
-              {dayName(day)} · day {day}
+              {dayLabel(game, day)}
               {today ? ' · TODAY' : ''}
             </p>
             <ul className="flex flex-col gap-1">
               {plan.map((p, i) => {
-                const now = today && p.slot === game.clock.slot;
+                const timed = p.kind === 'class' || p.kind === 'test' || p.kind === 'exam';
+                const end = timed ? (p.kind === 'exam' ? examWindow(p.slot).end : p.start + 120) : p.start;
+                const on = today && timed && now >= absMin(day, p.start) && now < absMin(day, end);
                 return (
-                  <li key={i} className={`flex items-start gap-2 rounded-lg px-1.5 py-1 text-sm ${now ? 'bg-sun/15' : ''} ${p.note === 'cancelled' ? 'line-through opacity-60' : ''}`}>
-                    <span className="w-[4.5rem] shrink-0 text-xs text-muted">{SLOTS[p.slot]}</span>
+                  <li key={i} className={`flex items-start gap-2 rounded-lg px-1.5 py-1 text-sm ${on ? 'bg-sun/15' : ''} ${p.note === 'cancelled' ? 'line-through opacity-60' : ''}`}>
+                    <span className="w-[5.5rem] shrink-0 text-xs text-muted">{p.time}</span>
                     <span aria-hidden="true">{PLAN_ICON[p.kind]}</span>
                     <span className="min-w-0 flex-1">
                       <span className={p.kind === 'exam' || p.kind === 'test' ? 'font-bold' : ''}>{p.text}</span>
                       {p.placeId && <span className="block text-xs text-muted">{placeName(p.placeId)}</span>}
+                      {p.movedText && <span className="block text-xs text-amber-300">⚠️ {p.movedText}</span>}
                     </span>
-                    {(p.kind === 'class' || p.kind === 'test' || p.kind === 'exam') && p.note !== 'cancelled' && <AttendDot game={game} day={day} slot={p.slot} done={!!p.done} />}
-                    {p.note === 'moved' && <span className="text-xs text-amber-300">moved</span>}
+                    {timed && p.note !== 'cancelled' && <AttendDot now={now} start={absMin(day, p.start)} end={absMin(day, end)} done={!!p.done} />}
+                    {p.note === 'moved' && !p.movedText && <span className="text-xs text-amber-300">moved</span>}
                   </li>
                 );
               })}
@@ -191,18 +197,18 @@ export function DayPlanView({ game, onlyToday = false }: { game: GameState; only
         );
       })}
       <p className="text-xs text-muted">
-        Now: {dayName(game.clock.day)}, {slotName(game.clock).toLowerCase()}.
+        Now: {dayLabel(game, game.clock.day)}, {clockTime(game.clock)}.
       </p>
     </div>
   );
 }
 
-/** Class attendance at a glance: green attended, red missed, yellow on now. */
-function AttendDot({ game, day, slot, done }: { game: GameState; day: number; slot: number; done: boolean }) {
-  const t = day * 4 + slot;
-  const now = game.clock.day * 4 + game.clock.slot;
-  const state = done ? 'attended' : t === now ? 'on now' : t < now ? 'missed' : 'coming up';
-  const colour = done ? 'bg-emerald-400' : t === now ? 'bg-amber-300' : t < now ? 'bg-red-500' : 'bg-white/20';
+const WEEKS = Array.from({ length: Math.ceil(SEMESTER_DAYS / 7) }, (_, i) => i + 1);
+
+/** Class attendance at a glance, by the clock: green attended, red missed, yellow on now. */
+function AttendDot({ now, start, end, done }: { now: number; start: number; end: number; done: boolean }) {
+  const state = done ? 'attended' : now >= end ? 'missed' : now >= start ? 'on now' : 'coming up';
+  const colour = done ? 'bg-emerald-400' : state === 'missed' ? 'bg-red-500' : state === 'on now' ? 'bg-amber-300' : 'bg-white/20';
   return <span className={`mt-1 size-2.5 shrink-0 rounded-full ${colour}`} title={state} aria-label={state} />;
 }
 
@@ -221,15 +227,21 @@ export function InfoStack({ game }: { game: GameState }) {
   const items: Array<{ id: string; icon: string; text: string; placeId?: string; portal?: boolean; tone: 'red' | 'amber' }> = [];
   if (game.phone.battery <= 15) items.push({ id: 'battery', icon: '🪫', text: game.phone.battery <= 0 ? 'Phone dead: charge it' : `Phone battery ${Math.round(game.phone.battery)}%: charge it`, placeId: game.room.placeId, tone: 'red' });
   else if (game.phone.data <= 100) items.push({ id: 'data', icon: '📶', text: game.phone.data <= 0 ? 'No data: buy a bundle' : 'Data almost finished', tone: 'amber' });
-  // A class is on right now and you are not there: you are late.
-  for (const c of game.academics.courses) {
-    const m = c.meetings.find((x) => x.day === game.clock.day && x.slot === game.clock.slot && x.status === 'scheduled' && !x.attended);
-    if (m && insideId !== m.placeId) items.unshift({ id: `late:${c.code}`, icon: '⏰', text: `You're late! ${c.code} ${meetingTime(c, m)} at ${placeName(m.placeId)}`, placeId: m.placeId, tone: 'red' });
+  // Classes and exams by the clock: "late" only between start and end when
+  // you are not in the hall; before that, "CSC 101 at 10:00 am in 5 h".
+  const alerts = classAlerts(game, insideId);
+  for (const a of alerts.filter((x) => x.kind === 'late' || x.kind === 'exam_late').reverse()) {
+    items.unshift({ id: a.id, icon: '⏰', text: `${a.text} at ${placeName(a.placeId)}`, placeId: a.placeId, tone: 'red' });
   }
-  const quest = currentChapter(game).steps.find((s) => !s.done);
+  const soon = alerts.find((x) => x.kind === 'soon' || x.kind === 'exam_soon');
+  if (soon && items.length < 3) items.push({ id: soon.id, icon: soon.kind === 'exam_soon' ? '📝' : '📘', text: `${soon.text} · ${placeName(soon.placeId)}`, placeId: soon.placeId, tone: soon.urgent ? 'red' : 'amber' });
+  const questPlace = currentObjectives(game)[0]?.placeId;
+  const shown = new Set(alerts.map((a) => a.code));
   for (const t of journal(game).filter((t) => t.urgent)) {
     if (items.length >= 3) break;
-    if (quest && t.placeId && t.placeId === quest.placeId) continue;
+    if (questPlace && t.placeId && t.placeId === questPlace) continue;
+    // Class tasks are already covered by the clock alerts above.
+    if (t.group === 'today' && [...shown].some((code) => t.text.includes(code))) continue;
     items.push({ id: t.id, icon: GROUP_ICON[t.group] ?? '❗', text: t.text, placeId: t.placeId, portal: t.portal, tone: t.group === 'today' ? 'amber' : 'red' });
   }
   const go = (placeId?: string, portal?: boolean) => {
@@ -241,7 +253,7 @@ export function InfoStack({ game }: { game: GameState }) {
   };
   return (
     <div className="flex flex-col items-start gap-1.5">
-      <QuestChip game={game} />
+      <QuestTracker game={game} />
       {items.map((i) => (
         <button
           key={i.id}
@@ -277,18 +289,22 @@ export function preparedness(knowledge: number): { label: string; colour: string
  * attended (green), missed (red) or on now (yellow). Week 1 or week 2.
  */
 export function TimetableGrid({ game }: { game: GameState }) {
-  const [w, setW] = useState(game.clock.day <= 7 ? 1 : 2);
+  const [w, setW] = useState(Math.min(WEEKS.length, Math.ceil(game.clock.day / 7)));
   const courses = game.academics.courses;
   const colour = (code: string) => COURSE_COLOURS[courses.findIndex((c) => c.code === code) % COURSE_COLOURS.length]!;
   const days = WEEKDAY_SHORT.map((_, i) => (w - 1) * 7 + i + 1);
-  const now = game.clock.day * 4 + game.clock.slot;
+  const moved = courses.flatMap((c) => c.meetings.filter((m) => m.moved && m.status === 'scheduled' && days.includes(m.day)).map((m) => ({ c, m })));
+  const examWeek = (n: number) => courses.some((c) => Math.ceil(c.exam.day / 7) === n && c.exam.status !== 'written');
   return (
     <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted">
+        Now: {dayLabel(game, game.clock.day)}, {clockTime(game.clock)}
+      </p>
       <div className="flex gap-1.5">
-        {[1, 2].map((n) => (
-          <button key={n} onClick={() => setW(n)} aria-pressed={w === n} className={`min-h-9 flex-1 rounded-full text-sm font-semibold ${w === n ? 'bg-sun text-night' : 'bg-white/10'}`}>
-            Week {n}
-            {n === 2 ? ' · exams' : ''}
+        {WEEKS.map((n) => (
+          <button key={n} onClick={() => setW(n)} aria-pressed={w === n} className={`min-h-9 flex-1 rounded-full text-xs font-semibold ${w === n ? 'bg-sun text-night' : 'bg-white/10'}`}>
+            Wk {n}
+            {examWeek(n) ? ' · exams' : ''}
           </button>
         ))}
       </div>
@@ -319,15 +335,16 @@ export function TimetableGrid({ game }: { game: GameState }) {
                     return (
                       <td key={day} className="h-14 align-top">
                         {here.map(({ c, m }) => {
-                          const t = m.day * 4 + m.slot;
-                          const dot = m.attended ? 'bg-emerald-400' : t === now ? 'bg-amber-300' : t < now ? 'bg-red-500' : '';
+                          const st = classState(game, c, m);
+                          const dot = st === 'attended' ? 'bg-emerald-400' : st === 'on' ? 'bg-amber-300' : st === 'over' ? 'bg-red-500' : '';
                           return (
-                            <div key={c.code} className={`relative h-full rounded-lg p-1 text-white ${m.status === 'cancelled' ? 'opacity-40 line-through' : ''}`} style={{ background: colour(c.code) }}>
+                            <div key={c.code} title={m.moved ? movedText(game, c, m) : `${c.code} ${meetingTime(c, m)}`} className={`relative h-full rounded-lg p-1 text-white ${m.status === 'cancelled' ? 'opacity-40 line-through' : ''} ${m.moved ? 'ring-2 ring-amber-300' : ''}`} style={{ background: colour(c.code) }}>
                               <p className="font-bold">
                                 {c.code}
                                 {m.test ? ' TEST' : ''}
                               </p>
                               <p className="truncate opacity-90">{placeName(m.placeId)}</p>
+                              {m.moved && <p className="truncate text-[10px] font-bold text-amber-100">moved</p>}
                               {dot && <span className={`absolute top-1 right-1 size-2 rounded-full ring-1 ring-black/30 ${dot}`} />}
                             </div>
                           );
@@ -335,6 +352,7 @@ export function TimetableGrid({ game }: { game: GameState }) {
                         {exam && !here.length && (
                           <div className="h-full rounded-lg bg-red-500/80 p-1 font-bold text-white">
                             📝 {exam.code} EXAM
+                            <p className="truncate font-normal">{examTime(exam.exam.slot)}</p>
                             <p className="truncate font-normal">{placeName(exam.exam.placeId)}</p>
                           </div>
                         )}
@@ -352,6 +370,13 @@ export function TimetableGrid({ game }: { game: GameState }) {
         <span className="flex items-center gap-1"><span className="size-2.5 rounded-full bg-amber-300" /> on now</span>
         <span className="flex items-center gap-1"><span className="size-2.5 rounded-full bg-red-500" /> missed</span>
       </p>
+      {moved.length > 0 && (
+        <ul className="flex flex-col gap-1 rounded-xl border border-amber-300/40 bg-amber-300/10 p-2 text-xs text-amber-100">
+          {moved.map(({ c, m }) => (
+            <li key={`${c.code}${m.day}`}>⚠️ {movedText(game, c, m)}</li>
+          ))}
+        </ul>
+      )}
       <CourseList game={game} colour={colour} />
     </div>
   );
@@ -390,16 +415,24 @@ export function CourseList({ game, colour }: { game: GameState; colour?: (code: 
 
 /** Today's classes, tests and exams with their times and halls (the board in your room). */
 export function TodayClasses({ game }: { game: GameState }) {
-  const now = game.clock.day * 4 + game.clock.slot;
+  const now = nowAbs(game);
+  const day = game.clock.day;
   const rows = game.academics.courses
     .flatMap((c) => [
-      ...c.meetings.filter((m) => m.day === game.clock.day).map((m) => ({ key: `${c.code}${m.slot}`, t: m.day * 4 + m.slot, time: meetingTime(c, m), text: `${c.code}${m.test ? ' TEST' : ''}`, place: m.placeId, done: m.attended, off: m.status === 'cancelled' })),
-      ...(c.exam.day === game.clock.day ? [{ key: `${c.code}x`, t: c.exam.day * 4 + c.exam.slot, time: ['9:00 am', '1:00 pm', '4:00 pm', ''][c.exam.slot] ?? '', text: `${c.code} EXAM`, place: c.exam.placeId, done: c.exam.status !== 'pending', off: false }] : []),
+      ...c.meetings
+        .filter((m) => m.day === day)
+        .map((m) => {
+          const p = meetingPeriod(c, m);
+          return { key: `${c.code}${m.slot}`, start: absMin(day, p.start), end: absMin(day, p.end), time: meetingTime(c, m), text: `${c.code}${m.test ? ' TEST' : ''}`, place: m.placeId, done: m.attended, off: m.status === 'cancelled', moved: m.moved && m.status === 'scheduled' ? movedText(game, c, m) : '' };
+        }),
+      ...(c.exam.day === day ? [{ key: `${c.code}x`, start: absMin(day, examWindow(c.exam.slot).start), end: absMin(day, examWindow(c.exam.slot).end), time: examTime(c.exam.slot), text: `${c.code} EXAM`, place: c.exam.placeId, done: c.exam.status !== 'pending', off: false, moved: '' }] : []),
     ])
-    .sort((a, b) => a.t - b.t);
+    .sort((a, b) => a.start - b.start);
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="text-xs font-semibold text-muted">{todayLabelOf(game)}</p>
+      <p className="text-xs font-semibold text-muted">
+        {todayLabelOf(game)} · now {clockTime(game.clock)}
+      </p>
       {rows.length === 0 && <p className="text-sm text-muted">No classes today.</p>}
       {rows.map((r) => (
         <div key={r.key} className={`flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm ${r.off ? 'line-through opacity-50' : ''}`}>
@@ -407,8 +440,9 @@ export function TodayClasses({ game }: { game: GameState }) {
           <span className="min-w-0 flex-1">
             <b>{r.text}</b>
             <span className="block truncate text-xs text-muted">{placeName(r.place)}</span>
+            {r.moved && <span className="block text-xs text-amber-300">⚠️ {r.moved}</span>}
           </span>
-          <span className={`size-2.5 rounded-full ${r.done ? 'bg-emerald-400' : r.t === now ? 'bg-amber-300' : r.t < now ? 'bg-red-500' : 'bg-white/20'}`} />
+          <span className={`size-2.5 rounded-full ${r.done ? 'bg-emerald-400' : now >= r.end ? 'bg-red-500' : now >= r.start ? 'bg-amber-300' : 'bg-white/20'}`} />
         </div>
       ))}
     </div>

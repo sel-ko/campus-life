@@ -34,22 +34,22 @@ years; a run stops after the programme length plus four sessions.
 
 <!-- sim-table -->
 
-_200 seeds per row, generated 2026-11-16._
+_60 seeds per row, generated 2026-11-17._
 
 | Course | Strategy | Graduated | Withdrawn | CGPA p10 / median / p90 | First / 2:1 / 2:2 / 3rd / Pass | Ever broke | Times broke (avg) | Clearance days (avg) | Sessions (avg) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Computer Science (4y) | study | 100% | 0% | 3.50 / 3.87 / 4.01 | 0 / 180 / 20 / 0 / 0 | 11% | 0.2 | 3.2 | 4.5 |
-| Computer Science (4y) | hustle | 97% | 0% | 2.76 / 2.91 / 3.05 | 0 / 0 / 193 / 0 / 0 | 2% | 0.0 | 3.1 | 6.2 |
-| Computer Science (4y) | balanced | 100% | 0% | 3.58 / 3.75 / 3.89 | 0 / 192 / 8 / 0 / 0 | 2% | 0.0 | 3.3 | 4.5 |
-| Computer Science (4y) | random | 100% | 0% | 3.21 / 3.36 / 3.53 | 0 / 26 / 174 / 0 / 0 | 7% | 0.1 | 3.3 | 4.7 |
-| Mechanical Engineering (5y) | study | 100% | 0% | 3.30 / 3.88 / 4.04 | 0 / 154 / 46 / 0 / 0 | 21% | 0.4 | 3.1 | 5.5 |
-| Mechanical Engineering (5y) | hustle | 97% | 0% | 2.75 / 2.89 / 3.03 | 0 / 0 / 194 / 0 / 0 | 1% | 0.0 | 3.0 | 7.2 |
-| Mechanical Engineering (5y) | balanced | 100% | 0% | 3.63 / 3.78 / 3.91 | 0 / 197 / 3 / 0 / 0 | 1% | 0.0 | 3.2 | 5.4 |
-| Mechanical Engineering (5y) | random | 100% | 0% | 3.18 / 3.35 / 3.48 | 0 / 17 / 183 / 0 / 0 | 9% | 0.2 | 3.3 | 5.8 |
-| Medicine and Surgery (6y) | study | 100% | 0% | 3.99 / 4.30 / 4.39 | 2 / 197 / 1 / 0 / 0 | 10% | 0.3 | 3.1 | 6.2 |
-| Medicine and Surgery (6y) | hustle | 93% | 0% | 3.15 / 3.30 / 3.46 | 0 / 10 / 175 / 0 / 0 | 1% | 0.0 | 3.0 | 8.6 |
-| Medicine and Surgery (6y) | balanced | 100% | 0% | 4.11 / 4.22 / 4.31 | 0 / 200 / 0 / 0 / 0 | 1% | 0.0 | 3.2 | 6.3 |
-| Medicine and Surgery (6y) | random | 100% | 0% | 3.75 / 3.88 / 4.01 | 0 / 199 / 1 / 0 / 0 | 7% | 0.1 | 3.2 | 6.6 |
+| Computer Science (4y) | study | 100% | 0% | 3.59 / 3.97 / 4.13 | 0 / 58 / 2 / 0 / 0 | 10% | 0.1 | 3.2 | 4.4 |
+| Computer Science (4y) | hustle | 95% | 0% | 2.75 / 2.89 / 3.05 | 0 / 0 / 57 / 0 / 0 | 0% | 0.0 | 3.0 | 6.1 |
+| Computer Science (4y) | balanced | 100% | 0% | 3.67 / 3.82 / 4.00 | 0 / 59 / 1 / 0 / 0 | 0% | 0.0 | 3.1 | 4.6 |
+| Computer Science (4y) | random | 100% | 0% | 3.25 / 3.46 / 3.62 | 0 / 21 / 39 / 0 / 0 | 2% | 0.0 | 3.2 | 4.7 |
+| Mechanical Engineering (5y) | study | 100% | 0% | 3.48 / 3.99 / 4.18 | 0 / 53 / 7 / 0 / 0 | 22% | 0.4 | 3.1 | 5.3 |
+| Mechanical Engineering (5y) | hustle | 95% | 0% | 2.82 / 2.95 / 3.09 | 0 / 0 / 57 / 0 / 0 | 0% | 0.0 | 3.0 | 7.3 |
+| Mechanical Engineering (5y) | balanced | 100% | 0% | 3.66 / 3.88 / 4.02 | 0 / 60 / 0 / 0 / 0 | 2% | 0.0 | 3.2 | 5.4 |
+| Mechanical Engineering (5y) | random | 100% | 0% | 3.27 / 3.40 / 3.57 | 0 / 17 / 43 / 0 / 0 | 5% | 0.1 | 3.3 | 5.7 |
+| Medicine and Surgery (6y) | study | 100% | 0% | 4.13 / 4.36 / 4.46 | 2 / 58 / 0 / 0 / 0 | 13% | 0.2 | 3.0 | 6.2 |
+| Medicine and Surgery (6y) | hustle | 95% | 0% | 3.15 / 3.29 / 3.46 | 0 / 3 / 54 / 0 / 0 | 0% | 0.0 | 2.8 | 8.5 |
+| Medicine and Surgery (6y) | balanced | 100% | 0% | 4.15 / 4.29 / 4.40 | 0 / 60 / 0 / 0 / 0 | 0% | 0.0 | 3.0 | 6.3 |
+| Medicine and Surgery (6y) | random | 100% | 0% | 3.77 / 3.92 / 4.02 | 0 / 60 / 0 / 0 / 0 | 8% | 0.1 | 3.3 | 6.5 |
 
 <!-- sim-table -->
 
