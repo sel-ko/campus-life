@@ -61,7 +61,7 @@ export function TravelSheet({ game }: { game: GameState }) {
             <h2 className="truncate text-base leading-tight font-bold">{place.name}</h2>
             <p className="truncate text-xs text-muted">
               {sectionName(place.sectionId)}
-              {across ? ` · you are on ${sectionName(game.location.sectionId)}` : ' · close by'}
+              {across ? ` · you are on ${sectionName(game.location.sectionId)}` : options.some((o) => o.label === 'Trek') ? ' · close by' : ' · same part of campus'}
             </p>
             {status.text && (
               <p className="mt-0.5 flex items-center gap-1.5 text-xs">

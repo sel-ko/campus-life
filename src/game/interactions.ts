@@ -965,7 +965,7 @@ export function travelOptions(d: GameState, toPlaceId: string): TravelOption[] {
   const walkSlots = far ? TOWN_TRIP.walkSlots : 1;
   const walk: TravelOption = across
     ? { mode: 'walk', label: 'Walk there', detail: far ? 'Free, but the long road takes two slots' : 'Free, but it takes the whole slot', cost: { slots: walkSlots }, available: true }
-    : { mode: 'walk', label: 'Walk there', detail: 'Free: it is close by', cost: {}, available: true };
+    : { mode: 'walk', label: 'Walk there', detail: 'Free · same part of campus', cost: {}, available: true };
   // Short hops inside one part of campus cost half the fare.
   const hop = across ? 1 : 0.5;
   const keke = Math.round((fare(d, 'keke', far) * hop) / 50) * 50;
