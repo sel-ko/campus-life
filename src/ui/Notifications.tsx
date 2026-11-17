@@ -57,9 +57,9 @@ export function Notifications({ game }: { game: GameState }) {
           setQueue((q) => q.slice(1));
           openPhone('chat');
         }}
-        className="note-in pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-3xl border border-white/15 bg-[#1B2733]/95 p-3 text-left shadow-2xl backdrop-blur"
+        className="note-in pointer-events-auto flex w-full max-w-md items-start gap-2.5 rounded-2xl border border-white/15 bg-[#1B2733]/95 p-2.5 text-left shadow-2xl backdrop-blur"
       >
-        <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/10 text-xl" aria-hidden="true">
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10 text-lg" aria-hidden="true">
           {note.thread === 'bank' ? '🏦' : '💬'}
         </span>
         <span className="min-w-0 flex-1">

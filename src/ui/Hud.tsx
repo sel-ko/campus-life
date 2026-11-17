@@ -1,23 +1,26 @@
-// The floating controls over the map. Top: the real clock with the game day
-// and slot, the journal, and money. Bottom: your picture (profile), Home / Me
-// / Map, and the phone. A toast shows what just happened.
+// The floating controls over the map. Top bar: time and date, tiny needs
+// meters, the journal, the bag and money. Bottom: your picture (profile),
+// Home / Me / Map, and the phone. A toast shows what just happened.
 import { useEffect, useRef, useState } from 'react';
 import { getPlace } from '../content/places';
 import { campusEvent } from '../game/campus';
 import { naira } from '../game/format';
 import { journal } from '../game/journal';
 import { healthLabel } from '../game/needs';
-import { clockTime, slotName } from '../game/time';
+import { clockTime, slotName, weekOf } from '../game/time';
+import { SEMESTER_DAYS } from '../game/config';
 import type { GameState } from '../game/types';
 import { useGameStore } from '../store/gameStore';
 import { DoorIcon, MoonIcon, SunIcon, SunriseIcon, SunsetIcon } from './icons';
-import { NeedsPanel, InfoStack } from './lifeUi';
+import { NEED_DEFS, NeedsPanel, InfoStack, TONE_BG, needState } from './lifeUi';
 import { PILL } from './theme';
 import { todayLabel } from '../game/calendar';
 import { placeOpen } from '../game/status';
 import { BagSheet, bagItems } from './BagSheet';
 
 const SLOT_ICONS = [SunriseIcon, SunIcon, SunsetIcon, MoonIcon];
+/** The needs shown as tiny meters in the top bar (the rest are one tap away). */
+const MINI_NEEDS = ['energy', 'hunger', 'hygiene', 'bladder', 'stress'] as const;
 
 function Toast({ game }: { game: GameState }) {
   const [text, setText] = useState<string | null>(null);
@@ -34,7 +37,7 @@ function Toast({ game }: { game: GameState }) {
   }, [game.log]);
   if (!text) return null;
   return (
-    <div role="status" className={`mx-auto max-w-sm rounded-2xl px-4 py-2 text-center text-sm ${PILL}`}>
+    <div role="status" className={`pop-in mx-auto max-w-sm rounded-2xl px-3 py-1.5 text-center text-xs ${PILL}`}>
       {text}
     </div>
   );
@@ -62,17 +65,17 @@ export function Hud({ game, showMap }: { game: GameState; showMap: boolean }) {
       <div className="flex flex-col items-center gap-3">
         {follow && !inside && nearby?.enterable && !walking && (
           placeOpen(game, nearby.id).open ? (
-            <button onClick={() => tapPlace(nearby.id, true)} className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-full bg-sun px-5 font-bold text-night shadow-lg">
+            <button onClick={() => tapPlace(nearby.id, true)} className="pop-in pointer-events-auto flex min-h-11 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full bg-sun px-4 text-sm font-bold text-night shadow-lg">
               <DoorIcon size={20} /> Enter {nearby.name}
             </button>
           ) : (
-            <p className={`flex min-h-12 items-center gap-2 rounded-full px-5 text-sm font-semibold ${PILL}`}>
+            <p className={`flex min-h-11 max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full px-4 text-xs font-semibold ${PILL}`}>
               🔒 {nearby.name}: {placeOpen(game, nearby.id).reason}
             </p>
           )
         )}
         {/* The bottom bar lives in BottomBar.tsx so it shows in rooms too. */}
-        <div className="h-[60px]" />
+        <div className="h-[52px]" />
       </div>
     </div>
   );
@@ -94,61 +97,106 @@ export function TopBar({ game }: { game: GameState }) {
   const tasks = journal(game);
   const urgent = tasks.filter((t) => t.urgent).length;
   const week = campusEvent(game);
+  const anyBad = MINI_NEEDS.some((k) => needState(game, k).tone === 'bad');
+  const b = Math.round(game.phone.battery);
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-[25] flex flex-col gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div className="flex items-center justify-between gap-2">
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[25] flex flex-col gap-2 px-2 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-3">
+      <div className="mx-auto flex h-11 w-full max-w-[560px] items-center gap-1">
+        {/* Time and date: tap for your needs and to let time pass. */}
+        <button
+          onClick={() => setStatsOpen((o) => !o)}
+          aria-expanded={statsOpen}
+          className={`flex h-10 min-w-0 flex-1 items-center gap-1 rounded-full pr-2 pl-2 text-left ${PILL}`}
+          aria-label={`${clockTime(game.clock)}, ${todayLabel(game)}, day ${game.clock.day} of ${SEMESTER_DAYS}. Show your needs`}
+        >
+          <SlotIcon size={16} className="shrink-0 text-sun" />
+          <span className="flex min-w-0 flex-col leading-none">
+            <span className="truncate text-[13px] font-bold">{clockTime(game.clock)}</span>
+            <span className="truncate text-[10px] text-muted">
+              {todayLabel(game)}
+            </span>
+          </span>
+        </button>
+
+        {/* Key needs as tiny meters: a tall red bar means trouble. */}
+        <button
+          onClick={() => setStatsOpen((o) => !o)}
+          aria-expanded={statsOpen}
+          aria-label={`Needs: ${MINI_NEEDS.map((k) => `${k} ${needState(game, k).word}`).join(', ')}. Tap for details`}
+          className={`relative flex h-10 shrink-0 items-end gap-[2px] rounded-full px-2 pb-1.5 ${PILL}`}
+        >
+          {MINI_NEEDS.map((k) => {
+            const def = NEED_DEFS.find((n) => n.key === k)!;
+            const s = needState(game, k);
+            return (
+              <span key={k} className="flex w-[10px] flex-col items-center gap-px">
+                <span className="text-[8px] leading-none" aria-hidden="true">
+                  {def.icon}
+                </span>
+                <span className="relative h-[18px] w-[6px] overflow-hidden rounded-full bg-white/12">
+                  <span className={`absolute inset-x-0 bottom-0 rounded-full transition-[height] duration-500 ${TONE_BG[s.tone]} ${s.tone === 'bad' ? 'animate-pulse' : ''}`} style={{ height: `${Math.max(8, s.value)}%` }} />
+                </span>
+              </span>
+            );
+          })}
+          {(anyBad || game.ill) && <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full border-2 border-[#16181F] bg-red-400" />}
+        </button>
+
+        <button onClick={() => setJournalOpen(true)} className={`relative grid size-10 shrink-0 place-items-center rounded-full ${PILL}`} aria-label={`Journal: ${tasks.length} tasks${urgent ? `, ${urgent} urgent` : ''}`}>
+          <span aria-hidden="true">📓</span>
+          {tasks.length > 0 && (
+            <span className={`absolute -top-1 -right-1 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold ${urgent ? 'bg-red-500 text-white' : 'bg-white/90 text-night'}`}>{urgent || tasks.length}</span>
+          )}
+        </button>
+
+        <button onClick={() => setBagOpen(true)} className={`relative grid size-10 shrink-0 place-items-center rounded-full ${PILL}`} aria-label={`School bag: ${bagCount} things`}>
+          <span aria-hidden="true">🎒</span>
+          {bagCount > 0 && <span className="absolute -top-1 -right-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-sun px-1 text-[10px] font-bold text-night">{bagCount > 99 ? '99+' : bagCount}</span>}
+        </button>
+
+        <button
+          onClick={() => openPhone('wallet')}
+          className={`flex h-10 max-w-[7rem] shrink-0 items-center rounded-full px-2 text-[13px] font-extrabold ${game.money < 1500 ? 'text-red-300' : 'text-sun'} ${PILL}`}
+          aria-label={`Money ${naira(game.money)}. Open wallet`}
+        >
+          <span className="truncate">{naira(game.money)}</span>
+        </button>
+      </div>
+
+      {statsOpen && <div className="pointer-events-auto fixed inset-0" onClick={() => setStatsOpen(false)} aria-hidden="true" />}
+      {statsOpen && (
+        <div className={`pop-in relative mx-auto flex max-h-[calc(100dvh-9rem)] w-full max-w-sm flex-col gap-2 overflow-y-auto overscroll-contain rounded-3xl p-3 ${PILL}`}>
+          <p className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs font-semibold">
+            <span>
+              {game.academics.level}00 level · {game.clock.semester === 1 ? 'first' : 'second'} semester
+            </span>
+            <span className="text-muted">
+              Day {game.clock.day}/{SEMESTER_DAYS} · week {weekOf(game.clock.day)}
+            </span>
+          </p>
+          <NeedsPanel game={game} />
+          <p className="text-[11px] text-muted">
+            Health: <b className="text-ink">{healthLabel(game)}</b> · 🔋 <b className={b <= 15 ? 'text-red-300' : 'text-ink'}>{b <= 0 ? 'dead' : `${b}%`}</b> · 📶{' '}
+            <b className={game.phone.data <= 100 ? 'text-red-300' : 'text-ink'}>{game.phone.data >= 1000 ? `${(game.phone.data / 1000).toFixed(1)} GB` : `${Math.round(game.phone.data)} MB`}</b>
+            {game.room.light ? '' : ' · no light in the hostel'}
+            {game.room.water ? '' : ' · no water'}
+          </p>
+          {week && week.id !== 'normal' && (
+            <p className="rounded-xl bg-white/8 p-2 text-xs">
+              <b>This week on campus: {week.title}.</b> {week.text}
+            </p>
+          )}
           <button
-            onClick={() => setStatsOpen((o) => !o)}
-            aria-expanded={statsOpen}
-            className={`flex h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold ${PILL}`}
-            aria-label={`${clockTime(game.clock)}, ${todayLabel(game)}. Show your needs`}
+            onClick={() => {
+              setStatsOpen(false);
+              wait();
+            }}
+            className="min-h-10 shrink-0 rounded-xl border border-white/20 text-sm font-semibold"
           >
-            <SlotIcon size={18} className="text-sun" />
-            <span>{clockTime(game.clock)}</span>
-            <span className="text-xs text-muted">{todayLabel(game)}</span>
-          </button>
-
-          <button onClick={() => setJournalOpen(true)} className={`relative flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold ${PILL}`} aria-label={`Journal: ${tasks.length} tasks`}>
-            <span aria-hidden="true">📓</span> {tasks.length}
-            {urgent > 0 && <span className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{urgent}</span>}
-          </button>
-
-          <button onClick={() => setBagOpen(true)} className={`relative flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-semibold ${PILL}`} aria-label={`School bag: ${bagCount} things`}>
-            <span aria-hidden="true">🎒</span> {bagCount}
-          </button>
-
-          <button onClick={() => openPhone('wallet')} className={`flex h-11 items-center rounded-full px-4 text-sm font-bold ${PILL}`} aria-label={`Money ${naira(game.money)}. Open wallet`}>
-            {naira(game.money)}
+            Let the {slotName(game.clock).toLowerCase()} pass
           </button>
         </div>
-
-        {statsOpen && <div className="pointer-events-auto fixed inset-0" onClick={() => setStatsOpen(false)} aria-hidden="true" />}
-        {statsOpen && (
-          <div className={`relative mx-auto flex w-full max-w-sm flex-col gap-2 rounded-3xl p-4 ${PILL}`}>
-            <p className="text-sm font-semibold">
-              {game.academics.level}00 level · {game.clock.semester === 1 ? 'first' : 'second'} semester · {todayLabel(game)}
-            </p>
-            <NeedsPanel game={game} />
-            <p className="text-xs text-muted">
-              Health: <b className="text-ink">{healthLabel(game)}</b>
-              {game.room.light ? '' : ' · no light in the hostel'}
-              {game.room.water ? '' : ' · no water'}
-            </p>
-            {week && week.id !== 'normal' && (
-              <p className="rounded-xl bg-white/8 p-2 text-xs">
-                <b>This week on campus: {week.title}.</b> {week.text}
-              </p>
-            )}
-            <button
-              onClick={() => {
-                setStatsOpen(false);
-                wait();
-              }}
-              className="min-h-11 rounded-xl border border-white/20 text-sm font-semibold">
-              Let the {slotName(game.clock).toLowerCase()} pass
-            </button>
-          </div>
-        )}
+      )}
       {bagOpen && <BagSheet game={game} onClose={() => setBagOpen(false)} />}
     </div>
   );
@@ -165,7 +213,7 @@ function Notice() {
   }, [notice, setNotice]);
   if (!notice) return null;
   return (
-    <div role="status" className={`mx-auto max-w-sm rounded-2xl px-4 py-2 text-center text-sm font-semibold ${PILL}`}>
+    <div role="status" className={`pop-in mx-auto max-w-sm rounded-2xl px-3 py-1.5 text-center text-xs font-semibold ${PILL}`}>
       🔒 {notice}
     </div>
   );
