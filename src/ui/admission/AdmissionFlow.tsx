@@ -13,13 +13,28 @@ import { useGameStore } from '../../store/gameStore';
 import { useSettings } from '../../store/settingsStore';
 import type { CharacterLook } from '../../world/characters/look';
 import { CharacterCreator, baseLook, type Gender } from './CharacterCreator';
-import { Onboarding } from './Onboarding';
+import { DISCLAIMER, TITLE_CARD, TITLE_PRIMARY, TITLE_SECONDARY, TitleLayout } from './TitleScreen';
 import { BTN_GHOST, BTN_PRIMARY, CARD } from '../theme';
 
 /** A row of buttons that stays at the bottom of the panel while the form scrolls. */
-const STICKY = 'sticky bottom-0 -mx-4 flex gap-2 border-t border-white/10 bg-[#14202B] px-4 py-3';
+const STICKY = 'sticky bottom-0 -mx-4 mt-auto flex shrink-0 gap-2 border-t border-white/10 bg-[#14202B] px-4 py-2.5';
 
-type Step = 'welcome' | 'details' | 'course' | 'test' | 'letter' | 'ambition';
+/** Space around the form panel, clear of the notch and the home bar. */
+const GAP_TOP = 'max(0.75rem, env(safe-area-inset-top))';
+const GAP_BOTTOM = 'max(0.75rem, env(safe-area-inset-bottom))';
+
+type Step ='welcome' | 'avatar' | 'details' | 'course' | 'test' | 'letter' | 'ambition';
+/** The steps after the welcome card, for the progress bar. */
+const STEPS: Step[] = ['avatar', 'details', 'course', 'test', 'letter', 'ambition'];
+const STEP_NAMES: Record<Step, string> = {
+  welcome: '',
+  avatar: 'Your look',
+  details: 'Your details',
+  course: 'Course',
+  test: 'Entrance test',
+  letter: 'Admission',
+  ambition: 'Ambition',
+};
 const BACKGROUND_IDS: BackgroundId[] = ['broke', 'average', 'comfortable'];
 
 export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: () => void; onStepChange?: (welcome: boolean) => void }) {
@@ -29,7 +44,8 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
   const [step, setStep] = useState<Step>('welcome');
   // The campus behind only moves on the welcome card (phones need the power for the form).
   useEffect(() => onStepChange?.(step === 'welcome'), [step, onStepChange]);
-  const [showIntro, setShowIntro] = useState(false);
+  // "Look around" hides the menu so the whole campus shows.
+  const [menuHidden, setMenuHidden] = useState(false);
   const [name, setName] = useState('');
   const [gender, setGender] = useState<Gender>('male');
   const [look, setLook] = useState<CharacterLook>(() => baseLook('male'));
@@ -74,54 +90,96 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
     });
   }
 
-  const shell = (children: React.ReactNode) => (
-    <main
-      className="pointer-events-auto mx-auto my-4 flex max-w-md touch-pan-y flex-col gap-5 overflow-y-auto overscroll-contain rounded-3xl border border-white/10 bg-[#14202B] px-4 pt-6 shadow-2xl"
-      style={{ maxHeight: 'calc(100dvh - 2rem)' }}
-    >
-      {children}
-      <p className="mt-auto pt-2 pb-6 text-center text-xs text-muted">Unofficial fan-made game. Not affiliated with any real university.</p>
-    </main>
-  );
+  // The form panel. It scrolls inside itself with the buttons pinned to its
+  // bottom (iPhones). `fill` keeps it full height without scrolling, for the
+  // character creator, whose own option list scrolls instead.
+  const shell = (children: React.ReactNode, fill = false) => {
+    const n = STEPS.indexOf(step);
+    return (
+      <main
+        className={`pointer-events-auto mx-auto flex w-full max-w-md flex-col gap-3 rounded-3xl border border-white/12 bg-[#14202B]/95 px-4 pt-3 shadow-2xl shadow-black/50 backdrop-blur-xl ${fill ? 'overflow-hidden' : 'touch-pan-y overflow-y-auto overscroll-contain'}`}
+        style={{ marginTop: GAP_TOP, marginBottom: GAP_BOTTOM, [fill ? 'height' : 'maxHeight']: `calc(100dvh - ${GAP_TOP} - ${GAP_BOTTOM})` }}
+      >
+        <div className="flex shrink-0 items-center gap-2" aria-label={`Step ${n + 1} of ${STEPS.length}: ${STEP_NAMES[step]}`}>
+          <div className="flex flex-1 gap-1" aria-hidden="true">
+            {STEPS.map((x, i) => (
+              <span key={x} className={`h-1 flex-1 rounded-full ${i <= n ? 'bg-sun' : 'bg-white/12'}`} />
+            ))}
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide text-muted uppercase">
+            {n + 1}/{STEPS.length} · {STEP_NAMES[step]}
+          </span>
+        </div>
+        {children}
+        {!fill && <p className="pt-1 pb-4 text-center text-[10px] text-white/40">{DISCLAIMER}</p>}
+      </main>
+    );
+  };
 
   if (step === 'welcome') {
-    if (showIntro) return <Onboarding onApply={() => setStep('details')} />;
+    if (menuHidden) {
+      return (
+        <div className="pointer-events-none flex min-h-full flex-col items-center justify-end pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <button onClick={() => setMenuHidden(false)} className="pointer-events-auto flex min-h-10 items-center gap-1.5 rounded-full border border-white/15 bg-[#0F1A24]/80 px-5 text-sm font-semibold shadow-xl backdrop-blur-xl">
+            <span aria-hidden="true">☰</span> Back to the menu
+          </button>
+        </div>
+      );
+    }
     return (
-      <div className="pointer-events-none flex min-h-full flex-col justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <header className="pointer-events-auto mx-auto flex w-fit items-center gap-2 rounded-full bg-[#16181F]/90 px-4 py-2 shadow-lg">
-          <span className="text-lg" aria-hidden="true">
-            🎓
-          </span>
-          <span className="font-extrabold">Campus Life</span>
-        </header>
-        <section className="pointer-events-auto mx-auto flex w-full max-w-md flex-col gap-3 rounded-3xl border border-white/10 bg-[#14202B]/92 p-5 shadow-2xl backdrop-blur">
+      <TitleLayout>
+        <section className={TITLE_CARD}>
           {resetNotice && (
-            <div role="status" className="rounded-2xl border border-sun/50 bg-sun/10 p-3 text-sm">
+            <div role="status" className="flex items-center justify-between gap-2 rounded-xl border border-sun/50 bg-sun/10 px-3 py-1.5 text-xs">
               <p className="font-semibold text-sun">The game has been rebuilt</p>
-              <button onClick={dismissResetNotice} className="mt-1 min-h-10 font-semibold underline">
+              <button onClick={dismissResetNotice} className="min-h-9 px-1 font-semibold underline">
                 Okay
               </button>
             </div>
           )}
-          <p className="text-xs font-semibold tracking-widest text-sun uppercase">Admission to university</p>
-          <h1 className="text-3xl font-extrabold">Your degree starts here</h1>
-          <p className="text-sm text-white/75">Drag to look around campus. To go into any building you need admission: apply, take the entrance test, and move into your hostel.</p>
-          <button onClick={() => setStep('details')} className="min-h-12 rounded-xl bg-sun text-lg font-bold text-night shadow-lg shadow-sun/20">
-            Apply for admission
+          <p className="text-center text-sm leading-snug text-white/85">Get admitted, survive fresher year and graduate your way.</p>
+          <button onClick={() => setStep('avatar')} className={TITLE_PRIMARY}>
+            Apply for admission <span aria-hidden="true">→</span>
           </button>
-          <div className="flex justify-center gap-4">
-            <button onClick={() => setShowIntro(true)} className="min-h-10 text-sm font-semibold text-white/80 underline">
-              How it works
-            </button>
+          <div className="flex gap-2">
             {onlineConfigured() && (
-              <button onClick={onLeaderboard} className="min-h-10 text-sm font-semibold text-sun underline">
-                Leaderboard
+              <button onClick={onLeaderboard} className={TITLE_SECONDARY}>
+                <span aria-hidden="true">🏆</span> Leaderboard
               </button>
             )}
+            <button onClick={() => setMenuHidden(true)} className={TITLE_SECONDARY}>
+              <span aria-hidden="true">🧭</span> Look around
+            </button>
           </div>
-          <p className="text-center text-[11px] text-white/45">Unofficial fan-made game. Not affiliated with any real university.</p>
+          <p className="text-center text-[10px] leading-tight text-white/45">{DISCLAIMER}</p>
         </section>
-      </div>
+      </TitleLayout>
+    );
+  }
+
+  if (step === 'avatar') {
+    return shell(
+      <>
+        <h2 className="shrink-0 text-xl font-extrabold">Create your student</h2>
+        <CharacterCreator
+          gender={gender}
+          look={look}
+          onGender={(g) => {
+            setGender(g);
+            setLook({ ...baseLook(g), skin: look.skin });
+          }}
+          onLook={setLook}
+        />
+        <div className={STICKY}>
+          <button onClick={() => setStep('welcome')} className={BTN_GHOST}>
+            Back
+          </button>
+          <button onClick={() => setStep('details')} className={`${BTN_PRIMARY} flex-1`}>
+            Next: your details
+          </button>
+        </div>
+      </>,
+      true,
     );
   }
 
@@ -129,9 +187,9 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
     const ready = name.trim().length > 0;
     return shell(
       <>
-        <h2 className="text-2xl font-bold">Your details</h2>
-        <label className="flex flex-col gap-2">
-          <span className="font-semibold">Your name</span>
+        <h2 className="text-xl font-extrabold">Your details</h2>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-semibold">Your name</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -140,28 +198,19 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
             className="min-h-11 rounded-lg border border-line bg-panel px-3 text-ink placeholder:text-muted/70"
           />
         </label>
-        <CharacterCreator
-          gender={gender}
-          look={look}
-          onGender={(g) => {
-            setGender(g);
-            setLook(baseLook(g));
-          }}
-          onLook={setLook}
-        />
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 font-semibold">Family background</legend>
+          <legend className="mb-1.5 text-sm font-semibold">Family background</legend>
           {BACKGROUND_IDS.map((id) => {
             const b = BACKGROUNDS[id];
             return (
-              <label key={id} className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3 ${background === id ? 'border-sun bg-panel' : 'border-line'}`}>
-                <input type="radio" name="bg" checked={background === id} onChange={() => setBackground(id)} className="mt-1 size-5 accent-sun" />
+              <label key={id} className={`flex min-h-11 cursor-pointer items-start gap-2.5 rounded-xl border p-2.5 ${background === id ? 'border-sun bg-sun/8' : 'border-white/12 bg-white/4'}`}>
+                <input type="radio" name="bg" checked={background === id} onChange={() => setBackground(id)} className="mt-0.5 size-4 shrink-0 accent-sun" />
                 <span className="flex flex-col">
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="font-semibold">{b.label}</span>
-                    <span className="text-lg font-extrabold text-sun">{naira(b.startMoney)}</span>
+                    <span className="text-sm font-semibold">{b.label}</span>
+                    <span className="text-base font-extrabold text-sun">{naira(b.startMoney)}</span>
                   </span>
-                  <span className="text-sm text-muted">
+                  <span className="text-xs leading-snug text-muted">
                     Pocket money to start. {naira(b.allowance)} upkeep from Mum twice a semester; Dad sends {b.feeShare < 1 ? `${Math.round(b.feeShare * 100)}% of` : 'all'} the school fees. {b.blurb}
                   </span>
                 </span>
@@ -169,9 +218,9 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
             );
           })}
         </fieldset>
-        {!ready && <p className="-mb-3 text-center text-sm text-sun">Type your name above to continue</p>}
+        {!ready && <p className="-mb-2 text-center text-xs text-sun">Type your name above to continue</p>}
         <div className={STICKY}>
-          <button onClick={() => setStep('welcome')} className={BTN_GHOST}>
+          <button onClick={() => setStep('avatar')} className={BTN_GHOST}>
             Back
           </button>
           <button disabled={!ready} onClick={() => setStep('course')} className={`${BTN_PRIMARY} flex-1`}>
@@ -187,9 +236,9 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
     const college = getCollege(p.collegeId);
     return shell(
       <>
-        <h2 className="text-2xl font-bold">Choose your course</h2>
-        <label className="flex flex-col gap-2">
-          <span className="font-semibold">Course</span>
+        <h2 className="text-xl font-extrabold">Choose your course</h2>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-semibold">Course</span>
           <select value={choiceId} onChange={(e) => setChoiceId(e.target.value)} className="min-h-11 rounded-lg border border-line bg-panel px-3 text-ink">
             {COLLEGES.map((c) => (
               <optgroup key={c.id} label={c.name}>
@@ -202,8 +251,8 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
             ))}
           </select>
         </label>
-        <div className={`${CARD} flex flex-col gap-1 p-4 text-sm`}>
-          <p className="text-lg font-bold">{p.name}</p>
+        <div className={`${CARD} flex flex-col gap-1 p-3 text-sm`}>
+          <p className="text-base font-bold">{p.name}</p>
           <p className="text-muted">{college.name}</p>
           <p>
             {p.years} years · lectures at {sectionName(college.sectionId)}
@@ -231,7 +280,7 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
     return shell(
       <>
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Entrance test {attempt > 1 && <span className="text-sm font-semibold text-sun">· attempt {attempt}</span>}</h2>
+          <h2 className="text-lg font-extrabold">Entrance test {attempt > 1 && <span className="text-sm font-semibold text-sun">· attempt {attempt}</span>}</h2>
           <span className="text-sm text-muted">
             {qIndex + 1} of {questions.length}
           </span>
@@ -239,13 +288,13 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
         <div className="h-2 overflow-hidden rounded-full bg-white/10">
           <div className="h-full bg-sun" style={{ width: `${((qIndex + 1) / questions.length) * 100}%` }} />
         </div>
-        <p className="text-lg font-semibold">{q.q}</p>
+        <p className="text-base font-semibold">{q.q}</p>
         <div className="flex flex-col gap-2">
           {q.options.map((opt, i) => (
             <button
               key={opt}
               onClick={() => setAnswers((a) => a.map((x, j) => (j === qIndex ? i : x)))}
-              className={`min-h-12 rounded-xl border px-4 text-left ${chosen === i ? 'border-sun bg-sun/15 font-semibold' : 'border-white/15 bg-white/5'}`}
+              className={`min-h-11 rounded-xl border px-3 py-2 text-left text-sm ${chosen === i ? 'border-sun bg-sun/15 font-semibold' : 'border-white/15 bg-white/5'}`}
             >
               {opt}
             </button>
@@ -258,7 +307,7 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
             countTest();
             setStep('letter');
           }}
-          className={`${BTN_PRIMARY} sticky bottom-3`}
+          className={`${BTN_PRIMARY} sticky bottom-3 shrink-0`}
         >
           {qIndex < questions.length - 1 ? 'Next question' : 'Submit the test'}
         </button>
@@ -269,7 +318,7 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
   if (step === 'letter') {
     return shell(
       <>
-        <article className="rounded-2xl bg-[#FBF7EC] p-5 font-serif text-[#1E2A33] shadow-xl">
+        <article className="rounded-2xl bg-[#FBF7EC] p-4 font-serif text-[#1E2A33] shadow-xl">
           <p className="text-center text-xs font-bold tracking-widest uppercase">Letter of admission</p>
           <p className="text-center text-xs">Office of the Registrar · Admissions</p>
           <hr className="my-3 border-[#1E2A33]/20" />
@@ -295,7 +344,7 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
           <p className="mt-4 text-sm">Congratulations,</p>
           <p className="text-sm italic">The Registrar (fictional)</p>
         </article>
-        <p className="text-center text-sm text-muted">
+        <p className="text-center text-xs text-muted">
           Entrance test attempts: <b className="text-ink">{attempt}</b> in this application · <b className="text-ink">{testsTaken}</b> in total on this phone
         </p>
         {!letter.admittedToChoice && (
@@ -316,20 +365,20 @@ export function AdmissionFlow({ onLeaderboard, onStepChange }: { onLeaderboard: 
             {letter.admittedToChoice ? 'Accept the offer' : `Accept ${letter.programme} instead`}
           </button>
         </div>
-        <p className="text-center text-sm text-muted">Accepting adds you to the Freshers group chat.</p>
+        <p className="text-center text-xs text-muted">Accepting adds you to the Freshers group chat.</p>
       </>,
     );
   }
 
   return shell(
     <>
-      <h2 className="text-2xl font-bold">What is your ambition?</h2>
+      <h2 className="text-xl font-extrabold">What is your ambition?</h2>
       <p className="text-sm text-muted">It sets your milestones each year and how your story ends.</p>
       <div className="flex flex-col gap-2">
         {AMBITIONS.map((a) => (
-          <button key={a.id} onClick={() => setAmbition(a.id)} className={`flex flex-col items-start rounded-xl border p-3 text-left ${ambition === a.id ? 'border-sun bg-sun/10' : 'border-white/15'}`}>
-            <span className="font-bold">{a.name}</span>
-            <span className="text-sm text-muted">{a.blurb}</span>
+          <button key={a.id} onClick={() => setAmbition(a.id)} className={`flex flex-col items-start rounded-xl border p-2.5 text-left ${ambition === a.id ? 'border-sun bg-sun/10' : 'border-white/15'}`}>
+            <span className="text-sm font-bold">{a.name}</span>
+            <span className="text-xs leading-snug text-muted">{a.blurb}</span>
           </button>
         ))}
       </div>

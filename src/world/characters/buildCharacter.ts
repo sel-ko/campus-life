@@ -102,6 +102,10 @@ function hairCap(b: Builder, color: string, sideH: number, backH: number) {
 function hair(b: Builder, look: CharacterLook) {
   const h = look.hairColor;
   const { accent, extra } = look.colors;
+  const worn = look.accessories ?? {};
+  const hat = !!(worn.cap || worn.beanie || worn.gele);
+  // Puffs tuck under a beanie or a gele.
+  const tucked = !!(worn.beanie || worn.gele);
   switch (look.hairStyle) {
     case 'fade':
       hairCap(b, h, 0.34, 0.75);
@@ -115,14 +119,18 @@ function hair(b: Builder, look: CharacterLook) {
       b.box(1.46, 0.5, 0.06, h, 0, HY + 0.3, -0.705);
       b.box(1.5, 0.15, 0.06, h, 0, HY - 0.62, FZ + 0.012);
       b.box(0.36, 0.07, 0.05, h, 0, HY - 0.28, FZ + 0.02);
-      b.rbox(1.44, 0.5, 1.36, 0.12, extra, 0, HY + 0.84, 0);
-      b.rbox(1.5, 0.1, 1.42, 0.04, accent, 0, HY + 0.62, 0);
+      if (!hat) {
+        b.rbox(1.44, 0.5, 1.36, 0.12, extra, 0, HY + 0.84, 0);
+        b.rbox(1.5, 0.1, 1.42, 0.04, accent, 0, HY + 0.62, 0);
+      }
       break;
     case 'puffs':
       hairCap(b, h, 0.3, 1.0);
       for (const s of [-1, 1]) {
-        b.ico(0.5, 1, h, s * 0.72, HY + 1.0, -0.08);
-        b.cyl(0.16, 0.16, 0.1, 8, accent, s * 0.5, HY + 0.8, -0.06);
+        if (!tucked) {
+          b.ico(0.5, 1, h, s * 0.72, HY + 1.0, -0.08);
+          b.cyl(0.16, 0.16, 0.1, 8, accent, s * 0.5, HY + 0.8, -0.06);
+        }
         b.p.add(torus(0.11, 0.03), accent, s * 0.82, HY - 0.27, 0.02, [0, Math.PI / 2, 0]);
       }
       break;
@@ -188,6 +196,81 @@ function outfit(body: Builder, legL: Builder, legR: Builder, look: CharacterLook
   }
 }
 
+/** Glasses, hats, bags and jewellery: simple shapes over the head and body. */
+function accessories(b: Builder, armL: Builder, look: CharacterLook) {
+  const worn = look.accessories ?? {};
+  const { glasses, sunglasses, cap, beanie, gele, headphones, backpack, watch, earrings, necklace } = worn;
+
+  const frames = glasses ?? sunglasses;
+  if (frames) {
+    for (const s of [-1, 1]) {
+      const x = s * 0.34;
+      const y = HY + 0.06;
+      const z = FZ + 0.05;
+      if (sunglasses) b.box(0.38, 0.27, 0.03, '#14171B', x, y - 0.01, z);
+      b.box(0.42, 0.05, 0.05, frames, x, y + 0.15, z);
+      b.box(0.42, 0.04, 0.05, frames, x, y - 0.15, z);
+      b.box(0.05, 0.32, 0.05, frames, x - 0.19, y, z);
+      b.box(0.05, 0.32, 0.05, frames, x + 0.19, y, z);
+      // Arms back to the ears.
+      b.box(0.04, 0.05, 0.72, frames, s * 0.79, y + 0.12, FZ - 0.32);
+    }
+    b.box(0.16, 0.05, 0.05, frames, 0, HY + 0.13, FZ + 0.05);
+    if (sunglasses) b.box(0.08, 0.05, 0.02, '#5E6670', -0.42, HY + 0.12, FZ + 0.07);
+  }
+
+  if (cap) {
+    b.rbox(1.62, 0.44, 1.52, 0.16, cap, 0, HY + 0.82, -0.02);
+    b.rbox(1.24, 0.07, 0.62, 0.03, shade(cap, 0.78), 0, HY + 0.62, FZ + 0.24, [-0.08, 0, 0]);
+    b.cyl(0.08, 0.08, 0.06, 8, shade(cap, 0.78), 0, HY + 1.05, -0.02);
+  } else if (beanie) {
+    b.rbox(1.62, 0.56, 1.54, 0.22, beanie, 0, HY + 0.8, 0);
+    b.rbox(1.68, 0.18, 1.6, 0.07, shade(beanie, 0.8), 0, HY + 0.56, 0);
+    b.ico(0.2, 1, shade(beanie, 1.15), 0, HY + 1.12, 0);
+  } else if (gele) {
+    const fold = shade(gele, 0.82);
+    b.rbox(1.68, 0.56, 1.58, 0.2, gele, 0, HY + 0.82, -0.04);
+    b.rbox(1.72, 0.12, 1.62, 0.05, fold, 0, HY + 0.6, -0.04);
+    // The tall pleated fan at the back.
+    for (let i = -3; i <= 3; i++) {
+      b.rbox(0.36, 0.72, 0.1, 0.04, i % 2 ? gele : fold, i * 0.2, HY + 1.22 - Math.abs(i) * 0.05, -0.2 - Math.abs(i) * 0.06, [-0.35, i * 0.18, -i * 0.12]);
+    }
+    for (const s of [-1, 1]) b.rbox(0.42, 0.22, 0.5, 0.08, gele, s * 0.78, HY + 0.98, -0.45, [0, 0, s * 0.5]);
+  }
+
+  if (headphones) {
+    const top = cap || beanie || gele ? HY + 1.1 : HY + 1.0;
+    b.rbox(1.82, 0.1, 0.18, 0.04, headphones, 0, top, 0);
+    for (const s of [-1, 1]) {
+      b.rbox(0.1, top - HY - 0.1, 0.16, 0.04, headphones, s * 0.86, (top + HY + 0.1) / 2, 0);
+      b.p.add(cylinder(0.25, 0.25, 0.16, 14), headphones, s * 0.9, HY - 0.02, 0, [0, 0, Math.PI / 2]);
+      b.p.add(cylinder(0.18, 0.18, 0.04, 14), shade(headphones, 0.6), s * 0.99, HY - 0.02, 0, [0, 0, Math.PI / 2]);
+    }
+  }
+
+  // The hoodie outfit already comes with its own backpack.
+  if (backpack && look.outfit !== 'hoodie') {
+    b.rbox(0.66, 0.66, 0.3, 0.09, backpack, 0, 1.0, -0.46);
+    b.rbox(0.38, 0.24, 0.07, 0.03, shade(backpack, 0.78), 0, 0.86, -0.63);
+    for (const s of [-1, 1]) b.box(0.08, 0.56, 0.04, shade(backpack, 0.78), s * 0.24, 1.08, 0.32);
+  }
+
+  if (watch) {
+    armL.rbox(0.27, 0.08, 0.31, 0.02, watch, 0, -0.41, 0);
+    armL.box(0.04, 0.12, 0.14, '#E9EDF1', -0.14, -0.41, 0);
+  }
+
+  if (earrings && look.hairStyle !== 'puffs') {
+    for (const s of [-1, 1]) b.p.add(torus(0.1, 0.028), earrings, s * 0.83, HY - 0.26, 0.02, [0, Math.PI / 2, 0]);
+  }
+
+  if (necklace) {
+    // A V of chain from the collar down to a pendant.
+    for (const s of [-1, 1]) b.box(0.035, 0.24, 0.035, necklace, s * 0.075, 1.285, 0.32, [0, 0, -s * 0.72]);
+    b.rbox(0.1, 0.13, 0.05, 0.02, necklace, 0, 1.15, 0.33);
+  }
+}
+
 const cache = new Map<string, CharacterModel>();
 
 /** Geometry for a look. Identical looks share one model. */
@@ -200,10 +283,12 @@ export function characterModel(look: CharacterLook): CharacterModel {
   const body = new Builder(parts.body);
   const { sleeve, tilt } = outfit(body, new Builder(parts.legL), new Builder(parts.legR), look);
   const sleeveColour = look.colors.top;
-  arm(new Builder(parts.armL), sleeveColour, sleeve, look.skin);
+  const armL = new Builder(parts.armL);
+  arm(armL, sleeveColour, sleeve, look.skin);
   arm(new Builder(parts.armR), sleeveColour, sleeve, look.skin);
   head(body, look);
   hair(body, look);
+  accessories(body, armL, look);
 
   const model: CharacterModel = {
     body: mergeWithVertexColours(parts.body),
